@@ -1,0 +1,62 @@
+using System.Linq;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+/// <summary>씬 간 유지되는 싱글톤. 선택한 스테이지/난이도, 클리어 저장, 해금 판정.</summary>
+public class GameManager : MonoBehaviour
+{
+    public static GameManager I { get; private set; }
+
+    /// <summary>챕터별 HP: 챕터1=3 / 챕터2=2 / 챕터3=1</summary>
+    public static readonly int[] ChapterHp = { 3, 2, 1 };
+
+    [Tooltip("모든 챕터의 StageData를 등록")]
+    public StageData[] allStages;
+
+    public StageData CurrentStage { get; private set; }
+    public Difficulty CurrentDifficulty { get; private set; }
+
+    void Awake()
+    {
+        if (I != null) { Destroy(gameObject); return; }
+        I = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    public void StartStage(StageData stage, Difficulty diff)
+    {
+        CurrentStage = stage;
+        CurrentDifficulty = diff;
+        SceneManager.LoadScene(stage.sceneName);
+    }
+
+    // ---------- 저장 / 해금 ----------
+    static string Key(StageData s, Difficulty d) => $"clear_{s.chapter}_{s.stage}_{(int)d}";
+
+    public void SaveClear(StageData s, Difficulty d)
+    {
+        PlayerPrefs.SetInt(Key(s, d), 1);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>쉬움/보통/어려움 중 하나라도 클리어했는가</summary>
+    public bool IsCleared(StageData s)
+        => System.Enum.GetValues(typeof(Difficulty)).Cast<Difficulty>()
+                .Any(d => PlayerPrefs.GetInt(Key(s, d), 0) == 1);
+
+    /// <summary>이전 스테이지를 어떤 난이도로든 클리어하면 다음 스테이지는 3난이도 모두 개방</summary>
+    public bool IsUnlocked(StageData s)
+    {
+        var prev = FindPrev(s);
+        return prev == null || IsCleared(prev);
+    }
+
+    StageData FindPrev(StageData s)
+    {
+        var sameChapterPrev = allStages.FirstOrDefault(x => x.chapter == s.chapter && x.stage == s.stage - 1);
+        if (sameChapterPrev != null) return sameChapterPrev;
+        if (s.stage > 1) return null;
+        // 챕터 첫 스테이지 → 이전 챕터 마지막 스테이지
+        return allStages.Where(x => x.chapter == s.chapter - 1).OrderByDescending(x => x.stage).FirstOrDefault();
+    }
+}
