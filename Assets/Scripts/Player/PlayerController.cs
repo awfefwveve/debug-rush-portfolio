@@ -37,6 +37,8 @@ public class PlayerController : MonoBehaviour
         rb.freezeRotation = true;
         Inventory = GetComponent<PlayerInventory>();
         Health = GetComponent<PlayerHealth>();
+        if (GetComponent<PauseMenu>() == null) gameObject.AddComponent<PauseMenu>();
+        if (GetComponent<StageTutorial>() == null) gameObject.AddComponent<StageTutorial>();
     }
 
     void Update()
@@ -46,6 +48,7 @@ public class PlayerController : MonoBehaviour
         input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
 
         if (Input.GetKeyDown(KeyCode.E)) TryInteract();
+        if (Input.GetKeyDown(KeyCode.Q)) DropLastItem();
         if (Input.GetKeyDown(KeyCode.Space) && !IsJumping && Time.time >= nextJumpTime)
             StartCoroutine(JumpRoutine());
     }
@@ -69,6 +72,18 @@ public class PlayerController : MonoBehaviour
             if (d < bestDist) { bestDist = d; best = it; }
         }
         best?.Interact(this);
+    }
+
+    void DropLastItem()
+    {
+        if (Inventory.items.Count == 0) return;
+        int index = Inventory.items.Count - 1;
+        ItemType item = Inventory.items[index];
+        Inventory.RemoveAt(index);
+        var dropped = new GameObject("Dropped " + item);
+        dropped.transform.position = transform.position + Vector3.down * 0.45f;
+        var drop = dropped.AddComponent<DroppedItem>();
+        drop.Setup(item);
     }
 
     // ---------- 점프(패링) ----------

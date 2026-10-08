@@ -53,14 +53,50 @@ public class StageHUD : MonoBehaviour
     void RefreshHeld()
     {
         var items = player.Inventory.items;
+        EnsureItemLabels();
         for (int i = 0; i < heldSlots.Length; i++)
         {
             bool has = i < items.Count;
             heldSlots[i].enabled = has;
+            var label = heldSlots[i].transform.Find("ItemNameLabel")?.GetComponent<TMP_Text>();
             if (has) heldSlots[i].sprite = icons.Get(items[i]);
+            if (label != null) label.text = has ? ItemName(items[i]) : "";
         }
     }
 
+    void EnsureItemLabels()
+    {
+        foreach (var slot in heldSlots)
+        {
+            if (slot == null || slot.transform.Find("ItemNameLabel") != null) continue;
+            var go = new GameObject("ItemNameLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
+            go.transform.SetParent(slot.transform, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f); rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 1f); rect.anchoredPosition = new Vector2(0f, -4f);
+            rect.sizeDelta = new Vector2(150f, 28f);
+            var text = go.GetComponent<TextMeshProUGUI>(); text.font = KoreanTMPFont.Get(); text.fontSize = 14f;
+            text.alignment = TextAlignmentOptions.Center; text.color = Color.white; text.raycastTarget = false;
+        }
+    }
+    string ItemName(ItemType item)
+    {
+        switch (item)
+        {
+            case ItemType.Planning: return "기획";
+            case ItemType.Programming: return "프로그래밍";
+            case ItemType.Graphic: return "그래픽";
+            case ItemType.QA: return "QA";
+            case ItemType.ContentDoc: return "기획 문서";
+            case ItemType.SystemDoc: return "시스템 문서";
+            case ItemType.CharacterCode: return "캐릭터 코드";
+            case ItemType.CodeFix: return "코드 수정";
+            case ItemType.GraphicFix: return "그래픽 수정";
+            case ItemType.GameBuild: return "게임 빌드";
+            case ItemType.ArtFinal: return "최종 아트";
+            default: return "오류 덩어리";
+        }
+    }
     void OnEnded(bool cleared)
     {
         resultPanel.SetActive(true);

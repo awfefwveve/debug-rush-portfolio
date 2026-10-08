@@ -21,6 +21,8 @@ public class GameManager : MonoBehaviour
         if (I != null) { Destroy(gameObject); return; }
         I = this;
         DontDestroyOnLoad(gameObject);
+        if (GetComponent<DebugMenu>() == null) gameObject.AddComponent<DebugMenu>();
+        SoundEffectManager.EnsureInstance();
     }
 
     public void StartStage(StageData stage, Difficulty diff)

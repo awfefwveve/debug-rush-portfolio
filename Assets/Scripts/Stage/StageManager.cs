@@ -27,7 +27,7 @@ public class StageManager : MonoBehaviour
 
     readonly List<MonsterBase> monsters = new List<MonsterBase>();
 
-    void Awake() => I = this;
+    void Awake() { I = this; if (dialogueUI == null) dialogueUI = DialogueUI.CreateRuntime(); }
 
     IEnumerator Start()
     {
@@ -91,7 +91,7 @@ public class StageManager : MonoBehaviour
         if (cleared)
         {
             GameManager.I?.SaveClear(Data, Diff);
-            AchievementManager.Unlock("first_clear");
+            if (Data.chapter == 1 && Data.stage == 1) AchievementManager.Unlock("first_clear");
             if (player.Health.Hp == player.Health.MaxHp) AchievementManager.Unlock("no_damage");
         }
         StartCoroutine(EndRoutine(cleared));
