@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff003783cad384141a339380052cda9a, type: 3}
+  m_Name: no_damage
+  m_EditorClassIdentifier: Assembly-CSharp::AchievementData
+  id: no_damage
+  title: "\uC644\uBCBD\uD55C \uD574\uACB0"
+  description: "\uCCB4\uB825\uC744 \uC783\uC9C0 \uC54A\uACE0 \uC2A4\uD14C\uC774\uC9C0\uB97C
+    \uD074\uB9AC\uC5B4\uD588\uC2B5\uB2C8\uB2E4."
+  icon: {fileID: 1753468626617435621, guid: 6e4115161e782f94e85d54769191c02a, type: 3}
+  secret: 1
