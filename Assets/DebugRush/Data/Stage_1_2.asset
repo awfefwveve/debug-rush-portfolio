@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40bd741bfbcabbe43b19f4467502735b, type: 3}
+  m_Name: Stage_1_2
+  m_EditorClassIdentifier: Assembly-CSharp::StageData
+  chapter: 1
+  stage: 2
+  displayName: 1-2
+  summary: "\uB354 \uB9CE\uC740 \uD328\uD134\uC5D0 \uB300\uBE44\uD558\uC138\uC694"
+  sceneName: Stage
+  timeLimit: 180
+  timeMultiplier:
+  - 1.3
+  - 1
+  - 0.8
+  terminalGoal: 020000000300000004000000
+  monsters:
+  - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
+    patternCount: 2
+    spawnPos: {x: 3, y: 0}
+  intro: []
+  outro: []
