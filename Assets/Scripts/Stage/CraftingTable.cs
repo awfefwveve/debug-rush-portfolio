@@ -15,6 +15,8 @@ public class CraftingTable : MonoBehaviour, IInteractable
     /// <summary>완성품 아이콘 표시용 (null이면 숨김).</summary>
     public event Action<ItemType?> OutputChanged;
 
+    /// <summary>0~1은 제작 진행률, -1은 게이지 숨김을 뜻합니다.</summary>
+    public event Action<float> CraftProgressChanged;
 
     public void Interact(PlayerController player)
     {
@@ -46,6 +48,7 @@ public class CraftingTable : MonoBehaviour, IInteractable
     IEnumerator CraftRoutine()
     {
         crafting = true;
+        CraftProgressChanged?.Invoke(0f);
 
         float duration = Mathf.Max(0f, craftTime);
         float elapsed = 0f;
@@ -53,11 +56,13 @@ public class CraftingTable : MonoBehaviour, IInteractable
         {
             yield return null;
             elapsed += Time.deltaTime;
+            CraftProgressChanged?.Invoke(Mathf.Clamp01(elapsed / duration));
         }
 
         output = ItemRules.Combine(mats[0], mats[1]);
         mats.Clear();
         crafting = false;
+        CraftProgressChanged?.Invoke(-1f);
         OutputChanged?.Invoke(output);
     }
 }
