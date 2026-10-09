@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 public class MainMenu : MonoBehaviour
 {
     public GameObject settingsPanel;
+    [Tooltip("설정창의 우측 상단 여백 (픽셀)")]
+    public Vector2 settingsWindowTopRightMargin = new Vector2(24f, 24f);
     float volume;
     int quality;
     void Awake() { volume = PlayerPrefs.GetFloat("settings_volume", AudioListener.volume); AudioListener.volume = volume; quality = Mathf.Clamp(PlayerPrefs.GetInt("settings_quality", QualitySettings.GetQualityLevel()), 0, QualitySettings.names.Length - 1); QualitySettings.SetQualityLevel(quality); Screen.fullScreen = PlayerPrefs.GetInt("settings_fullscreen", Screen.fullScreen ? 1 : 0) == 1; }
@@ -24,7 +26,9 @@ public class MainMenu : MonoBehaviour
         KoreanIMGUIFont.Apply();
         if (!settingsPanel || !settingsPanel.activeSelf) return;
         float w = 330, h = 220;
-        var r = new Rect((Screen.width-w)*.5f, Screen.height*.58f, w, h);
+        float x = Screen.width - w - settingsWindowTopRightMargin.x;
+        float y = settingsWindowTopRightMargin.y;
+        var r = new Rect(x, y, w, h);
         GUI.Box(r, "그래픽 / 음량 설정");
         GUILayout.BeginArea(new Rect(r.x+20, r.y+32, w-40, h-42));
         GUILayout.Label("전체 음량  " + Mathf.RoundToInt(volume*100) + "%");
