@@ -15,7 +15,33 @@ public class MapScreen : MonoBehaviour
     {
         chapterDropdown.onValueChanged.AddListener(i => Build(i + 1));
         backButton.onClick.AddListener(() => SceneManager.LoadScene("Title"));
+        EnsureScrollbar();
         Build(chapterDropdown != null ? chapterDropdown.value + 1 : 1);
+    }
+
+    /// <summary>기획서 p.17: 카드 가로 스크롤 + 하단 스크롤바</summary>
+    void EnsureScrollbar()
+    {
+        var scroll = content != null ? content.GetComponentInParent<ScrollRect>() : null;
+        if (scroll == null) return;
+        scroll.horizontal = true;
+        scroll.vertical = false;
+        scroll.scrollSensitivity = Mathf.Max(scroll.scrollSensitivity, 30f);
+        if (scroll.horizontalScrollbar != null) return;
+
+        var go = DefaultControls.CreateScrollbar(new DefaultControls.Resources());
+        go.name = "HorizontalScrollbar";
+        go.transform.SetParent(scroll.transform, false);
+        var r = (RectTransform)go.transform;
+        r.anchorMin = new Vector2(0f, 0f);
+        r.anchorMax = new Vector2(1f, 0f);
+        r.pivot = new Vector2(0.5f, 1f);
+        r.anchoredPosition = new Vector2(0f, -8f);
+        r.sizeDelta = new Vector2(0f, 20f);
+        var bar = go.GetComponent<Scrollbar>();
+        bar.direction = Scrollbar.Direction.LeftToRight;
+        scroll.horizontalScrollbar = bar;
+        scroll.horizontalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
     }
     void Build(int chapter)
     {
