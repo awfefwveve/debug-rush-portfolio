@@ -27,6 +27,9 @@ public class StageManager : MonoBehaviour
 
     readonly List<MonsterBase> monsters = new List<MonsterBase>();
 
+    public const string EditorPlayStageKey = "DebugRush.PlayStagePath";
+    public const int StagesPerChapter = 10;
+
     void Awake() { I = this; if (dialogueUI == null) dialogueUI = DialogueUI.CreateRuntime(); }
 
     IEnumerator Start()
@@ -34,7 +37,18 @@ public class StageManager : MonoBehaviour
         var gm = GameManager.I;
         Data = (gm != null && gm.CurrentStage != null) ? gm.CurrentStage : debugStage;
         Diff = (gm != null && gm.CurrentStage != null) ? gm.CurrentDifficulty : debugDifficulty;
+#if UNITY_EDITOR
+        // Stage Maker의 [이 스테이지 플레이]
+        if (gm == null || gm.CurrentStage == null)
+        {
+            string path = UnityEditor.SessionState.GetString(EditorPlayStageKey, "");
+            UnityEditor.SessionState.EraseString(EditorPlayStageKey);
+            var picked = string.IsNullOrEmpty(path) ? null : UnityEditor.AssetDatabase.LoadAssetAtPath<StageData>(path);
+            if (picked != null) Data = picked;
+        }
+#endif
         if (Data == null) Data = FallbackStage(gm);
+        if (Data.layout != null && Data.layout.use) StageLayoutApplier.Apply(Data.layout, this, true);
 
         TimeLeft = Data.TimeFor(Diff);
         foreach (var t in terminals)
@@ -141,8 +155,20 @@ public class StageManager : MonoBehaviour
             GameManager.I?.SaveClear(Data, Diff);
             if (Data.chapter == 1 && Data.stage == 1) AchievementManager.Unlock("first_clear");
             if (player.Health.Hp == player.Health.MaxHp) AchievementManager.Unlock("no_damage");
+            if (IsChapterCleared(Data.chapter)) AchievementManager.Unlock($"chapter{Data.chapter}_clear");
         }
         StartCoroutine(EndRoutine(cleared));
+    }
+
+    /// <summary>챕터 10스테이지가 모두 등록되어 있고 전부 클리어했는가</summary>
+    static bool IsChapterCleared(int chapter)
+    {
+        var gm = GameManager.I;
+        if (gm == null || gm.allStages == null) return false;
+        int cleared = 0;
+        foreach (var s in gm.allStages)
+            if (s != null && s.chapter == chapter && gm.IsCleared(s)) cleared++;
+        return cleared >= StagesPerChapter;
     }
 
     IEnumerator EndRoutine(bool cleared)

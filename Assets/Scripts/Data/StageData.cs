@@ -17,6 +17,45 @@ public struct DialogueLine
     public Sprite portrait;
 }
 
+/// <summary>스테이지별 맵 배치. use=false면 Stage 씬에 놓인 기본 배치를 그대로 사용.</summary>
+[System.Serializable]
+public class StageLayout
+{
+    public bool use;
+    public Vector2 playerStart = new Vector2(0f, 0f);
+    [Header("재료대")]
+    public Vector2 planning = new Vector2(-7f, -2f);
+    public Vector2 programming = new Vector2(-7f, 2f);
+    public Vector2 graphic = new Vector2(7f, 2f);
+    public Vector2 qa = new Vector2(7f, -2f);
+    [Header("제작대 / 단말기")]
+    public Vector2 craftingTable = new Vector2(0f, -3.4f);
+    [Tooltip("단말기 개수 = 배열 길이 (1~4)")]
+    public Vector2[] terminals = { new Vector2(-6f, 2.4f), new Vector2(6f, -2.4f) };
+
+    public Vector2 MaterialPos(ItemType t)
+    {
+        switch (t)
+        {
+            case ItemType.Planning: return planning;
+            case ItemType.Programming: return programming;
+            case ItemType.Graphic: return graphic;
+            default: return qa;
+        }
+    }
+
+    public void SetMaterialPos(ItemType t, Vector2 p)
+    {
+        switch (t)
+        {
+            case ItemType.Planning: planning = p; break;
+            case ItemType.Programming: programming = p; break;
+            case ItemType.Graphic: graphic = p; break;
+            default: qa = p; break;
+        }
+    }
+}
+
 [CreateAssetMenu(menuName = "DebugRush/Stage Data")]
 public class StageData : ScriptableObject
 {
@@ -33,6 +72,8 @@ public class StageData : ScriptableObject
     public MonsterSpawn[] monsters;      // 스테이지당 1~2마리
     public DialogueLine[] intro;         // 스테이지 시작 스토리
     public DialogueLine[] outro;         // 스테이지 종료 스토리
+
+    public StageLayout layout = new StageLayout();
 
     public float TimeFor(Difficulty d) => timeLimit * timeMultiplier[(int)d];
     public int GoalFor(Difficulty d) => Mathf.Clamp(terminalGoal[(int)d], 2, 8);
