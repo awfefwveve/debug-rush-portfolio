@@ -68,6 +68,7 @@ public class StageData : ScriptableObject
     [Min(10)] public float timeLimit = 180f;
     [Tooltip("Easy / Normal / Hard")] public float[] timeMultiplier = { 1.3f, 1f, 0.8f };
     [Tooltip("난이도별 단말기 완료 목표 (2~8)")] public int[] terminalGoal = { 2, 3, 4 };
+    [Tooltip("난이도별 단말기 요구사항 하나당 남은 시간(초). 0 = 무제한")] public float[] requestTime = { 40f, 30f, 22f };
 
     public MonsterSpawn[] monsters;      // 스테이지당 1~2마리
     public DialogueLine[] intro;         // 스테이지 시작 스토리
@@ -77,4 +78,6 @@ public class StageData : ScriptableObject
 
     public float TimeFor(Difficulty d) => timeLimit * timeMultiplier[(int)d];
     public int GoalFor(Difficulty d) => Mathf.Clamp(terminalGoal[(int)d], 2, 8);
+    public float RequestTimeFor(Difficulty d)
+        => requestTime != null && requestTime.Length > (int)d ? Mathf.Max(0f, requestTime[(int)d]) : 30f;
 }

@@ -109,6 +109,7 @@ public class StageMakerWindow : EditorWindow
         Prop("timeLimit", "제한시간 (초, Normal 기준)");
         Prop("timeMultiplier", "난이도별 시간 배율 (Easy/Normal/Hard)");
         Prop("terminalGoal", "난이도별 단말기 목표 (2~8)");
+        Prop("requestTime", "난이도별 요구사항 남은 시간 (초, 0=무제한)");
 
         Section("몬스터 (스테이지당 1~2마리)");
         Prop("monsters", "몬스터 목록");

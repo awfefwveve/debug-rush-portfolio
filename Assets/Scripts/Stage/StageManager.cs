@@ -53,6 +53,7 @@ public class StageManager : MonoBehaviour
         TimeLeft = Data.TimeFor(Diff);
         foreach (var t in terminals)
         {
+            t.requestTime = Data.RequestTimeFor(Diff);
             t.Init(Data.GoalFor(Diff));
             t.Changed += OnTerminalChanged;
         }
