@@ -20,15 +20,15 @@ public class MapScreen : MonoBehaviour
     void Build(int chapter)
     {
         foreach (Transform c in content) Destroy(c.gameObject);
-        var stages = GameManager.I.allStages.Where(s => s.chapter == chapter).OrderBy(s => s.stage).ToArray();
-        foreach (var s in stages) Instantiate(cardPrefab, content).Setup(s);
-        if (stages.Length == 0)
+        var stages = GameManager.I.allStages.Where(s => s != null && s.chapter == chapter).ToArray();
+        int last = Mathf.Max(StageManager.StagesPerChapter, stages.Length > 0 ? stages.Max(s => s.stage) : 0);
+        // 챕터당 10칸을 모두 보여주고, 등록 안 된 스테이지는 "준비 중"으로 잠금
+        for (int n = 1; n <= last; n++)
         {
-            var empty = new GameObject("NoStagesMessage", typeof(RectTransform), typeof(TextMeshProUGUI));
-            empty.transform.SetParent(content, false);
-            var label = empty.GetComponent<TextMeshProUGUI>();
-            label.text = $"{chapter}학년 스테이지는 아직 등록되지 않았습니다.";
-            label.font = KoreanTMPFont.Get(); label.fontSize = 28; label.alignment = TextAlignmentOptions.Center;
+            var s = stages.FirstOrDefault(x => x.stage == n);
+            var card = Instantiate(cardPrefab, content);
+            if (s != null) card.Setup(s);
+            else card.SetupPlaceholder(chapter, n);
         }
     }
 }

@@ -33,4 +33,24 @@ public class StageCard : MonoBehaviour
             button.onClick.AddListener(() => GameManager.I.StartStage(s, Difficulty.Normal));
         }
     }
+
+    /// <summary>아직 기획되지 않은 스테이지 슬롯: 잠금 + "준비 중"</summary>
+    public void SetupPlaceholder(int chapter, int stage)
+    {
+        title.text = $"{chapter}-{stage}";
+        summary.text = "준비 중";
+        lockOverlay.SetActive(true);
+
+        if (difficultyButtons == null) return;
+        for (int i = 0; i < difficultyButtons.Length; i++)
+        {
+            var button = difficultyButtons[i];
+            if (button == null) continue;
+            button.gameObject.SetActive(i == 0);
+            button.interactable = false;
+            button.onClick.RemoveAllListeners();
+            var label = button.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = "준비 중";
+        }
+    }
 }

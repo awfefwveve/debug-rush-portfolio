@@ -46,19 +46,18 @@ public class GameManager : MonoBehaviour
         => System.Enum.GetValues(typeof(Difficulty)).Cast<Difficulty>()
                 .Any(d => PlayerPrefs.GetInt(Key(s, d), 0) == 1);
 
-    /// <summary>이전 스테이지를 어떤 난이도로든 클리어하면 다음 스테이지는 3난이도 모두 개방</summary>
+    /// <summary>
+    /// 이전 스테이지를 어떤 난이도로든 클리어하면 다음 스테이지 개방.
+    /// 챕터 첫 스테이지는 이전 챕터 10스테이지를 모두 클리어해야 개방 (기획서 p.12).
+    /// </summary>
     public bool IsUnlocked(StageData s)
     {
-        var prev = FindPrev(s);
-        return prev == null || IsCleared(prev);
-    }
+        var prev = allStages.Where(x => x != null && x.chapter == s.chapter && x.stage < s.stage)
+                            .OrderByDescending(x => x.stage).FirstOrDefault();
+        if (prev != null) return IsCleared(prev);
+        if (s.chapter <= 1) return true;
 
-    StageData FindPrev(StageData s)
-    {
-        var sameChapterPrev = allStages.FirstOrDefault(x => x.chapter == s.chapter && x.stage == s.stage - 1);
-        if (sameChapterPrev != null) return sameChapterPrev;
-        if (s.stage > 1) return null;
-        // 챕터 첫 스테이지 → 이전 챕터 마지막 스테이지
-        return allStages.Where(x => x.chapter == s.chapter - 1).OrderByDescending(x => x.stage).FirstOrDefault();
+        var prevChapter = allStages.Where(x => x != null && x.chapter == s.chapter - 1).ToArray();
+        return prevChapter.Length >= StageManager.StagesPerChapter && prevChapter.All(IsCleared);
     }
 }
