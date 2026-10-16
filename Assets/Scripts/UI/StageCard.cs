@@ -42,6 +42,8 @@ public class StageCard : MonoBehaviour
         title.text = $"{chapter}-{stage}";
         summary.text = "준비 중";
         lockOverlay.SetActive(true);
+        var lockLabel = lockOverlay.GetComponentInChildren<TMP_Text>(true);
+        if (lockLabel != null) lockLabel.text = "준비 중인 스테이지입니다";
 
         if (difficultyButtons == null) return;
         for (int i = 0; i < difficultyButtons.Length; i++)
