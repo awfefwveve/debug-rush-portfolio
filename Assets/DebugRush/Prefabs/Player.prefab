@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7244627923041041128}
   - component: {fileID: 8776841420008257263}
   - component: {fileID: 2669910890376718460}
+  - component: {fileID: 957745906778816020}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -146,6 +147,54 @@ MonoBehaviour:
   jumpCooldown: 0.3
   jumpHeight: 0.6
   visual: {fileID: 7488799164640399776}
+--- !u!114 &957745906778816020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 196411636146097235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 296cf09805afcbe4097f8d7567e918f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpriteAnimator
+  anim: {fileID: 4854090447016428071}
+  runLeft:
+  - {fileID: 21300000, guid: 896bb2b613ec9bc45b0be171ab1eb77f, type: 3}
+  - {fileID: 21300000, guid: 7d75e197d8e31b343bc4c0efea2ed7bc, type: 3}
+  - {fileID: 21300000, guid: 7eb998015dd96424aa1b93c9c02e3958, type: 3}
+  - {fileID: 21300000, guid: e435259562e21db4d81abac4f0090959, type: 3}
+  - {fileID: 21300000, guid: a6d24036febced8448cd8b143ea9a5f2, type: 3}
+  runRight:
+  - {fileID: 21300000, guid: 4b5df59045843e14d9e35689d47f4018, type: 3}
+  - {fileID: 21300000, guid: 53cfb3d760f8f4b4499eb7565e4afdcc, type: 3}
+  - {fileID: 21300000, guid: d6531c262aac20e4fb450eafef22d817, type: 3}
+  - {fileID: 21300000, guid: d66eae8678ef8d140b9bd32728d7434c, type: 3}
+  - {fileID: 21300000, guid: 3fe9b1cd5402f46448cf62ec47750045, type: 3}
+  dashLeft:
+  - {fileID: 21300000, guid: 087b3fac6ae3b3246acf5334dbd8dbb0, type: 3}
+  - {fileID: 21300000, guid: ca61b8d87fcde3b4496ef1ca3056315e, type: 3}
+  - {fileID: 21300000, guid: b6fe6f4c14b175349b78e1a24dba9b7f, type: 3}
+  - {fileID: 21300000, guid: 9f872fbad9f042741b6bec0971df9092, type: 3}
+  - {fileID: 21300000, guid: e8dacf9ae3e5e4443a6ac47ce8307761, type: 3}
+  - {fileID: 21300000, guid: 630adea572c30e143b207be40dd658b0, type: 3}
+  - {fileID: 21300000, guid: 7413df18e22cc5545a612542490cfb95, type: 3}
+  - {fileID: 21300000, guid: 49532b5c09a925c4baff4318699c88a6, type: 3}
+  - {fileID: 21300000, guid: b7dad1608ed536c48b136395df0baf89, type: 3}
+  - {fileID: 21300000, guid: ed41ee5f93fda094e8b6b23990b57232, type: 3}
+  dashRight:
+  - {fileID: 21300000, guid: 56e91ae1c8e1cf746bbfa8df963591f5, type: 3}
+  - {fileID: 21300000, guid: 93a3146e4e875934baea2bd8d568178f, type: 3}
+  - {fileID: 21300000, guid: 833e011055071484fb6f2a751def0b61, type: 3}
+  - {fileID: 21300000, guid: 6627a3dc568051c43b5a3a864d593c92, type: 3}
+  - {fileID: 21300000, guid: e7e4869b313815b48ad4a8fe81f166ee, type: 3}
+  - {fileID: 21300000, guid: eca65f065c74c6f4fb131279a0c76e77, type: 3}
+  - {fileID: 21300000, guid: 51df45559a77478408a28053d940ec46, type: 3}
+  - {fileID: 21300000, guid: e90140d3596c3264a81a3e3909b74d7f, type: 3}
+  - {fileID: 21300000, guid: 807de34856a7a2743bc7416c050bc5bf, type: 3}
+  - {fileID: 21300000, guid: b01981a0bee0eff4495e10956c805b90, type: 3}
+  runFps: 10
 --- !u!1 &1105425147747167451
 GameObject:
   m_ObjectHideFlags: 0
@@ -156,6 +205,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7488799164640399776}
   - component: {fileID: 563654079643550323}
+  - component: {fileID: 4854090447016428071}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -227,7 +277,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -7214755038752253020, guid: 35244be611863d64cbf8d38e51f9faa9, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4b5df59045843e14d9e35689d47f4018, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -237,3 +287,21 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &4854090447016428071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105425147747167451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bb0d6438a2619b4badc801eb7a87739, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteFrameAnimator
+  target: {fileID: 563654079643550323}
+  frames:
+  - {fileID: 21300000, guid: 4b5df59045843e14d9e35689d47f4018, type: 3}
+  fps: 10
+  loop: 1
+  unscaled: 0

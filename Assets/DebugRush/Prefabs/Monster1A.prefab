@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 8111454863255714674}
   - component: {fileID: 6745655590957452865}
   - component: {fileID: 6998620831496604909}
+  - component: {fileID: 6401381750164191930}
+  - component: {fileID: 9217089297161854717}
   m_Layer: 0
   m_Name: Monster1A
   m_TagString: Untagged
@@ -82,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -4816352100728501719, guid: db80b6aa8a255a140a4ec29614c561cf, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 988a41cb73e952e4e998cd4e0cd92259, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -113,6 +115,72 @@ MonoBehaviour:
     y: -3
     width: 14
     height: 6
-  projectilePrefab: {fileID: 5062739518961319735, guid: 0cf482545eae612418b4a41c21a493c9, type: 3}
+  intervalStepMultiplier: 0.85
+  minPatternInterval: 0.6
+  speedStepBonus: 0.1
+  maxMoveSpeed: 4
+  projectilePrefab: {fileID: 5062739518961319735, guid: d611fa1b590e8474aaa5693188336321, type: 3}
   fieldPrefab: {fileID: 7810972916523871575, guid: 144249ecbc77f28428ac4742a4fc2aa0, type: 3}
   spreadAngle: 20
+--- !u!114 &6401381750164191930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5659492794940413673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bb0d6438a2619b4badc801eb7a87739, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteFrameAnimator
+  target: {fileID: 6745655590957452865}
+  frames:
+  - {fileID: 21300000, guid: 988a41cb73e952e4e998cd4e0cd92259, type: 3}
+  - {fileID: 21300000, guid: f3bc518e6d863884f8c4ebbecf377c0b, type: 3}
+  - {fileID: 21300000, guid: be2a2c60a8e7cc643b55b9d466acf636, type: 3}
+  - {fileID: 21300000, guid: ee19ea3bbdd45444599ae2cac98de2b7, type: 3}
+  - {fileID: 21300000, guid: 45961af40af669a4ea3268ed445434eb, type: 3}
+  - {fileID: 21300000, guid: 596948fdca2ddf147a619c4cd43bae8a, type: 3}
+  - {fileID: 21300000, guid: a8d36bc009aa5bd46bbf2fd34d112a18, type: 3}
+  fps: 10
+  loop: 1
+  unscaled: 0
+--- !u!114 &9217089297161854717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5659492794940413673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9210a6e39a6b96842afe21320dc3a11f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpriteAnimator
+  anim: {fileID: 6401381750164191930}
+  move:
+  - {fileID: 21300000, guid: 988a41cb73e952e4e998cd4e0cd92259, type: 3}
+  - {fileID: 21300000, guid: f3bc518e6d863884f8c4ebbecf377c0b, type: 3}
+  - {fileID: 21300000, guid: be2a2c60a8e7cc643b55b9d466acf636, type: 3}
+  - {fileID: 21300000, guid: ee19ea3bbdd45444599ae2cac98de2b7, type: 3}
+  - {fileID: 21300000, guid: 45961af40af669a4ea3268ed445434eb, type: 3}
+  - {fileID: 21300000, guid: 596948fdca2ddf147a619c4cd43bae8a, type: 3}
+  - {fileID: 21300000, guid: a8d36bc009aa5bd46bbf2fd34d112a18, type: 3}
+  pattern1:
+  - {fileID: 21300000, guid: 3a657ec2367397e4ea52964346691ce0, type: 3}
+  - {fileID: 21300000, guid: 488ebfb57c79e274ba05897beec8e358, type: 3}
+  - {fileID: 21300000, guid: 49a42572c41dc7441b0f446001d3584a, type: 3}
+  - {fileID: 21300000, guid: ad0fa061e8149864a8d0cb2f0e2c46af, type: 3}
+  - {fileID: 21300000, guid: 0c2dd5493da966547a51cca51eeeca0a, type: 3}
+  - {fileID: 21300000, guid: 326ae1274ef3a47408b25b5596fb05c6, type: 3}
+  pattern2:
+  - {fileID: 21300000, guid: 850e70e7b33e9594384e8df283a818e1, type: 3}
+  - {fileID: 21300000, guid: 6880b344d93381142bc32aed3083063c, type: 3}
+  - {fileID: 21300000, guid: eef9ec7987bcfb2449f01340dd64bc4c, type: 3}
+  - {fileID: 21300000, guid: 9b2a3469a0f66e3409d32f2a39756813, type: 3}
+  - {fileID: 21300000, guid: 1d6fbaa6fb9830f4383bd5d8d328a8a8, type: 3}
+  - {fileID: 21300000, guid: 148d2662c3c77a5429a3ad1d3894fd7e, type: 3}
+  - {fileID: 21300000, guid: 2cef776182bd4ae4bab758d92d2546bc, type: 3}
+  pattern3: []
+  fps: 10

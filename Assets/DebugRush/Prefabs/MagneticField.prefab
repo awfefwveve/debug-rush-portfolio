@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8440707888223824257}
   - component: {fileID: 5782011613182948996}
   - component: {fileID: 7810972916523871575}
+  - component: {fileID: 1289399870572620460}
   m_Layer: 0
   m_Name: MagneticField
   m_TagString: Untagged
@@ -83,8 +84,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -6405420020756439817, guid: c5fedfccbfa121e4ea561d6606f55a81, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.35}
+  m_Sprite: {fileID: 21300000, guid: d9f10064cbda1124585921d00027b973, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.6}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -144,3 +145,26 @@ MonoBehaviour:
   lifetime: 3
   pullDuration: 0.4
   center: {fileID: 0}
+--- !u!114 &1289399870572620460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1348914543323349852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bb0d6438a2619b4badc801eb7a87739, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteFrameAnimator
+  target: {fileID: 8440707888223824257}
+  frames:
+  - {fileID: 21300000, guid: d9f10064cbda1124585921d00027b973, type: 3}
+  - {fileID: 21300000, guid: db827174750acc549aa02f38498bbcaa, type: 3}
+  - {fileID: 21300000, guid: 479e2637bbf138b4abaf8cd9fbc801b2, type: 3}
+  - {fileID: 21300000, guid: 66015def8be6a8b44b013f544a64b125, type: 3}
+  - {fileID: 21300000, guid: c0cc92fba4f1a9f4baa97ac5477caa0e, type: 3}
+  - {fileID: 21300000, guid: d7494afda4958094bb61f8b9f0e1c9b9, type: 3}
+  fps: 10
+  loop: 1
+  unscaled: 0
