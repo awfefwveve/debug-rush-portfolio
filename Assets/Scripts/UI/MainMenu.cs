@@ -5,11 +5,8 @@ using UnityEngine.SceneManagement;
 public class MainMenu : MonoBehaviour
 {
     public GameObject settingsPanel;
-    [Tooltip("설정창의 우측 상단 여백 (픽셀)")]
-    public Vector2 settingsWindowTopRightMargin = new Vector2(24f, 24f);
-    float volume;
-    int quality;
-    void Awake() { volume = PlayerPrefs.GetFloat("settings_volume", AudioListener.volume); AudioListener.volume = volume; quality = Mathf.Clamp(PlayerPrefs.GetInt("settings_quality", QualitySettings.GetQualityLevel()), 0, QualitySettings.names.Length - 1); QualitySettings.SetQualityLevel(quality); Screen.fullScreen = PlayerPrefs.GetInt("settings_fullscreen", Screen.fullScreen ? 1 : 0) == 1; }
+
+    void Awake() => SoundEffectManager.EnsureInstance();
     public void OnStart() => SceneManager.LoadScene("Map");
     public void OnAchievements() => SceneManager.LoadScene("Achievements");
     public void OnSettings() { if (settingsPanel) settingsPanel.SetActive(!settingsPanel.activeSelf); }
@@ -25,23 +22,6 @@ public class MainMenu : MonoBehaviour
     {
         KoreanIMGUIFont.Apply();
         if (!settingsPanel || !settingsPanel.activeSelf) return;
-        float w = 330, h = 220;
-        float x = Screen.width - w - settingsWindowTopRightMargin.x;
-        float y = settingsWindowTopRightMargin.y;
-        var r = new Rect(x, y, w, h);
-        GUI.Box(r, "그래픽 / 음량 설정");
-        GUILayout.BeginArea(new Rect(r.x+20, r.y+32, w-40, h-42));
-        GUILayout.Label("전체 음량  " + Mathf.RoundToInt(volume*100) + "%");
-        float newVolume = GUILayout.HorizontalSlider(volume, 0f, 1f);
-        if (!Mathf.Approximately(newVolume, volume)) { volume = newVolume; AudioListener.volume = volume; PlayerPrefs.SetFloat("settings_volume", volume); PlayerPrefs.Save(); }
-        GUILayout.Label("화면 모드");
-        if (GUILayout.Button(Screen.fullScreen ? "전체 화면 (클릭하여 창 모드)" : "창 모드 (클릭하여 전체 화면)")) { Screen.fullScreen = !Screen.fullScreen; PlayerPrefs.SetInt("settings_fullscreen", Screen.fullScreen ? 1 : 0); PlayerPrefs.Save(); }
-        GUILayout.Label("그래픽 품질: " + QualitySettings.names[quality]);
-        GUILayout.BeginHorizontal();
-        if (GUILayout.Button("낮음")) SetQuality(0);
-        if (GUILayout.Button("보통")) SetQuality(Mathf.Min(1, QualitySettings.names.Length-1));
-        if (GUILayout.Button("높음")) SetQuality(QualitySettings.names.Length-1);
-        GUILayout.EndHorizontal(); GUILayout.EndArea();
+        if (SettingsWindow.Draw()) settingsPanel.SetActive(false);
     }
-    void SetQuality(int i) { quality = Mathf.Clamp(i, 0, QualitySettings.names.Length-1); QualitySettings.SetQualityLevel(quality); PlayerPrefs.SetInt("settings_quality", quality); PlayerPrefs.Save(); }
 }
