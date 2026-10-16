@@ -27,5 +27,28 @@ MonoBehaviour:
   - prefab: {fileID: 6141458271797316770, guid: 0bf5b4b0655fc6e46bd239776d7ca796, type: 3}
     patternCount: 2
     spawnPos: {x: 3, y: 0}
-  intro: []
-  outro: []
+  intro:
+  - speaker: "\uB098"
+    text: "\uCE7C\uB0A0\uC774 \uB0A0\uC544\uB2E4\uB2C8\uACE0 \uC9C0\uB8B0\uAE4C\uC9C0...
+      \uC870\uC2EC\uD574\uC11C \uAC00\uC790."
+    portrait: {fileID: 0}
+  - speaker: "\uD300\uC6D0"
+    text: "\uB2E8\uB9D0\uAE30 \uB450 \uB300\uB97C \uB2E4 \uACE0\uCCD0\uC57C \uB2E4\uC74C
+      \uAD6C\uC5ED\uC774 \uC5F4\uB824."
+    portrait: {fileID: 0}
+  outro:
+  - speaker: "\uB098"
+    text: "\uBE4C\uB4DC \uC624\uB958\uAC00 \uB208\uC5D0 \uB744\uAC8C \uC904\uC5C8\uC5B4.
+      \uAC70\uC758 \uB2E4 \uC654\uB2E4."
+    portrait: {fileID: 0}
+  layout:
+    use: 0
+    playerStart: {x: 0, y: 0}
+    planning: {x: -7, y: -2}
+    programming: {x: -7, y: 2}
+    graphic: {x: 7, y: 2}
+    qa: {x: 7, y: -2}
+    craftingTable: {x: 0, y: -3.4}
+    terminals:
+    - {x: -6, y: 2.4}
+    - {x: 6, y: -2.4}
