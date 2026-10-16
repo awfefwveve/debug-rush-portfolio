@@ -34,6 +34,7 @@ public class StageManager : MonoBehaviour
         var gm = GameManager.I;
         Data = (gm != null && gm.CurrentStage != null) ? gm.CurrentStage : debugStage;
         Diff = (gm != null && gm.CurrentStage != null) ? gm.CurrentDifficulty : debugDifficulty;
+        if (Data == null) Data = FallbackStage(gm);
 
         TimeLeft = Data.TimeFor(Diff);
         foreach (var t in terminals) t.Init(Data.GoalFor(Diff));
@@ -52,10 +53,38 @@ public class StageManager : MonoBehaviour
         Running = true;
     }
 
+    /// <summary>GameManager·debugStage 둘 다 없을 때: 등록된 스테이지 중 가장 앞 → Resources → 기본값</summary>
+    StageData FallbackStage(GameManager gm)
+    {
+        IEnumerable<StageData> pool = (gm != null && gm.allStages != null) ? gm.allStages : null;
+        StageData first = FirstStage(pool) ?? FirstStage(Resources.LoadAll<StageData>(""));
+        if (first == null)
+        {
+            first = ScriptableObject.CreateInstance<StageData>();
+            first.monsters = new MonsterSpawn[0];
+        }
+        Debug.LogWarning($"[StageManager] 스테이지 데이터가 없어 '{first.displayName}'(으)로 진행합니다.");
+        return first;
+    }
+
+    static StageData FirstStage(IEnumerable<StageData> stages)
+    {
+        StageData best = null;
+        if (stages == null) return null;
+        foreach (var s in stages)
+        {
+            if (s == null) continue;
+            if (best == null || s.chapter < best.chapter || (s.chapter == best.chapter && s.stage < best.stage)) best = s;
+        }
+        return best;
+    }
+
     void SpawnMonsters()
     {
+        if (Data.monsters == null) return;
         foreach (var m in Data.monsters)
         {
+            if (m == null || m.prefab == null) continue;
             var go = Instantiate(m.prefab, m.spawnPos, Quaternion.identity);
             var mon = go.GetComponent<MonsterBase>();
             mon.Init(player.transform, m.patternCount);
