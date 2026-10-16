@@ -24,9 +24,9 @@ MonoBehaviour:
   - 0.8
   terminalGoal: 020000000300000004000000
   monsters:
-  - prefab: {fileID: 8697744848771933877, guid: 4b612beb0bcb47d40889d483b1587396, type: 3}
+  - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
     patternCount: 2
-    spawnPos: {x: 3, y: 0}
+    spawnPos: {x: 2.5, y: 2.6}
   intro:
   - speaker: "\uB098"
     text: "...\uC5EC\uAE34 \uC5B4\uB514\uC9C0? \uBC29\uAE08 \uBC24\uC0C8 \uB9CC\uB4E0
@@ -45,12 +45,12 @@ MonoBehaviour:
     portrait: {fileID: 0}
   layout:
     use: 0
-    playerStart: {x: 0, y: 0}
-    planning: {x: -7, y: -2}
-    programming: {x: -7, y: 2}
-    graphic: {x: 7, y: 2}
-    qa: {x: 7, y: -2}
-    craftingTable: {x: 0, y: -3.4}
+    playerStart: {x: 0, y: -2.2}
+    planning: {x: 3.6, y: -3.4}
+    programming: {x: 6.6, y: -3.4}
+    graphic: {x: -6.6, y: 3.3}
+    qa: {x: -3.6, y: 3.3}
+    craftingTable: {x: 0, y: 0}
     terminals:
-    - {x: -6, y: 2.4}
-    - {x: 6, y: -2.4}
+    - {x: 6.6, y: 2.5}
+    - {x: -6.6, y: -2.7}

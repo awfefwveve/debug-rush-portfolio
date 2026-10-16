@@ -26,7 +26,7 @@ MonoBehaviour:
   monsters:
   - prefab: {fileID: 2256592880260965551, guid: 03aff19e02702a64199fd0b5b5f2ffac, type: 3}
     patternCount: 3
-    spawnPos: {x: 3, y: 0}
+    spawnPos: {x: 0, y: 2.6}
   intro:
   - speaker: "\uB098"
     text: "\uC800 \uACE0\uCCA0 \uB85C\uBD07\uC774 \uB9C8\uC9C0\uB9C9 \uBC84\uADF8
@@ -43,12 +43,12 @@ MonoBehaviour:
     portrait: {fileID: 0}
   layout:
     use: 0
-    playerStart: {x: 0, y: 0}
-    planning: {x: -7, y: -2}
-    programming: {x: -7, y: 2}
-    graphic: {x: 7, y: 2}
-    qa: {x: 7, y: -2}
-    craftingTable: {x: 0, y: -3.4}
+    playerStart: {x: 0, y: -2.2}
+    planning: {x: 3.6, y: -3.4}
+    programming: {x: 6.6, y: -3.4}
+    graphic: {x: -6.6, y: 3.3}
+    qa: {x: -3.6, y: 3.3}
+    craftingTable: {x: 0, y: 0}
     terminals:
-    - {x: -6, y: 2.4}
-    - {x: 6, y: -2.4}
+    - {x: 6.6, y: 2.5}
+    - {x: -6.6, y: -2.7}

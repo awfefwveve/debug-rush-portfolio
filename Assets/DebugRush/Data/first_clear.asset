@@ -15,5 +15,5 @@ MonoBehaviour:
   id: first_clear
   title: "\uCCAB \uD074\uB9AC\uC5B4"
   description: "\uCCAB \uC2A4\uD14C\uC774\uC9C0\uB97C \uD074\uB9AC\uC5B4\uD588\uC2B5\uB2C8\uB2E4."
-  icon: {fileID: -4816352100728501719, guid: db80b6aa8a255a140a4ec29614c561cf, type: 3}
+  icon: {fileID: 21300000, guid: c713e8cb6dda6264cad09c357b6c2fb8, type: 3}
   secret: 0
