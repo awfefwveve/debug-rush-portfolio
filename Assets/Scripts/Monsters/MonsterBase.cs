@@ -19,6 +19,8 @@ public abstract class MonsterBase : MonoBehaviour
     [Tooltip("플레이어 moveSpeed보다 낮게 유지")] public float maxMoveSpeed = 4f;
 
     public int Aggression { get; private set; }
+    /// <summary>실행 중인 패턴 (0 = 패턴1, -1 = 없음). 애니메이션 전환용</summary>
+    public int CurrentPattern { get; private set; } = -1;
 
     protected Transform target;
     protected int patternCount = 1;
@@ -61,7 +63,9 @@ public abstract class MonsterBase : MonoBehaviour
         yield return Wait(1f);
         while (!halted)
         {
-            yield return RunPattern(Random.Range(0, patternCount));
+            CurrentPattern = Random.Range(0, patternCount);
+            yield return RunPattern(CurrentPattern);
+            CurrentPattern = -1;
             yield return Wait(currentInterval);
         }
     }
