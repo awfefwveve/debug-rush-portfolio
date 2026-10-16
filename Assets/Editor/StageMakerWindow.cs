@@ -15,6 +15,7 @@ public class StageMakerWindow : EditorWindow
     const int Chapters = 3;
 
     StageData selected;
+    string selectedPath;
     SerializedObject so;
     Vector2 leftScroll, rightScroll;
     int newChapter = 1, newStage = 1;
@@ -24,6 +25,13 @@ public class StageMakerWindow : EditorWindow
 
     void OnGUI()
     {
+        // 씬 열기/닫기 후 에셋이 언로드되면 경로로 다시 로드
+        if (selected == null && !string.IsNullOrEmpty(selectedPath))
+        {
+            selected = AssetDatabase.LoadAssetAtPath<StageData>(selectedPath);
+            so = null;
+            if (selected == null) selectedPath = null;
+        }
         var all = LoadAllStages();
         EditorGUILayout.BeginHorizontal();
         DrawLeft(all);
@@ -190,6 +198,7 @@ public class StageMakerWindow : EditorWindow
     void Select(StageData s)
     {
         selected = s;
+        selectedPath = s != null ? AssetDatabase.GetAssetPath(s) : null;
         so = s != null ? new SerializedObject(s) : null;
         GUI.FocusControl(null);
     }
