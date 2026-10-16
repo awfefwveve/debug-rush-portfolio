@@ -37,7 +37,11 @@ public class StageManager : MonoBehaviour
         if (Data == null) Data = FallbackStage(gm);
 
         TimeLeft = Data.TimeFor(Diff);
-        foreach (var t in terminals) t.Init(Data.GoalFor(Diff));
+        foreach (var t in terminals)
+        {
+            t.Init(Data.GoalFor(Diff));
+            t.Changed += OnTerminalChanged;
+        }
         player.Health.Died += OnPlayerDied;
         TimeChanged?.Invoke(TimeLeft);
 
@@ -88,8 +92,23 @@ public class StageManager : MonoBehaviour
             var go = Instantiate(m.prefab, m.spawnPos, Quaternion.identity);
             var mon = go.GetComponent<MonsterBase>();
             mon.Init(player.transform, m.patternCount);
+            mon.SetAggression(CompletedCount());
             monsters.Add(mon);
         }
+    }
+
+    // Awaria처럼 단말기 게이지가 찰 때마다 몬스터가 더 공격적으로
+    void OnTerminalChanged()
+    {
+        int level = CompletedCount();
+        foreach (var m in monsters) if (m && m.Aggression != level) m.SetAggression(level);
+    }
+
+    int CompletedCount()
+    {
+        int n = 0;
+        foreach (var t in terminals) n += t.Completed;
+        return n;
     }
 
     void Update()

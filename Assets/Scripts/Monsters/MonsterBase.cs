@@ -12,11 +12,21 @@ public abstract class MonsterBase : MonoBehaviour
     public bool wander = true;
     public Rect moveArea = new Rect(-8, -4, 16, 8);
 
+    [Header("공격 강도 (단말기 완료 1칸마다 1단계 상승)")]
+    [Tooltip("단계마다 patternInterval에 곱함")] [Range(0.5f, 1f)] public float intervalStepMultiplier = 0.85f;
+    public float minPatternInterval = 0.6f;
+    [Tooltip("단계마다 기본 이동속도 대비 증가 비율")] public float speedStepBonus = 0.1f;
+    [Tooltip("플레이어 moveSpeed보다 낮게 유지")] public float maxMoveSpeed = 4f;
+
+    public int Aggression { get; private set; }
+
     protected Transform target;
     protected int patternCount = 1;
     float stunUntil;
     bool halted;
     Vector2 wanderPoint;
+    float baseInterval, baseSpeed;
+    float currentInterval;
 
     protected abstract int PatternMax { get; }
     /// <summary>index: 0 = 패턴1</summary>
@@ -29,7 +39,18 @@ public abstract class MonsterBase : MonoBehaviour
         target = playerTarget;
         patternCount = Mathf.Clamp(count, 1, PatternMax);
         wanderPoint = transform.position;
+        baseInterval = patternInterval;
+        baseSpeed = moveSpeed;
+        SetAggression(0);
         StartCoroutine(Loop());
+    }
+
+    /// <summary>공격 강도 단계 설정: 패턴 간격 감소, 이동속도 소폭 증가</summary>
+    public void SetAggression(int level)
+    {
+        Aggression = Mathf.Max(0, level);
+        currentInterval = Mathf.Max(minPatternInterval, baseInterval * Mathf.Pow(intervalStepMultiplier, Aggression));
+        moveSpeed = Mathf.Min(Mathf.Max(maxMoveSpeed, baseSpeed), baseSpeed * (1f + speedStepBonus * Aggression));
     }
 
     public void Stun(float seconds) => stunUntil = Mathf.Max(stunUntil, Time.time + seconds);
@@ -41,7 +62,7 @@ public abstract class MonsterBase : MonoBehaviour
         while (!halted)
         {
             yield return RunPattern(Random.Range(0, patternCount));
-            yield return Wait(patternInterval);
+            yield return Wait(currentInterval);
         }
     }
 
