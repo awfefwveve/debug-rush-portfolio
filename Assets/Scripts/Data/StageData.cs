@@ -22,16 +22,16 @@ public struct DialogueLine
 public class StageLayout
 {
     public bool use;
-    public Vector2 playerStart = new Vector2(0f, 0f);
+    public Vector2 playerStart = new Vector2(0f, -2.2f);
     [Header("재료대")]
-    public Vector2 planning = new Vector2(-7f, -2f);
-    public Vector2 programming = new Vector2(-7f, 2f);
-    public Vector2 graphic = new Vector2(7f, 2f);
-    public Vector2 qa = new Vector2(7f, -2f);
+    public Vector2 planning = new Vector2(3.6f, -3.4f);
+    public Vector2 programming = new Vector2(6.6f, -3.4f);
+    public Vector2 graphic = new Vector2(-6.6f, 3.3f);
+    public Vector2 qa = new Vector2(-3.6f, 3.3f);
     [Header("제작대 / 단말기")]
-    public Vector2 craftingTable = new Vector2(0f, -3.4f);
+    public Vector2 craftingTable = new Vector2(0f, 0f);
     [Tooltip("단말기 개수 = 배열 길이 (1~4)")]
-    public Vector2[] terminals = { new Vector2(-6f, 2.4f), new Vector2(6f, -2.4f) };
+    public Vector2[] terminals = { new Vector2(6.6f, 2.5f), new Vector2(-6.6f, -2.7f) };
 
     public Vector2 MaterialPos(ItemType t)
     {

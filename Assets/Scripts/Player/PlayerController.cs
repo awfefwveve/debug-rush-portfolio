@@ -38,7 +38,7 @@ public class PlayerController : MonoBehaviour
         Inventory = GetComponent<PlayerInventory>();
         Health = GetComponent<PlayerHealth>();
         if (GetComponent<PauseMenu>() == null) gameObject.AddComponent<PauseMenu>();
-        if (GetComponent<StageTutorial>() == null) gameObject.AddComponent<StageTutorial>();
+        if (GetComponent<StageFX>() == null) gameObject.AddComponent<StageFX>();
     }
 
     void Update()

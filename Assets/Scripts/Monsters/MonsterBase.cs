@@ -11,6 +11,7 @@ public abstract class MonsterBase : MonoBehaviour
     public float patternInterval = 2f;
     public bool wander = true;
     public Rect moveArea = new Rect(-8, -4, 16, 8);
+    [Tooltip("스테이지 시작 후 첫 공격까지 대기(초)")] public float firstAttackDelay = 3f;
 
     [Header("공격 강도 (단말기 완료 1칸마다 1단계 상승)")]
     [Tooltip("단계마다 patternInterval에 곱함")] [Range(0.5f, 1f)] public float intervalStepMultiplier = 0.85f;
@@ -60,7 +61,7 @@ public abstract class MonsterBase : MonoBehaviour
 
     IEnumerator Loop()
     {
-        yield return Wait(1f);
+        yield return Wait(firstAttackDelay);
         while (!halted)
         {
             CurrentPattern = Random.Range(0, patternCount);

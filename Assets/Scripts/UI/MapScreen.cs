@@ -42,9 +42,38 @@ public class MapScreen : MonoBehaviour
         bar.direction = Scrollbar.Direction.LeftToRight;
         scroll.horizontalScrollbar = bar;
         scroll.horizontalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+        var bg = go.GetComponent<Image>(); if (bg != null) bg.color = new Color(0.09f, 0.13f, 0.24f);
+        if (bar.handleRect != null) { var h = bar.handleRect.GetComponent<Image>(); if (h != null) h.color = new Color(0.22f, 0.82f, 1f); }
     }
+
+    void SetupContent()
+    {
+        var r = (RectTransform)content;
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 0.5f);
+        r.anchoredPosition = Vector2.zero;
+        var h = content.GetComponent<HorizontalLayoutGroup>();
+        if (h != null)
+        {
+            h.spacing = 36f; h.padding = new RectOffset(40, 40, 0, 0);
+            h.childAlignment = TextAnchor.MiddleLeft;
+            h.childControlWidth = h.childControlHeight = true;
+            h.childForceExpandWidth = h.childForceExpandHeight = false;
+        }
+        var bgImg = content.GetComponentInParent<ScrollRect>()?.GetComponent<Image>();
+        if (bgImg != null) bgImg.color = new Color(0.05f, 0.08f, 0.15f, 0.9f);
+    }
+
+    System.Collections.IEnumerator ScrollToStart()
+    {
+        yield return null;
+        var scroll = content.GetComponentInParent<ScrollRect>();
+        if (scroll != null) scroll.horizontalNormalizedPosition = 0f;
+    }
+
     void Build(int chapter)
     {
+        SetupContent();
+        StartCoroutine(ScrollToStart());
         foreach (Transform c in content) Destroy(c.gameObject);
         var stages = GameManager.I.allStages.Where(s => s != null && s.chapter == chapter).ToArray();
         int last = Mathf.Max(StageManager.StagesPerChapter, stages.Length > 0 ? stages.Max(s => s.stage) : 0);
