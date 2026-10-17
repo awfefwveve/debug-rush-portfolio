@@ -34,7 +34,8 @@ public class CameraFit : MonoBehaviour
         float availH = Mathf.Max(100f, Screen.height - (bandTop + bandBottom) * scale);
         float ppu = Mathf.Min(availW / roomWidth, availH / roomHeight);
         cam.orthographicSize = Screen.height / (2f * ppu);
-        float cx = availW * 0.5f, cy = bandBottom * scale + availH * 0.5f;
+        float roomH = roomHeight * ppu;                                // 방을 상단 바 바로 아래에 붙임
+        float cx = availW * 0.5f, cy = Screen.height - bandTop * scale - roomH * 0.5f;
         float dx = cx - Screen.width * 0.5f, dy = cy - Screen.height * 0.5f;
         Base = new Vector3(-dx / ppu, -dy / ppu, -10f);
     }
