@@ -113,6 +113,7 @@ public class StageMakerWindow : EditorWindow
 
         Section("몬스터 (스테이지당 1~2마리)");
         Prop("monsters", "몬스터 목록");
+        DrawPatternChecks();
 
         Section("스토리");
         Prop("intro", "시작 대사");
@@ -161,6 +162,40 @@ public class StageMakerWindow : EditorWindow
 
         if (GUILayout.Button("새 스테이지 만들기", GUILayout.Height(32)))
             Select(Create(newChapter, newStage, template));
+    }
+
+    /// <summary>몬스터별 사용할 공격 패턴 체크 (벌: A-1~A-5). 체크한 패턴을 순서대로 반복.</summary>
+    void DrawPatternChecks()
+    {
+        var mons = so.FindProperty("monsters");
+        if (mons == null) return;
+        for (int i = 0; i < mons.arraySize; i++)
+        {
+            var el = mons.GetArrayElementAtIndex(i);
+            var prefab = el.FindPropertyRelative("prefab").objectReferenceValue as GameObject;
+            var maskProp = el.FindPropertyRelative("patternMask");
+            var countProp = el.FindPropertyRelative("patternCount");
+            if (prefab == null || maskProp == null) continue;
+            bool bee = prefab.GetComponent<Monster1A>() != null;
+            string[] names = bee ? Monster1A.PatternNames : new[] { "패턴 1", "패턴 2", "패턴 3" };
+
+            int mask = maskProp.intValue;
+            if (mask == 0) for (int b = 0; b < countProp.intValue && b < names.Length; b++) mask |= 1 << b;
+            EditorGUILayout.LabelField($"몬스터 {i + 1} ({prefab.name}) 공격 패턴", EditorStyles.miniBoldLabel);
+            EditorGUILayout.BeginHorizontal();
+            int newMask = 0;
+            for (int b = 0; b < names.Length; b++)
+                if (GUILayout.Toggle((mask & (1 << b)) != 0, names[b], "Button")) newMask |= 1 << b;
+            EditorGUILayout.EndHorizontal();
+            if (newMask == 0) newMask = 1;                       // 최소 1개
+            if (newMask != maskProp.intValue)
+            {
+                maskProp.intValue = newMask;
+                int c = 0; for (int b = 0; b < names.Length; b++) if ((newMask & (1 << b)) != 0) c++;
+                countProp.intValue = c;
+            }
+        }
+        so.ApplyModifiedProperties();
     }
 
     void DrawLayoutButtons()

@@ -11,7 +11,7 @@ using UnityEngine.UI;
 /// </summary>
 public class GameRestoreFX : MonoBehaviour
 {
-    public float maxIntensity = 0.5f;
+    [Tooltip("스테이지 중 깨진 화면 노이즈 강도 (설정에서 끌 수 있음, 기획서에 없는 추가 연출)")] public float maxIntensity = 0.5f;
 
     RawImage glitch;
     Image flash;
@@ -65,7 +65,7 @@ public class GameRestoreFX : MonoBehaviour
                 foreach (var t in sm.terminals)
                     if (t != null && t.gameObject.activeInHierarchy) { done += Mathf.Min(t.Completed, t.goal); total += t.goal; }
             float progress = total > 0 ? done / (float)total : 0f;
-            target = maxIntensity * (1f - progress * 0.8f);   // 고칠수록 옅어짐
+            target = GameSettings.ScreenNoise ? maxIntensity * (1f - progress * 0.8f) : 0f;   // 고칠수록 옅어짐
             intensity = Mathf.MoveTowards(intensity, target, Time.deltaTime * 0.3f);
         }
 

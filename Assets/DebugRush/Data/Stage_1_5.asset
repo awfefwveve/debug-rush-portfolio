@@ -24,17 +24,16 @@ MonoBehaviour:
   - 0.8
   terminalGoal: 040000000500000006000000
   monsters:
-  - prefab: {fileID: 2256592880260965551, guid: 03aff19e02702a64199fd0b5b5f2ffac, type: 3}
-    patternCount: 3
-    spawnPos: {x: 0, y: 3.2}
+  - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
+    patternCount: 5
+    patternMask: 31
+    spawnPos: {x: 3, y: 3}
   intro:
   - speaker: "\uB098"
-    text: "\uC800 \uACE0\uCCA0 \uB85C\uBD07\uC774 \uB9C8\uC9C0\uB9C9 \uBC84\uADF8
-      \uB369\uC5B4\uB9AC\uC57C!"
+    text: "\uC800 \uBC8C\uC774 1\uD559\uB144 \uACFC\uC81C\uC758 \uB9C8\uC9C0\uB9C9 \uBC84\uADF8\uC57C!"
     portrait: {fileID: 0}
-  - speaker: "\uD300\uC6D0"
-    text: "\uC774\uAC83\uB9CC \uACE0\uCE58\uBA74 1\uD559\uB144 \uACFC\uC81C\uB294
-      \uB05D\uC774\uC57C. \uD798\uB0B4!"
+  - speaker: "\uC2DC\uC2A4\uD15C"
+    text: "\uBE68\uAC04 \uC6D0\uC774 \uD45C\uC2DC\uB41C \uACF3\uC73C\uB85C \uACF5\uACA9\uC774 \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4. \uC6D0 \uBC16\uC73C\uB85C \uD53C\uD558\uC138\uC694."
     portrait: {fileID: 0}
   outro:
   - speaker: "\uB098"

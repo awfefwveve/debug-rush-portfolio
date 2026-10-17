@@ -12,6 +12,7 @@ public class AutoShot : MonoBehaviour
 {
     string dir;
     float playSeconds = 40f;
+    bool quick;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -21,7 +22,8 @@ public class AutoShot : MonoBehaviour
         if (i < 0 || i + 1 >= args.Length) return;
         var go = new GameObject("AutoShot");
         DontDestroyOnLoad(go);
-        go.AddComponent<AutoShot>().dir = args[i + 1];
+        var a = go.AddComponent<AutoShot>(); a.dir = args[i + 1];
+        a.quick = System.Array.IndexOf(args, "-autoshot-quick") >= 0;   // 해상도 확인용: 타이틀 + 스테이지만
     }
 
     IEnumerator Start()
@@ -30,12 +32,16 @@ public class AutoShot : MonoBehaviour
         yield return new WaitForSecondsRealtime(2f);
         yield return Shot("01_title");
 
-        var menu = FindAnyObjectByType<MainMenu>();
+        if (quick) playSeconds = 4f;
+        var menu = quick ? null : FindAnyObjectByType<MainMenu>();
         if (menu != null) { menu.OnSettings(); yield return new WaitForSecondsRealtime(0.5f); yield return Shot("02_settings"); menu.OnSettings(); }
 
-        SceneManager.LoadScene("Achievements");
-        yield return new WaitForSecondsRealtime(1.5f);
-        yield return Shot("03_achievements");
+        if (!quick)
+        {
+            SceneManager.LoadScene("Achievements");
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return Shot("03_achievements");
+        }
 
         SceneManager.LoadScene("Map");
         yield return new WaitForSecondsRealtime(1.5f);

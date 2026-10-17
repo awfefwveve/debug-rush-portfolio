@@ -11,6 +11,6 @@ public static class KoreanIMGUIFont
                 if (font != null && font.name.Contains("Nanum")) { cached = font; break; }
         if (cached == null) return;
         GUI.skin.box.font = cached; GUI.skin.label.font = cached; GUI.skin.button.font = cached;
-        GUI.skin.window.font = cached;
+        GUI.skin.window.font = cached; GUI.skin.toggle.font = cached;
     }
 }

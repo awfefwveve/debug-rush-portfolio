@@ -44,6 +44,7 @@ public abstract class MonsterBase : MonoBehaviour
     float currentInterval;
     int nextPattern;
     readonly List<GameObject> telegraphs = new List<GameObject>();
+    readonly List<int> patterns = new List<int>();
 
     protected abstract int PatternMax { get; }
     /// <summary>index: 0 = 패턴1</summary>
@@ -53,11 +54,16 @@ public abstract class MonsterBase : MonoBehaviour
 
     public bool IsStunned => Time.time < stunUntil;
 
-    public void Init(Transform playerTarget, int count)
+    /// <summary>mask: 사용할 패턴 비트 (0이면 앞에서부터 count개). 패턴은 목록 순서대로 반복</summary>
+    public void Init(Transform playerTarget, int count, int mask = 0)
     {
         target = playerTarget;
-        patternCount = Mathf.Clamp(count, 1, PatternMax);
-        nextPattern = Random.Range(0, patternCount);
+        patterns.Clear();
+        for (int i = 0; i < PatternMax; i++)
+            if (mask != 0 ? (mask & (1 << i)) != 0 : i < Mathf.Max(1, count)) patterns.Add(i);
+        if (patterns.Count == 0) patterns.Add(0);
+        patternCount = patterns.Count;
+        nextPattern = 0;
         wanderPoint = transform.position;
         baseInterval = patternInterval;
         baseSpeed = moveSpeed;
@@ -81,8 +87,8 @@ public abstract class MonsterBase : MonoBehaviour
         yield return Wait(firstAttackDelay);
         while (!halted)
         {
-            int p = nextPattern;
-            nextPattern = (nextPattern + 1) % patternCount;
+            int p = patterns[nextPattern];
+            nextPattern = (nextPattern + 1) % patterns.Count;
 
             // 예고
             CurrentPattern = p;
@@ -129,6 +135,13 @@ public abstract class MonsterBase : MonoBehaviour
     }
 
     // ---------- 예고 (팀 규격: 원형 예고 128 채움·테두리 분리, 직선 예고 32×128 아래 중앙 기준) ----------
+    /// <summary>공격 도중 따로 쓰는 원형 예고 (직접 Destroy)</summary>
+    protected GameObject TelegraphCircleTimed(Vector2 center, float radius)
+    {
+        TelegraphCircle(center, radius);
+        return telegraphs.Count > 0 ? telegraphs[telegraphs.Count - 1] : null;
+    }
+
     protected void TelegraphCircle(Vector2 center, float radius)
     {
         var fx = FxSet.Get();

@@ -77,48 +77,54 @@ public class StageHUD : MonoBehaviour
         var canvas = timerText != null ? timerText.canvas : GetComponentInParent<Canvas>();
         if (canvas == null) return;
         var root = canvas.transform;
-        canvas.sortingOrder = 10;                         // 화면 효과(글리치)보다 위
+        canvas.sortingOrder = 10;                         // 화면 효과보다 위
+        // 세로 1080 기준으로 맞추고 가로는 화면 비율에 따라 늘어남 → 요소는 화면 모서리에 붙임 (16:10 등에서 잘림 방지)
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler != null) { scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = 1f; }
+
+        Vector2 TL = new Vector2(0, 1), TC = new Vector2(0.5f, 1), TR = new Vector2(1, 1), BL = new Vector2(0, 0), BR = new Vector2(1, 0);
 
         // 상단 띠
-        var top = Panel(root, "TopBand", new Vector2(0f, 470f), new Vector2(1920f, 140f), Band);
-        top.transform.SetAsFirstSibling();
-        var line = Panel(root, "TopLine", new Vector2(0f, 400f), new Vector2(1920f, 3f), Accent * 0.8f);
-        line.transform.SetSiblingIndex(1);
+        var top = MakeBand(root, "TopBand", true, 140f, Band); top.transform.SetAsFirstSibling();
+        var line = MakeBand(root, "TopLine", true, 3f, Accent * 0.8f, -140f); line.transform.SetSiblingIndex(1);
         var oldPanel = root.Find("HUDPanel"); if (oldPanel != null) oldPanel.gameObject.SetActive(false);
 
-        Label(root, "청강 디버그 러시", new Vector2(-760f, 470f), new Vector2(360f, 60f), 36f, TextAlignmentOptions.Left, Accent, true);
+        Label(root, "청강 디버그 러시", TL, new Vector2(220f, -70f), new Vector2(360f, 60f), 36f, TextAlignmentOptions.Left, Accent, true);
         for (int i = 0; i < hearts.Length; i++)
         {
-            Place(hearts[i].rectTransform, new Vector2(-500f + i * 68f, 470f), new Vector2(58f, 58f));
+            Place(hearts[i].rectTransform, TL, new Vector2(470f + i * 68f, -70f), new Vector2(58f, 58f));
             hearts[i].preserveAspect = true;
         }
-        Place(timerText.rectTransform, new Vector2(0f, 470f), new Vector2(300f, 90f));
+        Place(timerText.rectTransform, TC, new Vector2(0f, -70f), new Vector2(300f, 90f));
         timerText.fontSize = 66f; timerText.fontStyle = FontStyles.Bold; timerText.alignment = TextAlignmentOptions.Center;
-        stageLabel = Label(root, "", new Vector2(470f, 470f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
-        fixLabel = Label(root, "", new Vector2(780f, 470f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
+        stageLabel = Label(root, "", TR, new Vector2(-500f, -70f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
+        fixLabel = Label(root, "", TR, new Vector2(-190f, -70f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
 
         // 하단 띠
-        var bottom = Panel(root, "BottomBand", new Vector2(0f, -470f), new Vector2(1920f, 140f), Band);
-        bottom.transform.SetSiblingIndex(2);
-        var line2 = Panel(root, "BottomLine", new Vector2(0f, -400f), new Vector2(1920f, 3f), Accent * 0.8f);
-        line2.transform.SetSiblingIndex(3);
+        var bottom = MakeBand(root, "BottomBand", false, 140f, Band); bottom.transform.SetSiblingIndex(2);
+        var line2 = MakeBand(root, "BottomLine", false, 3f, Accent * 0.8f, 140f); line2.transform.SetSiblingIndex(3);
 
-        Label(root, "보유 자료", new Vector2(-790f, -428f), new Vector2(260f, 36f), 24f, TextAlignmentOptions.Left, Accent, true);
+        Label(root, "보유 자료", BL, new Vector2(170f, 112f), new Vector2(260f, 36f), 24f, TextAlignmentOptions.Left, Accent, true);
         itemNames = new TMP_Text[heldSlots.Length];
         for (int i = 0; i < heldSlots.Length; i++)
         {
-            Vector2 p = new Vector2(-860f + i * 300f, -488f);
-            var frame = Panel(root, "SlotFrame" + i, p, new Vector2(86f, 86f), new Color(0.09f, 0.13f, 0.24f, 1f));
+            Vector2 p = new Vector2(100f + i * 300f, 52f);
+            var frame = Panel(root, "SlotFrame" + i, BL, p, new Vector2(86f, 86f), new Color(0.09f, 0.13f, 0.24f, 1f));
             var ol = frame.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.7f; ol.effectDistance = new Vector2(3f, -3f);
             frame.transform.SetSiblingIndex(heldSlots[i].transform.GetSiblingIndex());
-            Place(heldSlots[i].rectTransform, p, new Vector2(72f, 72f));
+            Place(heldSlots[i].rectTransform, BL, p, new Vector2(72f, 72f));
             heldSlots[i].preserveAspect = true;
             var old = heldSlots[i].transform.Find("ItemNameLabel"); if (old != null) Destroy(old.gameObject);
-            itemNames[i] = Label(root, "", p + new Vector2(150f, 0f), new Vector2(200f, 60f), 24f, TextAlignmentOptions.Left, Color.white, false);
+            itemNames[i] = Label(root, "", BL, p + new Vector2(150f, 0f), new Vector2(200f, 60f), 24f, TextAlignmentOptions.Left, Color.white, false);
         }
 
-        Label(root, "<color=#39D0FF>WASD</color> 이동    <color=#39D0FF>E</color> 제작·회수·수정    <color=#39D0FF>Space</color> 점프(패링)    <color=#39D0FF>Q</color> 버리기    <color=#39D0FF>ESC</color> 일시정지",
-              new Vector2(420f, -470f), new Vector2(1000f, 50f), 24f, TextAlignmentOptions.Center, new Color(0.85f, 0.9f, 1f), false);
+        Label(root, "<color=#39D0FF>WASD</color> 이동   <color=#39D0FF>E</color> 제작·회수·수정   <color=#39D0FF>Space</color> 점프(패링)   <color=#39D0FF>Q</color> 버리기   <color=#39D0FF>Tab</color> 조합표   <color=#39D0FF>ESC</color> 일시정지",
+              BR, new Vector2(-560f, 70f), new Vector2(1040f, 50f), 22f, TextAlignmentOptions.Right, new Color(0.85f, 0.9f, 1f), false);
+
+        // 방이 HUD·조합표에 가리지 않게 카메라 자동 맞춤 + 오른쪽 조합표
+        var cam = Camera.main;
+        if (cam != null && cam.GetComponent<CameraFit>() == null) cam.gameObject.AddComponent<CameraFit>();
+        gameObject.AddComponent<RecipePanel>().Build(root, icons, stage);
 
         StyleResult();
     }
@@ -164,26 +170,39 @@ public class StageHUD : MonoBehaviour
     }
 
     // ---------- 헬퍼 ----------
-    static void Place(RectTransform r, Vector2 pos, Vector2 size)
+    public static void Place(RectTransform r, Vector2 anchor, Vector2 pos, Vector2 size)
     {
-        r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);
+        r.anchorMin = r.anchorMax = anchor;
+        r.pivot = new Vector2(0.5f, 0.5f);
         r.anchoredPosition = pos; r.sizeDelta = size;
     }
 
-    static Image Panel(Transform parent, string name, Vector2 pos, Vector2 size, Color color)
+    static Image MakeBand(Transform parent, string name, bool top, float height, Color color, float offset = 0f)
     {
         var img = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
         img.transform.SetParent(parent, false);
-        Place(img.rectTransform, pos, size);
+        var r = img.rectTransform;
+        r.anchorMin = new Vector2(0f, top ? 1f : 0f); r.anchorMax = new Vector2(1f, top ? 1f : 0f);
+        r.pivot = new Vector2(0.5f, top ? 1f : 0f);
+        r.anchoredPosition = new Vector2(0f, offset); r.sizeDelta = new Vector2(0f, height);
         img.color = color; img.raycastTarget = false;
         return img;
     }
 
-    static TMP_Text Label(Transform parent, string text, Vector2 pos, Vector2 size, float fontSize, TextAlignmentOptions align, Color color, bool bold)
+    static Image Panel(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size, Color color)
+    {
+        var img = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        img.transform.SetParent(parent, false);
+        Place(img.rectTransform, anchor, pos, size);
+        img.color = color; img.raycastTarget = false;
+        return img;
+    }
+
+    public static TMP_Text Label(Transform parent, string text, Vector2 anchor, Vector2 pos, Vector2 size, float fontSize, TextAlignmentOptions align, Color color, bool bold)
     {
         var go = new GameObject("HUD_" + text, typeof(RectTransform), typeof(TextMeshProUGUI));
         go.transform.SetParent(parent, false);
-        Place((RectTransform)go.transform, pos, size);
+        Place((RectTransform)go.transform, anchor, pos, size);
         var t = go.GetComponent<TextMeshProUGUI>();
         t.font = KoreanTMPFont.Get();
         t.text = text; t.fontSize = fontSize; t.alignment = align; t.color = color;

@@ -25,7 +25,8 @@ MonoBehaviour:
   terminalGoal: 020000000300000004000000
   monsters:
   - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
-    patternCount: 2
+    patternCount: 1
+    patternMask: 1
     spawnPos: {x: 3, y: 3}
   intro:
   - speaker: "\uB098"

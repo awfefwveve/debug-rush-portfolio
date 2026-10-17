@@ -410,7 +410,12 @@ public static class PlaceholderArtGenerator
             var m = go.GetComponent<Monster1A>();
             m.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Monster1A_Shot.prefab");
             m.spreadAngle = 20f;
+            m.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab");
+            m.fieldPrefab = AssetDatabase.LoadAssetAtPath<MagneticField>(P + "MagneticField.prefab");
             var msa = go.GetComponent<MonsterSpriteAnimator>(); msa.fps = 10f;
+            var shotAnim = DriveSeq("Monster1", "pattern1"); var fieldAnim = DriveSeq("Monster1", "pattern2");
+            msa.move = DriveSeq("Monster1", "move");
+            msa.pattern1 = shotAnim; msa.pattern2 = fieldAnim; msa.pattern3 = shotAnim; msa.pattern4 = fieldAnim; msa.pattern5 = shotAnim;   // A-1~A-5
             AddShadow(go, 0.9f, -1.0f);
         });
         EditPrefab("MonsterRobot", go => { Monster(go, 0f, false); SetSprite(go, S("robot"), 10); AddShadow(go, 1.0f, -0.85f);
@@ -471,6 +476,8 @@ public static class PlaceholderArtGenerator
         // 기획서 p.18 벽 모양: 좌상단·우하단 튀어나온 벽 (2×2칸)
         CloneWall("Wall_CornerTL", "Wall_Top"); SetWall("Wall_CornerTL", new Vector2(-12f, 4f), new Vector2(2f, 2f));
         CloneWall("Wall_CornerBR", "Wall_Top"); SetWall("Wall_CornerBR", new Vector2(12f, -4f), new Vector2(2f, 2f));
+
+        BuildWallTiles();
 
         var playerGo = Find("Player");
         if (playerGo != null) playerGo.transform.position = PlayerStart;
@@ -587,6 +594,51 @@ public static class PlaceholderArtGenerator
         var sr = w.GetComponent<SpriteRenderer>();
         sr.sprite = S("wall_fill"); sr.drawMode = SpriteDrawMode.Tiled; sr.color = Color.white; sr.sortingOrder = 0;
         sr.size = size;
+    }
+
+    /// <summary>
+    /// 벽을 32 격자 한 칸씩 연결 조각으로 깔기 (팀 규격: 단독·끝·직선·코너·T자·십자, 회전 사용).
+    /// 조각 기본 방향: 끝=아래 연결, 직선=좌우, 코너=오른쪽+아래, T자=좌·우·아래. 콜라이더는 원래 벽 오브젝트 그대로.
+    /// </summary>
+    static void BuildWallTiles()
+    {
+        var walls = Object.FindObjectsByType<BoxCollider2D>(FindObjectsSortMode.None).Where(b => b.gameObject.name.StartsWith("Wall_")).ToList();
+        var cells = new HashSet<Vector2Int>();
+        foreach (var w in walls) foreach (var c in Cells(w)) cells.Add(c);
+
+        foreach (var w in walls)
+        {
+            var sr = w.GetComponent<SpriteRenderer>(); if (sr != null) sr.enabled = false;
+            RemoveChild(w.transform, "Tiles");
+            var root = new GameObject("Tiles"); root.transform.SetParent(w.transform, false);
+            foreach (var c in Cells(w))
+            {
+                bool l = cells.Contains(c + Vector2Int.left), r = cells.Contains(c + Vector2Int.right),
+                     d = cells.Contains(c + Vector2Int.down), u = cells.Contains(c + Vector2Int.up);
+                int n = (l ? 1 : 0) + (r ? 1 : 0) + (d ? 1 : 0) + (u ? 1 : 0);
+                string piece; float angle = 0f;
+                if (n == 0) piece = "wall_single";
+                else if (n == 4) piece = "wall_cross";
+                else if (n == 1) { piece = "wall_end"; angle = d ? 0f : r ? 90f : u ? 180f : 270f; }
+                else if (n == 3) { piece = "wall_t"; angle = !u ? 0f : !l ? 90f : !d ? 180f : 270f; }
+                else if ((l && r) || (u && d)) { piece = "wall_straight"; angle = l && r ? 0f : 90f; }
+                else { piece = "wall_corner"; angle = r && d ? 0f : u && r ? 90f : l && u ? 180f : 270f; }
+
+                var t = new GameObject(piece);
+                t.transform.SetParent(root.transform, false);
+                t.transform.position = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
+                t.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+                var tsr = t.AddComponent<SpriteRenderer>(); tsr.sprite = S(piece); tsr.sortingOrder = 0;
+            }
+        }
+    }
+
+    static IEnumerable<Vector2Int> Cells(BoxCollider2D w)
+    {
+        Vector2 c = (Vector2)w.transform.position + w.offset, h = w.size * 0.5f;
+        for (int x = Mathf.RoundToInt(c.x - h.x); x < Mathf.RoundToInt(c.x + h.x); x++)
+            for (int y = Mathf.RoundToInt(c.y - h.y); y < Mathf.RoundToInt(c.y + h.y); y++)
+                yield return new Vector2Int(x, y);
     }
 
     static void CloneWall(string name, string source)

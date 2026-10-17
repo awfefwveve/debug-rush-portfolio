@@ -22,6 +22,14 @@ public static class GameSettings
         set { PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value)); PlayerPrefs.Save(); Changed?.Invoke(); }
     }
 
+    const string NoiseKey = "settings_screen_noise";
+    /// <summary>깨진 화면 노이즈 연출 (기획서에 없는 추가 연출이라 끌 수 있게)</summary>
+    public static bool ScreenNoise
+    {
+        get => PlayerPrefs.GetInt(NoiseKey, 1) == 1;
+        set { PlayerPrefs.SetInt(NoiseKey, value ? 1 : 0); PlayerPrefs.Save(); Changed?.Invoke(); }
+    }
+
     public static int Language
     {
         get => Mathf.Clamp(PlayerPrefs.GetInt(LangKey, 0), 0, Languages.Length - 1);

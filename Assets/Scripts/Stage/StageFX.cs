@@ -106,6 +106,8 @@ public class StageFX : MonoBehaviour
     }
 
     // ---------- 효과 ----------
+    public bool Shaking => shakeTime > 0f;
+
     public void Shake(float time, float amp) { shakeTime = Mathf.Max(shakeTime, time); shakeAmp = Mathf.Max(shakeAmp, amp); }
 
     void LateUpdate()
@@ -115,8 +117,9 @@ public class StageFX : MonoBehaviour
         {
             shakeTime -= Time.unscaledDeltaTime;
             var o = Random.insideUnitCircle * shakeAmp;
-            cam.transform.position = camBase + new Vector3(o.x, o.y, 0f);
-            if (shakeTime <= 0f) { shakeAmp = 0f; cam.transform.position = camBase; }
+            Vector3 b = CameraFit.I != null ? CameraFit.Base : camBase;
+            cam.transform.position = b + new Vector3(o.x, o.y, 0f);
+            if (shakeTime <= 0f) { shakeAmp = 0f; cam.transform.position = b; }
         }
         if (flash != null && flash.color.a > 0f)
         {

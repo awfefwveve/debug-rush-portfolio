@@ -5,7 +5,9 @@ public class MonsterSpawn
 {
     public GameObject prefab;
     [Tooltip("사용할 패턴 수 (1-1: 1, 1-2: 2 ... 기획서 p.10 표 참고)")]
-    [Range(1, 3)] public int patternCount = 1;
+    [Range(1, 5)] public int patternCount = 1;
+    [Tooltip("사용할 패턴 체크 (비트: A-1=1, A-2=2, A-3=4, A-4=8, A-5=16). 0이면 앞에서부터 patternCount개")]
+    public int patternMask = 0;
     public Vector2 spawnPos;
 }
 

@@ -10,7 +10,7 @@ public class MonsterSpriteAnimator : MonoBehaviour
     public SpriteFrameAnimator anim;
     public Sprite[] move;
     [Tooltip("index 0 = 패턴1, 1 = 패턴2 …")]
-    public Sprite[] pattern1, pattern2, pattern3;
+    public Sprite[] pattern1, pattern2, pattern3, pattern4, pattern5;
     public float fps = 10f;
 
     MonsterBase monster;
@@ -48,7 +48,7 @@ public class MonsterSpriteAnimator : MonoBehaviour
 
     Sprite[] Pick(int pattern)
     {
-        Sprite[] p = pattern == 0 ? pattern1 : pattern == 1 ? pattern2 : pattern == 2 ? pattern3 : null;
+        Sprite[] p = pattern == 0 ? pattern1 : pattern == 1 ? pattern2 : pattern == 2 ? pattern3 : pattern == 3 ? pattern4 : pattern == 4 ? pattern5 : null;
         return p != null && p.Length > 0 ? p : move;
     }
 }
