@@ -216,11 +216,11 @@ public class AutoShot : MonoBehaviour
         var cam = Camera.main;
         float size0 = cam.orthographicSize; Vector3 pos0 = cam.transform.position;
         panel.Toggle();
-        yield return new WaitForSecondsRealtime(0.1f); yield return Shot("40_recipe_closing");
-        yield return new WaitForSecondsRealtime(0.4f); yield return Shot("41_recipe_closed");
+        yield return new WaitForSecondsRealtime(0.1f); yield return Shot("40_recipe_toggling");
+        yield return new WaitForSecondsRealtime(0.4f); yield return Shot("41_recipe_toggled");
         Debug.Log($"[RecipeCheck] camera size {size0}->{cam.orthographicSize} pos {pos0}->{cam.transform.position}");
         panel.Toggle();
-        yield return new WaitForSecondsRealtime(0.5f); yield return Shot("42_recipe_open");
+        yield return new WaitForSecondsRealtime(0.5f); yield return Shot("42_recipe_back");
     }
 
     IEnumerator Shot(string name)

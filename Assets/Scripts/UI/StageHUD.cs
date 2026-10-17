@@ -4,9 +4,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// 스테이지 HUD (기획서 p.7, p.18): 상단 띠 = 제목 / 하트 / 시간 10:00 / STAGE / 오류 수정 n/총,
-/// 하단 띠 = 보유 자료 2칸(좌하단) + 조작 안내. 결과 패널.
-/// 1920×1080 기준. 카메라는 방 위아래로 140px 띠가 남도록 맞춰져 있음.
+/// 스테이지 HUD (기획서 p.7, p.18): 상단 얇은 바 = 제목 / 하트 / 시간 10:00 / STAGE / 오류 수정 n/총,
+/// 좌하단 보유 자료 2칸 + 하단 조작 안내 한 줄 (모두 맵 위에 겹침). 결과 패널.
+/// 1920×1080 기준. 카메라는 상단 바 아래로 방이 화면을 꽉 채우게 맞춤.
 /// </summary>
 public class StageHUD : MonoBehaviour
 {
@@ -21,7 +21,7 @@ public class StageHUD : MonoBehaviour
     public TMP_Text resultText;
     public Button retryButton, mapButton;
 
-    static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.96f);
+    static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.78f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
     static readonly Color Gold = new Color(1f, 0.82f, 0.25f);
 
@@ -83,45 +83,46 @@ public class StageHUD : MonoBehaviour
         if (scaler != null) { scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = 1f; }
 
         Vector2 TL = new Vector2(0, 1), TC = new Vector2(0.5f, 1), TR = new Vector2(1, 1), BL = new Vector2(0, 0), BR = new Vector2(1, 0);
-
-        // 상단 띠
-        var top = MakeBand(root, "TopBand", true, 140f, Band); top.transform.SetAsFirstSibling();
-        var line = MakeBand(root, "TopLine", true, 3f, Accent * 0.8f, -140f); line.transform.SetSiblingIndex(1);
+        // 상단: 화면 맨 위에 붙은 얇은 반투명 바 (기획서 p.7) — 맵 위에 겹침
+        const float barH = 60f, y = -30f;
+        var top = MakeBand(root, "TopBand", true, barH, Band); top.transform.SetAsFirstSibling();
+        var line = MakeBand(root, "TopLine", true, 2f, Accent * 0.7f, -barH); line.transform.SetSiblingIndex(1);
         var oldPanel = root.Find("HUDPanel"); if (oldPanel != null) oldPanel.gameObject.SetActive(false);
 
-        Label(root, "청강 디버그 러시", TL, new Vector2(220f, -70f), new Vector2(360f, 60f), 36f, TextAlignmentOptions.Left, Accent, true);
+        Label(root, "청강 디버그 러시", TL, new Vector2(150f, y), new Vector2(280f, 50f), 30f, TextAlignmentOptions.Left, Accent, true);
         for (int i = 0; i < hearts.Length; i++)
         {
-            Place(hearts[i].rectTransform, TL, new Vector2(470f + i * 68f, -70f), new Vector2(58f, 58f));
+            Place(hearts[i].rectTransform, TL, new Vector2(330f + i * 48f, y), new Vector2(40f, 40f));
             hearts[i].preserveAspect = true;
         }
-        Place(timerText.rectTransform, TC, new Vector2(0f, -70f), new Vector2(300f, 90f));
-        timerText.fontSize = 66f; timerText.fontStyle = FontStyles.Bold; timerText.alignment = TextAlignmentOptions.Center;
-        stageLabel = Label(root, "", TR, new Vector2(-500f, -70f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
-        fixLabel = Label(root, "", TR, new Vector2(-190f, -70f), new Vector2(300f, 60f), 34f, TextAlignmentOptions.Right, Color.white, true);
+        Place(timerText.rectTransform, TC, new Vector2(0f, y), new Vector2(200f, 56f));
+        timerText.fontSize = 42f; timerText.fontStyle = FontStyles.Bold; timerText.alignment = TextAlignmentOptions.Center;
+        stageLabel = Label(root, "", TR, new Vector2(-420f, y), new Vector2(220f, 50f), 28f, TextAlignmentOptions.Right, Color.white, true);
+        fixLabel = Label(root, "", TR, new Vector2(-150f, y), new Vector2(260f, 50f), 28f, TextAlignmentOptions.Right, Color.white, true);
 
-        // 하단 띠
-        var bottom = MakeBand(root, "BottomBand", false, 140f, Band); bottom.transform.SetSiblingIndex(2);
-        var line2 = MakeBand(root, "BottomLine", false, 3f, Accent * 0.8f, 140f); line2.transform.SetSiblingIndex(3);
-
-        Label(root, "보유 자료", BL, new Vector2(170f, 112f), new Vector2(260f, 36f), 24f, TextAlignmentOptions.Left, Accent, true);
-        itemNames = new TMP_Text[heldSlots.Length];
+        // 좌하단: 작은 보유 자료 박스 (맵 위에 겹침)
+        var box = Panel(root, "HeldBox", BL, new Vector2(98f, 62f), new Vector2(180f, 112f), new Color(0.04f, 0.06f, 0.12f, 0.82f));
+        var bol = box.gameObject.AddComponent<Outline>(); bol.effectColor = Accent * 0.6f; bol.effectDistance = new Vector2(2f, -2f);
+        box.transform.SetSiblingIndex(2);
+        Label(root, "보유 자료", BL, new Vector2(98f, 100f), new Vector2(170f, 28f), 20f, TextAlignmentOptions.Center, Accent, true);
+        itemNames = null;
         for (int i = 0; i < heldSlots.Length; i++)
         {
-            Vector2 p = new Vector2(100f + i * 300f, 52f);
-            var frame = Panel(root, "SlotFrame" + i, BL, p, new Vector2(86f, 86f), new Color(0.09f, 0.13f, 0.24f, 1f));
-            var ol = frame.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.7f; ol.effectDistance = new Vector2(3f, -3f);
+            Vector2 p = new Vector2(60f + i * 76f, 48f);
+            var frame = Panel(root, "SlotFrame" + i, BL, p, new Vector2(64f, 64f), new Color(0.09f, 0.13f, 0.24f, 1f));
+            var ol = frame.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.7f; ol.effectDistance = new Vector2(2f, -2f);
             frame.transform.SetSiblingIndex(heldSlots[i].transform.GetSiblingIndex());
-            Place(heldSlots[i].rectTransform, BL, p, new Vector2(72f, 72f));
+            Place(heldSlots[i].rectTransform, BL, p, new Vector2(54f, 54f));
             heldSlots[i].preserveAspect = true;
             var old = heldSlots[i].transform.Find("ItemNameLabel"); if (old != null) Destroy(old.gameObject);
-            itemNames[i] = Label(root, "", BL, p + new Vector2(150f, 0f), new Vector2(200f, 60f), 24f, TextAlignmentOptions.Left, Color.white, false);
         }
 
-        Label(root, "<color=#39D0FF>WASD</color> 이동   <color=#39D0FF>E</color> 제작·회수·수정   <color=#39D0FF>Space</color> 점프(패링)   <color=#39D0FF>Q</color> 버리기   <color=#39D0FF>Tab</color> 조합표   <color=#39D0FF>ESC</color> 일시정지",
-              BR, new Vector2(-560f, 70f), new Vector2(1040f, 50f), 22f, TextAlignmentOptions.Right, new Color(0.85f, 0.9f, 1f), false);
+        // 하단 가운데: 얇은 조작 안내 한 줄
+        var help = Label(root, "<color=#39D0FF>WASD</color> 이동  ·  <color=#39D0FF>E</color> 제작·회수·수정  ·  <color=#39D0FF>Space</color> 점프(패링)  ·  <color=#39D0FF>Q</color> 버리기  ·  <color=#39D0FF>Tab</color> 조합표  ·  <color=#39D0FF>ESC</color> 일시정지",
+              new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1100f, 30f), 19f, TextAlignmentOptions.Center, new Color(0.85f, 0.9f, 1f, 0.75f), false);
+        help.outlineWidth = 0.2f; help.outlineColor = new Color32(5, 8, 16, 255);
 
-        // 방이 HUD·조합표에 가리지 않게 카메라 자동 맞춤 + 오른쪽 조합표
+        // 카메라 자동 맞춤 + 조합표(Tab, 맵 위에 겹침)
         var cam = Camera.main;
         if (cam != null && cam.GetComponent<CameraFit>() == null) cam.gameObject.AddComponent<CameraFit>();
         gameObject.AddComponent<RecipePanel>().Build(root, icons, stage);

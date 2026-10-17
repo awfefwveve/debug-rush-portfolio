@@ -6,12 +6,12 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 조합표 (기획서 p.10 표): 재료 아이콘 + 재료 아이콘 = 결과 아이콘, 7종 + 오류뭉텅이.
-/// 화면 오른쪽, 처음엔 펼침, Tab으로 접기/펴기. 지금 단말기가 요구하는 결과 줄은 강조.
+/// 화면 오른쪽, 맵 위에 겹침. 기본 닫힘(1-1만 처음 3초 펼침), Tab으로 열기/닫기. 지금 단말기가 요구하는 결과 줄은 강조.
 /// </summary>
 public class RecipePanel : MonoBehaviour
 {
     public const float Width = 330f;
-    static readonly Color Bg = new Color(0.05f, 0.08f, 0.15f, 0.94f);
+    static readonly Color Bg = new Color(0.05f, 0.08f, 0.15f, 0.88f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
     static readonly Color Need = new Color(1f, 0.82f, 0.25f);
 
@@ -21,7 +21,8 @@ public class RecipePanel : MonoBehaviour
     RectTransform panel;
     GameObject body;
     TMP_Text header;
-    bool open = true;
+    bool open;
+    float autoCloseAt = -1f;
     StageManager stage;
     ItemIconSet icons;
 
@@ -43,7 +44,7 @@ public class RecipePanel : MonoBehaviour
         panel.SetParent(canvasRoot, false);
         panel.anchorMin = new Vector2(1f, 0f); panel.anchorMax = new Vector2(1f, 1f);
         panel.pivot = new Vector2(1f, 0.5f);
-        panel.offsetMin = new Vector2(-Width, 146f); panel.offsetMax = new Vector2(0f, -146f);   // 위·아래 HUD 띠 사이
+        panel.offsetMin = new Vector2(-Width, 60f); panel.offsetMax = new Vector2(0f, -70f);   // 상단 바 아래, 맵 위에 겹침
         var bg = panel.GetComponent<Image>(); bg.color = Bg; bg.raycastTarget = false;
         var ol = panel.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.6f; ol.effectDistance = new Vector2(2f, -2f);
 
@@ -60,6 +61,10 @@ public class RecipePanel : MonoBehaviour
         var err = MakeRow(ItemType.ErrorLump, ItemType.ErrorLump, ItemType.ErrorLump, -Recipes.Length * rowH);
         err.name.text = "<color=#FF7A7A>그 외 조합 = 오류뭉텅이</color>";
         rows.Add(err);
+        // 기본은 닫힘. 첫 스테이지(1-1)만 처음 3초 펼쳐서 보여 줌
+        var d = sm != null ? sm.Data : null;
+        if (d != null && d.chapter == 1 && d.stage == 1) { open = true; autoCloseAt = float.MaxValue; }   // 대사 끝나고 게임 시작 후 3초
+        slide = open ? 0f : 1f;
         Apply();
     }
 
@@ -101,7 +106,9 @@ public class RecipePanel : MonoBehaviour
     void Update()
     {
         if (panel == null) return;
-        if (Input.GetKeyDown(KeyCode.Tab)) Toggle();
+        if (Input.GetKeyDown(KeyCode.Tab)) { autoCloseAt = -1f; Toggle(); }
+        if (autoCloseAt == float.MaxValue && stage != null && stage.Running) autoCloseAt = Time.time + 3f;
+        if (autoCloseAt > 0f && Time.time >= autoCloseAt) { autoCloseAt = -1f; if (open) Toggle(); }
 
         // 지금 단말기가 요구하는 결과 줄 강조
         var needed = new HashSet<ItemType>();
@@ -116,7 +123,7 @@ public class RecipePanel : MonoBehaviour
         }
     }
 
-    // 맵 크기는 고정 (카메라는 처음부터 패널 자리를 비워 둠). 패널만 오른쪽 밖으로 0.2초 슬라이드.
+    // 맵 크기는 고정. 패널은 맵 위에 겹쳐서 오른쪽에서 0.2초 슬라이드로 나왔다 들어감.
     float slide;            // 0 = 펼침, 1 = 접힘
     TMP_Text tab;
 
@@ -130,11 +137,10 @@ public class RecipePanel : MonoBehaviour
             var tabBg = new GameObject("RecipeTab", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             tabBg.transform.SetParent(panel.parent, false);
             var r = tabBg.rectTransform; r.anchorMin = r.anchorMax = new Vector2(1f, 1f); r.pivot = new Vector2(1f, 1f);
-            r.anchoredPosition = new Vector2(0f, -150f); r.sizeDelta = new Vector2(150f, 56f);
+            r.anchoredPosition = new Vector2(0f, -70f); r.sizeDelta = new Vector2(150f, 48f);
             tabBg.color = Bg; tabBg.raycastTarget = false;
             tab = StageHUD.Label(r, "조합표 <size=18>(Tab)</size>", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140f, 50f), 24f, TextAlignmentOptions.Center, Accent, true);
         }
-        if (CameraFit.I != null) CameraFit.I.sidebar = Width + 10f;      // 항상 같은 자리 비워 둠
     }
 
     void LateUpdate()

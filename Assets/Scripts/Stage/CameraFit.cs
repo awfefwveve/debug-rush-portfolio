@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 화면 비율(16:9, 16:10, 21:9 …)과 관계없이 방 전체가 HUD 띠·조합표 패널에 가리지 않고 보이도록 카메라 크기·위치 자동 조정.
+/// 화면 비율(16:9, 16:10, 21:9 …)과 관계없이 방 전체가 상단 HUD 바 아래로 화면을 꽉 채우도록 카메라 크기·위치 자동 조정.
 /// 단위는 HUD 캔버스 기준(세로 1080).
 /// </summary>
 [DefaultExecutionOrder(-50)]
@@ -12,8 +12,8 @@ public class CameraFit : MonoBehaviour
     public static CameraFit I { get; private set; }
 
     public float roomWidth = 28.4f, roomHeight = 12.4f;       // 칸 (벽 포함 + 여유)
-    public float bandTop = 140f, bandBottom = 140f;            // HUD 띠 (캔버스 단위)
-    [Tooltip("오른쪽 조합표 패널 폭 (캔버스 단위)")] public float sidebar = 340f;
+    public float bandTop = 60f, bandBottom = 0f;               // 상단 HUD 바 (캔버스 단위)
+    [Tooltip("오른쪽에 비워 둘 폭 (캔버스 단위). 조합표는 맵 위에 겹치므로 0")] public float sidebar = 0f;
 
     float sidebarNow;
     Camera cam;
