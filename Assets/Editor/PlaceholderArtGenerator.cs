@@ -468,6 +468,9 @@ public static class PlaceholderArtGenerator
         // 중앙 작업대 라인 (가운데 제작기 양옆, 바깥쪽은 통로)
         SetWall("Wall_InnerA", new Vector2(-4.5f, 0f), new Vector2(5f, 1f));
         SetWall("Wall_InnerB", new Vector2(4.5f, 0f), new Vector2(5f, 1f));
+        // 기획서 p.18 벽 모양: 좌상단·우하단 튀어나온 벽 (2×2칸)
+        CloneWall("Wall_CornerTL", "Wall_Top"); SetWall("Wall_CornerTL", new Vector2(-12f, 4f), new Vector2(2f, 2f));
+        CloneWall("Wall_CornerBR", "Wall_Top"); SetWall("Wall_CornerBR", new Vector2(12f, -4f), new Vector2(2f, 2f));
 
         var playerGo = Find("Player");
         if (playerGo != null) playerGo.transform.position = PlayerStart;
@@ -584,6 +587,14 @@ public static class PlaceholderArtGenerator
         var sr = w.GetComponent<SpriteRenderer>();
         sr.sprite = S("wall_fill"); sr.drawMode = SpriteDrawMode.Tiled; sr.color = Color.white; sr.sortingOrder = 0;
         sr.size = size;
+    }
+
+    static void CloneWall(string name, string source)
+    {
+        if (Find(name) != null) return;
+        var src = Find(source); if (src == null) return;
+        var copy = Object.Instantiate(src, src.transform.parent);    // 태그·레이어·콜라이더 그대로
+        copy.name = name;
     }
 
     static void RemoveChild(Transform parent, string name) { var c = parent.Find(name); if (c != null) Object.DestroyImmediate(c.gameObject); }

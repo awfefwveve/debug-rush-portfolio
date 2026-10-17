@@ -124,13 +124,27 @@ public class StageFX : MonoBehaviour
         }
     }
 
+    // 패링 순간 정지. 연속 패링이 겹쳐도 원래 속도로 반드시 복구 (겹칠 때 0.05로 고정되던 버그 수정)
+    float hitStopUntil;
+    bool hitStopping;
+    const float HitStopScale = 0.05f;
+
     IEnumerator HitStop(float seconds)
     {
-        float prev = Time.timeScale;
-        if (prev <= 0f) yield break;
-        Time.timeScale = 0.05f;
-        yield return new WaitForSecondsRealtime(seconds);
-        if (Time.timeScale == 0.05f) Time.timeScale = prev;
+        if (Time.timeScale <= 0f) yield break;          // 일시정지 중엔 무시
+        hitStopUntil = Mathf.Max(hitStopUntil, Time.unscaledTime + seconds);
+        if (hitStopping) yield break;                    // 이미 정지 중이면 시간만 연장
+        hitStopping = true;
+        Time.timeScale = HitStopScale;
+        while (Time.unscaledTime < hitStopUntil) yield return null;
+        if (Mathf.Approximately(Time.timeScale, HitStopScale)) Time.timeScale = 1f;
+        hitStopping = false;
+    }
+
+    void OnDisable()
+    {
+        if (hitStopping && Mathf.Approximately(Time.timeScale, HitStopScale)) Time.timeScale = 1f;
+        hitStopping = false;
     }
 
     IEnumerator Punch(Transform t, float amount)

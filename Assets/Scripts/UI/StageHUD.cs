@@ -60,7 +60,7 @@ public class StageHUD : MonoBehaviour
     void Update()
     {
         if (stage == null || stage.Data == null) return;
-        if (stageLabel != null) stageLabel.text = $"STAGE {stage.Data.chapter}-{stage.Data.stage:00}";
+        if (stageLabel != null) stageLabel.text = $"STAGE {stage.Data.stage:00}";            // 기획서 p.7 "STAGE 02" 형식
         if (fixLabel != null)
         {
             int done = 0, total = 0;
@@ -77,6 +77,7 @@ public class StageHUD : MonoBehaviour
         var canvas = timerText != null ? timerText.canvas : GetComponentInParent<Canvas>();
         if (canvas == null) return;
         var root = canvas.transform;
+        canvas.sortingOrder = 10;                         // 화면 효과(글리치)보다 위
 
         // 상단 띠
         var top = Panel(root, "TopBand", new Vector2(0f, 470f), new Vector2(1920f, 140f), Band);
