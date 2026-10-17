@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7070099618952696545}
   - component: {fileID: 1033185353334196569}
   - component: {fileID: 5062739518961319735}
-  - component: {fileID: 6796726789839843301}
   m_Layer: 0
   m_Name: Monster1A_Shot
   m_TagString: Untagged
@@ -83,9 +82,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 20
+  m_SortingOrder: 30
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 5f37105da0401924fb11e988e2aeac52, type: 3}
+  m_Sprite: {fileID: 21300000, guid: b86605f99848d9e4e8c1efe8ed57f515, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -130,7 +129,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.484375
+  m_Radius: 0.22
 --- !u!50 &1033185353334196569
 Rigidbody2D:
   serializedVersion: 5
@@ -170,35 +169,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41e7ab58618aede478908c8bd16afd8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
-  speed: 6
+  speed: 6.5
   lifetime: 8
   damage: 1
   parryStunTime: 3
-  normalColor: {r: 1, g: 1, b: 1, a: 1}
-  parryColor: {r: 0.6, g: 0.45, b: 1, a: 1}
+  useSharedBullet: 1
+  normalSprite: {fileID: 0}
+  parrySprite: {fileID: 0}
+  rotateToDirection: 0
   splitPrefab: {fileID: 0}
   splitCount: 0
---- !u!114 &6796726789839843301
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2505642648002948703}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bb0d6438a2619b4badc801eb7a87739, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpriteFrameAnimator
-  target: {fileID: 7084962167177344910}
-  frames:
-  - {fileID: 21300000, guid: 5f37105da0401924fb11e988e2aeac52, type: 3}
-  - {fileID: 21300000, guid: 7458c3e3cbad28b40a287da7f605a0ed, type: 3}
-  - {fileID: 21300000, guid: 26c6f3389b11d6b4094c7f32798d37de, type: 3}
-  - {fileID: 21300000, guid: 6d50113b95be8df498cf26a068c151b6, type: 3}
-  - {fileID: 21300000, guid: 55c29d9fb0386a741af221fb0babedee, type: 3}
-  - {fileID: 21300000, guid: f631c705015e1d44395ac9ec639966c6, type: 3}
-  - {fileID: 21300000, guid: ca75f646ae5659a4fa10759e0e83d9a7, type: 3}
-  fps: 14
-  loop: 1
-  unscaled: 0

@@ -1154,6 +1154,7 @@ MonoBehaviour:
   settingsPanel: {fileID: 1454544604}
   heroSprite: {fileID: 21300000, guid: 4b5df59045843e14d9e35689d47f4018, type: 3}
   monsterSprite: {fileID: 21300000, guid: 988a41cb73e952e4e998cd4e0cd92259, type: 3}
+  logoSprite: {fileID: 21300000, guid: 50be16ad97ae4af49810aa57d8d59889, type: 3}
 --- !u!4 &840146159
 Transform:
   m_ObjectHideFlags: 0

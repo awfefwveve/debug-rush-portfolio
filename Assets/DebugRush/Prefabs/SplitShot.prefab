@@ -82,14 +82,14 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 20
+  m_SortingOrder: 30
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: a88206fc6e20f144e892d9904001b729, type: 3}
+  m_Sprite: {fileID: 21300000, guid: b86605f99848d9e4e8c1efe8ed57f515, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.96875, y: 0.96875}
+  m_Size: {x: 0.5, y: 0.5}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -129,7 +129,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.484375
+  m_Radius: 0.22
 --- !u!50 &2367363922617102325
 Rigidbody2D:
   serializedVersion: 5
@@ -169,11 +169,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41e7ab58618aede478908c8bd16afd8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
-  speed: 6
+  speed: 7
   lifetime: 8
   damage: 1
   parryStunTime: 3
-  normalColor: {r: 0.8, g: 0.2, b: 0.15, a: 1}
-  parryColor: {r: 0.7, g: 0.3, b: 1, a: 1}
+  useSharedBullet: 1
+  normalSprite: {fileID: 0}
+  parrySprite: {fileID: 0}
+  rotateToDirection: 0
   splitPrefab: {fileID: 5062739518961319735, guid: 0cf482545eae612418b4a41c21a493c9, type: 3}
   splitCount: 8

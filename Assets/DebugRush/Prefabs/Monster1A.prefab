@@ -33,7 +33,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5172690649501294790}
+  - {fileID: 9126403463572739804}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6745655590957452865
@@ -107,23 +107,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 776427b62d6c45641a12fad57ea3f4fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Monster1A
-  moveSpeed: 2
-  patternInterval: 2
+  moveSpeed: 2.5
+  patternInterval: 2.6
+  windupTime: 0.6
+  recoverTime: 0.5
   wander: 1
   moveArea:
     serializedVersion: 2
-    x: -7
-    y: -3
-    width: 14
-    height: 6
+    x: -11
+    y: -4
+    width: 22
+    height: 8
   firstAttackDelay: 3
-  intervalStepMultiplier: 0.85
-  minPatternInterval: 0.6
-  speedStepBonus: 0.1
-  maxMoveSpeed: 4
+  intervalStepMultiplier: 0.92
+  minPatternInterval: 1.4
+  maxAggression: 6
+  speedStepBonus: 0.06
+  maxMoveSpeed: 4.5
   projectilePrefab: {fileID: 5062739518961319735, guid: d611fa1b590e8474aaa5693188336321, type: 3}
   fieldPrefab: {fileID: 7810972916523871575, guid: 144249ecbc77f28428ac4742a4fc2aa0, type: 3}
   spreadAngle: 20
+  warnLength: 9
 --- !u!114 &6401381750164191930
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -147,7 +151,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: a8d36bc009aa5bd46bbf2fd34d112a18, type: 3}
   fps: 10
   loop: 1
-  unscaled: 0
+  destroyOnEnd: 0
 --- !u!114 &9217089297161854717
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -186,7 +190,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 2cef776182bd4ae4bab758d92d2546bc, type: 3}
   pattern3: []
   fps: 10
---- !u!1 &7959345111411195723
+--- !u!1 &5691852013166212968
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -194,8 +198,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5172690649501294790}
-  - component: {fileID: 2018387848788109409}
+  - component: {fileID: 9126403463572739804}
+  - component: {fileID: 708027191330499295}
   m_Layer: 0
   m_Name: Shadow
   m_TagString: Untagged
@@ -203,29 +207,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5172690649501294790
+--- !u!4 &9126403463572739804
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7959345111411195723}
+  m_GameObject: {fileID: 5691852013166212968}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.75, z: 0}
+  m_LocalPosition: {x: 0, y: -1, z: 0}
   m_LocalScale: {x: 0.9, y: 0.9, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8111454863255714674}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &2018387848788109409
+--- !u!212 &708027191330499295
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7959345111411195723}
+  m_GameObject: {fileID: 5691852013166212968}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -265,14 +269,14 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -6
+  m_SortingOrder: -60
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: e55e74e4e1b0fcf47b1c538066ad0006, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 0.4}
+  m_Size: {x: 2, y: 0.75}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

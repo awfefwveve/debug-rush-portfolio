@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 619230bd86b620e45a1b4ea7673eb2bf, type: 3}
+  m_Name: FxSet
+  m_EditorClassIdentifier: Assembly-CSharp::FxSet
+  bulletNormal: {fileID: 21300000, guid: b86605f99848d9e4e8c1efe8ed57f515, type: 3}
+  bulletParry: {fileID: 21300000, guid: d7b2c4b06cc152741bc5ebe5828a5bf2, type: 3}
+  fireFx:
+  - {fileID: 21300000, guid: c48eb617c052d5c4aa6c2dfdbd1f6c47, type: 3}
+  - {fileID: 21300000, guid: 7c0658eae7616a14aab506b988473e7e, type: 3}
+  - {fileID: 21300000, guid: 20cc714c60b41944e8d27607a0a12c76, type: 3}
+  - {fileID: 21300000, guid: 7e752571903999e4d8c81111b9ce94a3, type: 3}
+  hitFx:
+  - {fileID: 21300000, guid: 70ee5397f55d30e49a8faf0a27404cf8, type: 3}
+  - {fileID: 21300000, guid: d70afff73d38e9f418666d38a1aa90eb, type: 3}
+  - {fileID: 21300000, guid: 398949d040ef50841b07acf51564f3b9, type: 3}
+  - {fileID: 21300000, guid: 7d74d8c78850e30429071c13a25eebee, type: 3}
+  vanishFx:
+  - {fileID: 21300000, guid: 4966f771fcaecc94eb136c5db69b074a, type: 3}
+  - {fileID: 21300000, guid: ed5b86511d83fa04b8d247e863947bfa, type: 3}
+  - {fileID: 21300000, guid: c49086959d2553b4fb9abdd115337ca9, type: 3}
+  - {fileID: 21300000, guid: 39bb2623e501503499c9f3c423b58193, type: 3}
+  - {fileID: 21300000, guid: f170ceb7070100d49a9b06147afde5c1, type: 3}
+  - {fileID: 21300000, guid: 8027e0be29232db48844203d48ccff31, type: 3}
+  warnCircleFill: {fileID: 21300000, guid: 14748db6b357c314eaba8c1dc319fd56, type: 3}
+  warnCircleBorder: {fileID: 21300000, guid: d5a39a4f9eeb76a4bb4286cb6c6d4a78, type: 3}
+  warnLine: {fileID: 21300000, guid: fe0bd841e6277b443b781f947b0e0062, type: 3}

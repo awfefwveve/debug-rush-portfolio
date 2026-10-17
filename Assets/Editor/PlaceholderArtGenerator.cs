@@ -7,262 +7,387 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 
 /// <summary>
-/// 아트 팀 그림이 없는 오브젝트용 통일 플레이스홀더 생성기 (기준 1칸 = 100px).
-/// 메뉴: DebugRush > Generate Placeholder Art. 생성 후 씬/프리팹에 연결까지 수행.
-/// 아트 팀 그림이 오면 같은 파일 이름으로 덮어쓰면 그대로 교체됨 (Assets/DebugRush/Art/Placeholder).
+/// 팀 아트 공통 규격 기준 임시 그림 생성 + 씬/프리팹 연결.
+/// 규격: 기준 격자 32px, PNG는 4배 출력(1칸 = 128px), Unity 1칸 = 1유닛 (PPU 128).
+/// 같은 파일 이름·아트보드 크기로 아트 팀 그림을 덮어쓰면 그대로 교체됨 (Assets/DebugRush/Art/Placeholder).
+/// 메뉴: DebugRush > Generate Placeholder Art
 /// </summary>
 public static class PlaceholderArtGenerator
 {
     public const string Dir = "Assets/DebugRush/Art/Placeholder/";
     const string P = "Assets/DebugRush/Prefabs/";
-    const int PPU = 100;
+    const string Drive = "Assets/DebugRush/Art/Drive/";
+    const int X4 = 4;               // PNG 배율
+    const int PPU = 32 * X4;        // 128
 
-    // 팀 팔레트 (사이버펑크 1학년 챕터)
-    static readonly Color Navy = Hex("0B1020"), Floor = Hex("141B2E"), FloorLine = Hex("1D2742"),
-        Wall = Hex("2A3754"), WallTop = Hex("44597F"), WallDark = Hex("1A2238"),
+    // 팔레트: 배경은 채도·명도 낮게, 상호작용 대상은 밝게
+    static readonly Color Navy = Hex("0A0E1A"), FloorA = Hex("161C2C"), FloorB = Hex("1A2133"), FloorLine = Hex("212A40"),
+        WallFace = Hex("39465F"), WallTop = Hex("5A6C8E"), WallDark = Hex("222B3F"), Outline = Hex("0B0F1C"),
         Cyan = Hex("39D0FF"), Pink = Hex("FF4FA3"), Yellow = Hex("FFD23F"), Green = Hex("4BE38A"),
-        Orange = Hex("FF9F43"), Red = Hex("FF4757"), Body = Hex("223150"), White = Color.white;
+        Orange = Hex("FF9F43"), Red = Hex("FF3B4E"), Purple = Hex("B86BFF"), Blue = Hex("4C7BFF"),
+        Body = Hex("2B3A5C"), BodyDark = Hex("1D2740"), Screen = Hex("07101F"), White = Color.white;
 
     public static readonly Dictionary<ItemType, Color> MaterialColor = new Dictionary<ItemType, Color>
     {
         { ItemType.Planning, Yellow }, { ItemType.Programming, Cyan }, { ItemType.Graphic, Pink }, { ItemType.QA, Green },
     };
+    static readonly Dictionary<ItemType, Color> ArtLabelColor = new Dictionary<ItemType, Color>
+    {
+        { ItemType.Planning, Hex("4C9BFF") }, { ItemType.Programming, Hex("E6E9F2") }, { ItemType.Graphic, Hex("FFD23F") }, { ItemType.QA, Hex("B86BFF") },
+    };
+    const string Fac = "Assets/DebugRush/Art/Facilities/";
+    static Sprite F(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Fac + n + ".png");
+    static Sprite Pick(string team, string placeholder) => F(team) != null ? F(team) : S(placeholder);
+
+    static readonly Dictionary<ItemType, string> MaterialName = new Dictionary<ItemType, string>
+    {
+        { ItemType.Planning, "기획" }, { ItemType.Programming, "프로그래밍" }, { ItemType.Graphic, "그래픽" }, { ItemType.QA, "QA" },
+    };
+
+    // ---------- 방 배치 (1칸 = 1유닛). 바깥 28×12칸, 안쪽 26×10칸 ----------
+    public const float RoomHalfW = 14f, RoomHalfH = 6f;
+    // 기획서 p.18: 재료대 그래픽·QA 위 / 기획·프로그래밍 아래, 중앙 작업대 라인 위 제작대, 단말기 우상단·좌하단
+    public static readonly Dictionary<ItemType, Vector2> StationPos = new Dictionary<ItemType, Vector2>
+    {
+        { ItemType.Graphic, new Vector2(-9f, 3.2f) }, { ItemType.QA, new Vector2(-5f, 3.2f) },
+        { ItemType.Planning, new Vector2(5f, -3.2f) }, { ItemType.Programming, new Vector2(9f, -3.2f) },
+    };
+    public static readonly Vector2 TerminalTopRight = new Vector2(10.5f, 2.0f), TerminalBottomLeft = new Vector2(-10.5f, -2.4f);
+    public static readonly Vector2 PlayerStart = new Vector2(0f, -3.4f);
 
     [MenuItem("DebugRush/Generate Placeholder Art")]
     public static void Run()
     {
         Directory.CreateDirectory(Dir);
+        Generated.Clear();
         GenerateTextures();
+        // 이번에 만들지 않은 예전 파일만 삭제 (같은 이름은 덮어써서 GUID 유지)
+        foreach (var old in Directory.GetFiles(Dir, "*.png"))
+            if (!Generated.Contains(Path.GetFileNameWithoutExtension(old))) { File.Delete(old); if (File.Exists(old + ".meta")) File.Delete(old + ".meta"); }
         AssetDatabase.Refresh();
         ConfigureImports();
-        GenerateLabelIcons();
+        ConfigureDriveArt();
         AssetDatabase.Refresh();
-        ConfigureImports();
+        BuildFxSet();
         Apply();
         AssetDatabase.SaveAssets();
         Debug.Log("[Placeholder] done");
     }
 
     // =====================================================================================
-    // 텍스처
+    // 텍스처 (기준 크기 × 4)
     // =====================================================================================
     static void GenerateTextures()
     {
-        // 바닥 타일
-        var t = New(100, 100, Floor);
-        Rect(t, 0, 0, 100, 2, FloorLine); Rect(t, 0, 0, 2, 100, FloorLine);
-        Rect(t, 48, 48, 4, 4, FloorLine);
-        Save(t, "floor");
+        // 바닥 32×32 / 큰 바닥 패널 64×64
+        var t = New(128, 128, FloorA);
+        Rect(t, 0, 0, 128, 4, FloorLine); Rect(t, 0, 0, 4, 128, FloorLine);
+        Rect(t, 62, 62, 4, 4, FloorLine);
+        Save(t, "floor_32");
+        t = New(256, 256, FloorB);
+        Rect(t, 0, 0, 256, 4, FloorLine); Rect(t, 0, 0, 4, 256, FloorLine); Rect(t, 128, 0, 2, 256, FloorLine); Rect(t, 0, 128, 256, 2, FloorLine);
+        Save(t, "floor_64");
 
-        // 벽 타일
-        t = New(100, 100, Wall);
-        Rect(t, 0, 82, 100, 18, WallTop); Rect(t, 0, 0, 100, 10, WallDark);
-        Rect(t, 0, 0, 2, 100, WallDark); Rect(t, 49, 10, 2, 72, WallDark);
-        Save(t, "wall");
+        // 벽 32×32: 단독·끝·직선·코너·T자·십자 (연결부는 변 중앙, 회전 사용)
+        WallTile("wall_single", false, false, false, false);
+        WallTile("wall_end", false, false, true, false);        // 아래로 연결
+        WallTile("wall_straight", true, true, false, false);     // 좌우 연결
+        WallTile("wall_corner", false, true, true, false);       // 오른쪽·아래
+        WallTile("wall_t", true, true, true, false);
+        WallTile("wall_cross", true, true, true, true);
+        WallTile("wall_fill", true, true, true, true, true);     // 반복 채움용
 
-        // 재료대 (책상 + 색 상판)
-        foreach (var kv in MaterialColor)
-        {
-            t = New(120, 100, Clear);
-            RoundRect(t, 4, 4, 112, 72, 10, Body); RoundRectOutline(t, 4, 4, 112, 72, 10, 4, kv.Value * 0.8f);
-            RoundRect(t, 0, 54, 120, 42, 12, kv.Value); RoundRectOutline(t, 0, 54, 120, 42, 12, 3, Darken(kv.Value, 0.6f));
-            Rect(t, 18, 14, 84, 6, Darken(kv.Value, 0.5f));
-            Save(t, "station_" + kv.Key.ToString().ToLower());
-        }
+        // 아이템 생성기 96×80 (기준점 48,40): 공통 몸체 + 재료 색상·표식
+        foreach (var kv in MaterialColor) Generator(kv.Key, kv.Value);
 
-        // 제작대
-        t = New(200, 110, Clear);
-        RoundRect(t, 6, 4, 188, 80, 12, Body); RoundRectOutline(t, 6, 4, 188, 80, 12, 4, Orange * 0.8f);
-        RoundRect(t, 0, 60, 200, 46, 14, Orange); RoundRectOutline(t, 0, 60, 200, 46, 14, 3, Darken(Orange, 0.6f));
-        Circle(t, 40, 30, 10, Darken(Orange, 0.5f)); Circle(t, 160, 30, 10, Darken(Orange, 0.5f));
-        Save(t, "crafting_table");
+        // 제작기 128×96 (기준점 64,48): 대기·제작 중·완료
+        Crafter("crafter_idle", Hex("6B7A99"), false);
+        Crafter("crafter_working", Orange, true);
+        Crafter("crafter_done", Green, false);
 
-        // 단말기: 모니터 + 오른쪽 남은 시간 칸(6칸). frame t = 켜진 칸 수
-        for (int lit = 0; lit <= 6; lit++)
-        {
-            t = New(130, 150, Clear);
-            RoundRect(t, 10, 0, 90, 18, 6, WallDark);                     // 받침
-            RoundRect(t, 0, 14, 104, 136, 12, Hex("1B2742"));             // 프레임
-            RoundRectOutline(t, 0, 14, 104, 136, 12, 4, Cyan);
-            RoundRect(t, 12, 30, 80, 104, 6, Hex("07101F"));              // 화면
-            // 화면 속 경고 삼각형
-            Triangle(t, 52, 102, 30, lit <= 2 ? Red : Yellow);
-            Rect(t, 50, 84, 4, 14, Hex("07101F")); Rect(t, 50, 78, 4, 4, Hex("07101F"));
-            // 남은 시간 칸
-            RoundRect(t, 108, 14, 22, 136, 6, Hex("1B2742")); RoundRectOutline(t, 108, 14, 22, 136, 6, 3, Cyan * 0.7f);
-            for (int i = 0; i < 6; i++)
-            {
-                bool on = i < lit;
-                Color c = !on ? Hex("2A3450") : lit <= 2 ? Red : Cyan;
-                Rect(t, 113, 22 + i * 21, 12, 16, c);
-            }
-            Save(t, "terminal_t" + lit);
-        }
+        // 단말기 80×112 (기준점 40,56): 오류·전송·복구 (몸체 위치 동일)
+        Terminal("terminal_error", Red, 0);
+        Terminal("terminal_transmit", Cyan, 1);
+        Terminal("terminal_recovered", Green, 2);
 
-        // 로봇 (버그에 지배당한 로봇) + 1B/1C 변형
-        Robot("robot", Hex("5A6B8C"), Pink);
-        Robot("robot_factory", Hex("8C7A5A"), Orange);
-        Robot("robot_scrap", Hex("6B6B6B"), Green);
+        // 아이템 32×32 → 128×128, 사방 2px(=8px) 여백, 글자 없음
+        ItemIcon("item_02_graphic", Pink, 0);
+        ItemIcon("item_03_qa", Green, 1);
+        ItemIcon("item_08_graphic_fix", Purple, 2);
+        ItemIcon("item_09_game_build", Blue, 3);
+        ItemIcon("item_10_art_complete", Orange, 4);
+        ItemIcon("item_11_error", Hex("6E6E80"), 5);
 
-        // 투사체·위험요소
-        Orb("shot_cyan", 56, Cyan); Orb("shot_orange", 64, Orange); Orb("shot_red", 56, Red);
-        t = New(90, 40, Clear); Diamond(t, 45, 20, 44, 18, White); Diamond(t, 45, 20, 36, 12, Hex("CFE8FF")); Save(t, "blade");
-        t = New(70, 70, Clear); Circle(t, 35, 35, 30, Hex("2B2B35")); CircleOutline(t, 35, 35, 30, 4, Red); Circle(t, 35, 35, 9, Red); Save(t, "mine");
-        t = New(100, 100, Clear); CircleOutline(t, 50, 50, 44, 8, Red); Rect(t, 46, 34, 8, 36, Red); Rect(t, 46, 22, 8, 8, Red); Save(t, "warn");
-        // 전선: 1×1칸 텍스처를 스크립트가 (24, 0.6)으로 늘림 → 가로 띠
-        t = New(100, 100, Clear);
-        Rect(t, 0, 20, 100, 60, new Color(Green.r, Green.g, Green.b, 0.35f)); Rect(t, 0, 38, 100, 24, Green); Rect(t, 0, 46, 100, 8, Hex("EFFFF4"));
+        // 몬스터 64×64 → 256 (몸체 중심 32,32)
+        Robot("robot", Hex("6F7FA3"), Pink);
+        Robot("robot_factory", Hex("A38A5E"), Orange);
+        Robot("robot_scrap", Hex("7C7C7C"), Green);
+
+        // 탄환: 일반 16×16 빨강 / 패링 가능 24×24 분홍 마름모 (외곽선 2px)
+        t = New(64, 64, Clear); Circle(t, 32, 32, 28, Outline); Circle(t, 32, 32, 21, Red); Circle(t, 28, 36, 8, Hex("FFB3BB")); Save(t, "bullet_normal");
+        t = New(96, 96, Clear); Diamond(t, 48, 48, 46, 46, Outline); Diamond(t, 48, 48, 37, 37, Pink); Diamond(t, 44, 52, 12, 12, Hex("FFD6EA")); Save(t, "bullet_parry");
+        t = New(128, 64, Clear); Diamond(t, 64, 32, 60, 26, Outline); Diamond(t, 64, 32, 52, 18, Hex("DDEBFF")); Save(t, "blade");
+        t = New(128, 128, Clear); Circle(t, 64, 64, 46, Outline); Circle(t, 64, 64, 38, Hex("2B2B35")); Circle(t, 64, 64, 14, Red); Save(t, "mine");
+        // 전선(직선 공격 몸체): 1칸 텍스처를 스크립트가 길이 방향으로 늘림
+        t = New(128, 128, Clear);
+        Rect(t, 0, 24, 128, 80, new Color(Green.r, Green.g, Green.b, 0.35f)); Rect(t, 0, 48, 128, 32, Green); Rect(t, 0, 58, 128, 12, Hex("EFFFF4"));
         Save(t, "wire");
-        // 그림자
-        t = New(100, 40, Clear); Ellipse(t, 50, 20, 48, 18, new Color(0, 0, 0, 0.45f)); Save(t, "shadow");
-        // 하트
+
+        // 이펙트: 발사 64 (4f), 피격 64 (4f), 소멸 128 (6f)
+        for (int i = 0; i < 4; i++) { t = New(256, 256, Clear); Burst(t, 128, 128, 40 + i * 22, 12 - i * 2, new Color(1f, 0.85f, 0.95f, 1f - i * 0.22f), 8); Save(t, "fx_fire_" + i); }
+        for (int i = 0; i < 4; i++) { t = New(256, 256, Clear); Burst(t, 128, 128, 30 + i * 26, 14 - i * 3, new Color(1f, 0.35f, 0.35f, 1f - i * 0.22f), 6); Save(t, "fx_hit_" + i); }
+        for (int i = 0; i < 6; i++)
+        {
+            t = New(512, 512, Clear);
+            CircleOutline(t, 256, 256, 60 + i * 34, 14 - i * 2, new Color(1f, 0.6f, 0.9f, 1f - i * 0.16f));
+            for (int k = 0; k < 8; k++) { float a = k * Mathf.PI / 4f; int r = 80 + i * 36; Circle(t, 256 + (int)(Mathf.Cos(a) * r), 256 + (int)(Mathf.Sin(a) * r), 10 - i, new Color(1f, 0.8f, 0.95f, 1f - i * 0.16f)); }
+            Save(t, "fx_vanish_" + i);
+        }
+
+        // 공격 예고: 원형 128 (채움·테두리 분리), 직선 32×128 (아래 중앙 기준, 길이 방향 늘림)
+        t = New(512, 512, Clear); Circle(t, 256, 256, 252, White); Save(t, "warn_circle_fill");
+        t = New(512, 512, Clear); CircleOutline(t, 256, 256, 252, 16, White); Save(t, "warn_circle_border");
+        t = New(128, 512, Clear); RoundRect(t, 0, 0, 128, 512, 40, White); Save(t, "warn_line");
+
+        // 그림자, 하트(UI 64), UI 둥근 틀
+        t = New(256, 96, Clear); Ellipse(t, 128, 48, 124, 44, new Color(0, 0, 0, 0.5f)); Save(t, "shadow");
         t = New(64, 64, Clear); Heart(t, Red); Save(t, "heart");
-        // UI 패널(9-slice용)
-        t = New(48, 48, Clear); RoundRect(t, 0, 0, 48, 48, 12, White); Save(t, "ui_round");
+        t = New(64, 64, Clear); RoundRect(t, 0, 0, 64, 64, 16, White); Save(t, "ui_round");
+
+        // 업적 아이콘 (글자 없이 표식): 첫 클리어 별, 무피격 방패, 학년 배지 1~3
+        t = New(128, 128, Clear); RoundRect(t, 4, 4, 120, 120, 24, Hex("3A2E10")); Star(t, 64, 64, 46, 20, Yellow); Save(t, "ach_first_clear");
+        t = New(128, 128, Clear); RoundRect(t, 4, 4, 120, 120, 24, Hex("103A22")); Shield(t, Green); Save(t, "ach_no_damage");
+        for (int c = 1; c <= 3; c++)
+        {
+            t = New(128, 128, Clear); RoundRect(t, 4, 4, 120, 120, 24, Hex("10283A"));
+            Circle(t, 64, 64, 46, c == 1 ? Cyan : c == 2 ? Purple : Orange);
+            for (int k = 0; k < c; k++) Circle(t, (int)(64 + (k - (c - 1) / 2f) * 26), 64, 9, White);
+            Save(t, $"ach_chapter{c}_clear");
+        }
+    }
+
+    // ---------- 개별 그림 ----------
+    static void WallTile(string name, bool l, bool r, bool d, bool u, bool fill = false)
+    {
+        var t = New(128, 128, Clear);
+        // 블록 한 칸을 꽉 채우는 벽 (구멍처럼 보이지 않게)
+        RoundRect(t, 0, 0, 128, 128, fill ? 0 : 12, WallFace);
+        Rect(t, 0, 96, 128, 32, WallTop);                // 윗면
+        Rect(t, 0, 0, 128, 10, WallDark);                // 아래 그림자
+        if (!fill)
+        {
+            // 연결 표시: 연결 안 된 변에 외곽선 2px(=8px)
+            if (!l) Rect(t, 0, 0, 8, 128, Outline);
+            if (!r) Rect(t, 120, 0, 8, 128, Outline);
+            if (!d) Rect(t, 0, 0, 128, 8, Outline);
+            if (!u) Rect(t, 0, 120, 128, 8, Outline);
+        }
+        Rect(t, 30, 40, 68, 6, WallDark); Rect(t, 30, 60, 68, 6, WallDark);   // 패널 줄
+        Save(t, name);
+    }
+
+    static void Generator(ItemType mat, Color c)
+    {
+        var t = New(384, 320, Clear);
+        RoundRect(t, 8, 8, 368, 240, 28, Outline);
+        RoundRect(t, 16, 16, 352, 224, 24, Body);
+        RoundRect(t, 0, 176, 384, 136, 32, Outline);
+        RoundRect(t, 8, 184, 368, 120, 28, c);                       // 색 상판
+        RoundRect(t, 24, 196, 336, 24, 10, Lighten(c, 0.35f));
+        RoundRect(t, 120, 40, 144, 112, 18, Screen);                 // 표식 창
+        RoundRectOutline(t, 120, 40, 144, 112, 18, 6, c);
+        Mark(t, mat, 192, 96, c);
+        Save(t, "generator_" + mat.ToString().ToLower());
+    }
+
+    static void Mark(Texture2D t, ItemType mat, int cx, int cy, Color c)
+    {
+        switch (mat)
+        {
+            case ItemType.Planning:      // 전구
+                Circle(t, cx, cy + 8, 30, c); Rect(t, cx - 14, cy - 36, 28, 18, Lighten(c, 0.3f)); Rect(t, cx - 4, cy, 8, 22, Screen); break;
+            case ItemType.Programming:   // < >
+                Chevron(t, cx - 26, cy, 26, 8, c, true); Chevron(t, cx + 26, cy, 26, 8, c, false); break;
+            case ItemType.Graphic:       // 붓 (마름모 + 손잡이)
+                Diamond(t, cx + 14, cy + 14, 20, 20, c); Line(t, cx - 30, cy - 30, cx + 6, cy + 6, 10, Lighten(c, 0.3f)); break;
+            default:                     // QA: 체크
+                Line(t, cx - 34, cy, cx - 10, cy - 26, 14, c); Line(t, cx - 10, cy - 26, cx + 36, cy + 30, 14, c); break;
+        }
+    }
+
+    static void Crafter(string name, Color light, bool working)
+    {
+        var t = New(512, 384, Clear);
+        RoundRect(t, 8, 8, 496, 256, 32, Outline);
+        RoundRect(t, 16, 16, 480, 240, 28, Body);
+        RoundRect(t, 0, 200, 512, 176, 36, Outline);
+        RoundRect(t, 8, 208, 496, 160, 32, Hex("3B4C72"));            // 작업판
+        RoundRect(t, 40, 236, 432, 104, 20, BodyDark);
+        RoundRectOutline(t, 40, 236, 432, 104, 20, 6, light);
+        // 재료 투입구 2개 + 결과 칸
+        RoundRect(t, 72, 256, 96, 64, 12, Screen); RoundRect(t, 344, 256, 96, 64, 12, Screen);
+        RoundRect(t, 208, 248, 96, 80, 14, light * 0.5f + Screen * 0.5f);
+        // 램프
+        for (int i = 0; i < 3; i++) Circle(t, 176 + i * 80, 80, 20, i == 1 || !working ? light : Lighten(light, 0.4f));
+        if (working) for (int i = 0; i < 5; i++) Rect(t, 96 + i * 72, 140, 40, 12, light);
+        Save(t, name);
+    }
+
+    static void Terminal(string name, Color screen, int state)
+    {
+        var t = New(320, 448, Clear);
+        RoundRect(t, 64, 0, 192, 56, 16, Outline); RoundRect(t, 72, 8, 176, 40, 12, BodyDark);      // 받침
+        RoundRect(t, 0, 40, 320, 408, 36, Outline);
+        RoundRect(t, 8, 48, 304, 392, 32, Body);
+        RoundRect(t, 32, 120, 256, 288, 20, Screen);
+        RoundRectOutline(t, 32, 120, 256, 288, 20, 8, screen);
+        int cx = 160, cy = 264;
+        if (state == 0) { Triangle(t, cx, cy + 70, 120, screen); Rect(t, cx - 8, cy - 20, 16, 56, Screen); Rect(t, cx - 8, cy - 40, 16, 12, Screen); }
+        else if (state == 1) { for (int i = 0; i < 3; i++) Chevron(t, cx, cy - 50 + i * 50, 40, 12, screen, false, true); }
+        else { Line(t, cx - 70, cy, cx - 20, cy - 50, 22, screen); Line(t, cx - 20, cy - 50, cx + 80, cy + 60, 22, screen); }
+        for (int i = 0; i < 4; i++) Circle(t, 80 + i * 54, 84, 10, i == state ? screen : Hex("3A4560"));
+        Save(t, name);
+    }
+
+    static void ItemIcon(string name, Color c, int shape)
+    {
+        var t = New(128, 128, Clear);
+        RoundRect(t, 8, 8, 112, 112, 22, Outline);
+        RoundRect(t, 14, 14, 100, 100, 18, Darken(c, 0.35f));
+        int cx = 64, cy = 64;
+        switch (shape)
+        {
+            case 0: Circle(t, cx, cy, 34, c); Circle(t, cx - 14, cy + 12, 7, Outline); Circle(t, cx + 12, cy + 16, 7, Outline); Circle(t, cx + 18, cy - 8, 7, Outline); Circle(t, cx - 6, cy - 18, 9, Darken(c, 0.35f)); break;   // 팔레트
+            case 1: CircleOutline(t, cx - 8, cy + 8, 26, 9, c); Line(t, cx + 10, cy - 10, cx + 36, cy - 36, 12, c); break;   // 돋보기
+            case 2: Circle(t, cx - 6, cy + 6, 28, c); Line(t, cx + 2, cy - 30, cx + 16, cy - 44, 10, Green); Line(t, cx + 16, cy - 44, cx + 44, cy - 14, 10, Green); break;  // 팔레트+체크
+            case 3: Rect(t, cx - 30, cy - 30, 60, 60, c); Rect(t, cx - 30, cy + 18, 60, 12, Lighten(c, 0.35f)); Rect(t, cx - 4, cy - 30, 8, 60, Darken(c, 0.6f)); break;  // 빌드 상자
+            case 4: RoundRectOutline(t, cx - 38, cy - 38, 76, 76, 8, 8, c); Star(t, cx, cy, 26, 11, Yellow); break;   // 액자+별
+            default: Blob(t, cx, cy, 38, c); Line(t, cx - 18, cy - 18, cx + 18, cy + 18, 9, Red); Line(t, cx - 18, cy + 18, cx + 18, cy - 18, 9, Red); break;   // 오류 덩어리
+        }
+        Save(t, name);
     }
 
     static void Robot(string name, Color metal, Color eye)
     {
-        var t = New(150, 160, Clear);
-        Rect(t, 72, 140, 6, 16, metal); Circle(t, 75, 154, 6, eye);              // 안테나
-        RoundRect(t, 30, 92, 90, 52, 12, metal); RoundRectOutline(t, 30, 92, 90, 52, 12, 4, Darken(metal, 0.6f)); // 머리
-        RoundRect(t, 44, 106, 62, 26, 8, Hex("101828"));
-        Circle(t, 60, 119, 7, eye); Circle(t, 90, 119, 7, eye);                  // 눈
-        RoundRect(t, 20, 26, 110, 70, 14, Darken(metal, 0.85f)); RoundRectOutline(t, 20, 26, 110, 70, 14, 4, Darken(metal, 0.55f)); // 몸
-        RoundRect(t, 52, 40, 46, 30, 6, Hex("101828")); Rect(t, 58, 52, 34, 6, eye);
-        RoundRect(t, 0, 40, 22, 46, 8, metal); RoundRect(t, 128, 40, 22, 46, 8, metal); // 팔
-        RoundRect(t, 36, 0, 28, 30, 6, Darken(metal, 0.7f)); RoundRect(t, 86, 0, 28, 30, 6, Darken(metal, 0.7f)); // 다리
-        Save(t, name);
-    }
-
-    static void Orb(string name, int size, Color c)
-    {
-        var t = New(size, size, Clear);
-        float r = size / 2f;
-        for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r)) / r;
-                if (d > 1f) continue;
-                Color col = d < 0.45f ? Color.Lerp(White, c, d / 0.45f) : new Color(c.r, c.g, c.b, Mathf.Clamp01((1f - d) / 0.55f) * 0.95f + 0.05f);
-                t.SetPixel(x, y, col);
-            }
+        var t = New(256, 256, Clear);
+        // 64 기준 몸체 약 44칸 → 중앙 정렬
+        RoundRect(t, 120, 214, 16, 30, 6, Outline); Circle(t, 128, 240, 12, Outline); Circle(t, 128, 240, 8, eye);
+        RoundRect(t, 64, 150, 128, 76, 18, Outline); RoundRect(t, 72, 158, 112, 60, 14, metal);
+        RoundRect(t, 84, 170, 88, 36, 10, Screen); Circle(t, 108, 188, 10, eye); Circle(t, 148, 188, 10, eye);
+        RoundRect(t, 48, 56, 160, 100, 22, Outline); RoundRect(t, 56, 64, 144, 84, 18, Darken(metal, 0.85f));
+        RoundRect(t, 92, 82, 72, 44, 10, Screen); Rect(t, 100, 100, 56, 8, eye);
+        RoundRect(t, 18, 72, 36, 68, 12, Outline); RoundRect(t, 202, 72, 36, 68, 12, Outline);
+        RoundRect(t, 24, 78, 24, 56, 8, metal); RoundRect(t, 208, 78, 24, 56, 8, metal);
+        RoundRect(t, 72, 16, 40, 46, 10, Outline); RoundRect(t, 144, 16, 40, 46, 10, Outline);
+        RoundRect(t, 78, 22, 28, 34, 6, Darken(metal, 0.7f)); RoundRect(t, 150, 22, 28, 34, 6, Darken(metal, 0.7f));
         Save(t, name);
     }
 
     // =====================================================================================
-    // 글자 아이콘 (아이템 6종, 업적) — TMP를 렌더 텍스처로 찍어 PNG 저장
-    // =====================================================================================
-    static readonly (string file, string label, Color color)[] LabelIcons =
-    {
-        ("item_02_graphic", "그래픽", Pink), ("item_03_qa", "QA", Green),
-        ("item_08_graphic_fix", "그래픽\n수정본", Hex("C86BFF")), ("item_09_game_build", "게임\n빌딩", Hex("4C7BFF")),
-        ("item_10_art_final", "아트\n완성본", Hex("FF7A59")), ("item_11_error_lump", "오류\n뭉텅이", Hex("5B5B6E")),
-        ("ach_first_clear", "첫\n클리어", Yellow), ("ach_no_damage", "무피격", Green),
-        ("ach_chapter1_clear", "1학년", Cyan), ("ach_chapter2_clear", "2학년", Hex("C86BFF")), ("ach_chapter3_clear", "3학년", Orange),
-        ("station_label_planning", "기획", Yellow), ("station_label_programming", "프로그래밍", Cyan),
-        ("station_label_graphic", "그래픽", Pink), ("station_label_qa", "QA", Green),
-        ("station_label_craft", "제작대", Orange),
-    };
-
-    // 기획서 p.18 배치: 재료대 그래픽·QA 위 / 기획·프로그래밍 아래, 중앙 작업대 라인 위 제작대, 단말기 우상단·좌하단
-    public static readonly Dictionary<ItemType, Vector2> StationPos = new Dictionary<ItemType, Vector2>
-    {
-        { ItemType.Graphic, new Vector2(-6.6f, 3.3f) }, { ItemType.QA, new Vector2(-3.6f, 3.3f) },
-        { ItemType.Planning, new Vector2(3.6f, -3.4f) }, { ItemType.Programming, new Vector2(6.6f, -3.4f) },
-    };
-    public static readonly Vector2 TerminalTopRight = new Vector2(6.6f, 2.5f), TerminalBottomLeft = new Vector2(-6.6f, -2.7f);
-    public static readonly Vector2 PlayerStart = new Vector2(0f, -2.2f);
-
-    static void GenerateLabelIcons()
-    {
-        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
-        var font = AssetDatabase.FindAssets("t:TMP_FontAsset NanumGothic").Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<TMP_FontAsset>).FirstOrDefault(f => f != null);
-        var camGo = new GameObject("Cam"); var cam = camGo.AddComponent<Camera>();
-        cam.orthographic = true; cam.orthographicSize = 0.64f; cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = Clear; camGo.transform.position = new Vector3(0, 0, -10);
-
-        var round = AssetDatabase.LoadAssetAtPath<Sprite>(Dir + "ui_round.png");
-        foreach (var (file, label, color) in LabelIcons)
-        {
-            bool isStation = file.StartsWith("station_label");
-            int w = isStation ? 256 : 128, h = isStation ? 64 : 128;
-            cam.orthographicSize = h / 200f;
-            var bg = new GameObject("bg").AddComponent<SpriteRenderer>();
-            bg.sprite = round; bg.drawMode = SpriteDrawMode.Sliced; bg.size = new Vector2(w / 100f - 0.06f, h / 100f - 0.06f);
-            bg.color = isStation ? new Color(0.04f, 0.06f, 0.12f, 0.85f) : color;
-            var border = new GameObject("border").AddComponent<SpriteRenderer>();
-            border.sprite = round; border.drawMode = SpriteDrawMode.Sliced; border.size = new Vector2(w / 100f, h / 100f);
-            border.color = isStation ? color : Darken(color, 0.55f); border.sortingOrder = -1;
-            var txt = new GameObject("t").AddComponent<TextMeshPro>();
-            txt.font = font; txt.text = label; txt.alignment = TextAlignmentOptions.Center;
-            txt.fontStyle = FontStyles.Bold; txt.color = isStation ? color : White;
-            txt.enableAutoSizing = true; txt.fontSizeMin = 1; txt.fontSizeMax = isStation ? 3.4f : 3.6f;
-            txt.rectTransform.sizeDelta = new Vector2(w / 100f - 0.16f, h / 100f - 0.16f);
-            txt.GetComponent<MeshRenderer>().sortingOrder = 2;
-            if (!isStation) { txt.outlineWidth = 0.18f; txt.outlineColor = Darken(color, 0.4f); }
-            txt.ForceMeshUpdate();
-
-            var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
-            cam.targetTexture = rt; cam.aspect = (float)w / h; cam.Render();
-            RenderTexture.active = rt;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0); tex.Apply();
-            File.WriteAllBytes(Dir + file + ".png", tex.EncodeToPNG());
-            RenderTexture.active = null; cam.targetTexture = null; rt.Release();
-            Object.DestroyImmediate(bg.gameObject); Object.DestroyImmediate(border.gameObject); Object.DestroyImmediate(txt.gameObject);
-        }
-        Object.DestroyImmediate(camGo);
-    }
-
-    // =====================================================================================
-    // 임포트 설정
+    // 임포트 설정 (전부 PPU 128 = 1칸, 피벗은 규격 기준점)
     // =====================================================================================
     static void ConfigureImports()
     {
         foreach (var path in Directory.GetFiles(Dir, "*.png"))
         {
             var p = path.Replace('\\', '/');
-            var imp = AssetImporter.GetAtPath(p) as TextureImporter;
-            if (imp == null) continue;
             string n = Path.GetFileNameWithoutExtension(p);
-            bool tile = n == "floor" || n == "wall";
-            imp.textureType = TextureImporterType.Sprite;
-            imp.spriteImportMode = SpriteImportMode.Single;
-            imp.spritePixelsPerUnit = n.StartsWith("item_") || n.StartsWith("ach_") ? 128 : n.StartsWith("station_label") ? 256 : PPU;
-            imp.filterMode = FilterMode.Bilinear;
-            imp.textureCompression = TextureImporterCompression.Uncompressed;
-            imp.mipmapEnabled = false;
-            imp.alphaIsTransparency = true;
-            imp.wrapMode = tile ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-            var settings = new TextureImporterSettings(); imp.ReadTextureSettings(settings);
-            settings.spriteMeshType = SpriteMeshType.FullRect;                      // Tiled/Sliced용
-            if (n == "ui_round") { imp.spriteBorder = new Vector4(16, 16, 16, 16); }
-            if (n.StartsWith("terminal_t") || n.StartsWith("robot") || n == "crafting_table" || n.StartsWith("station_"))
-            {
-                settings.spriteAlignment = (int)SpriteAlignment.Custom;
-            }
-            imp.SetTextureSettings(settings);
-            if (n.StartsWith("terminal_t")) imp.spritePivot = new Vector2(0.4f, 0.45f);
-            imp.SaveAndReimport();
+            Vector2 pivot = new Vector2(0.5f, 0.5f);
+            Vector4 border = Vector4.zero;
+            if (n == "warn_line") { pivot = new Vector2(0.5f, 0f); border = new Vector4(32, 40, 32, 40); }
+            if (n == "ui_round") border = new Vector4(16, 16, 16, 16);
+            bool tile = n.StartsWith("floor") || n.StartsWith("wall");
+            Import(p, PPU, pivot, border, tile);
         }
     }
 
+    static void Import(string path, float ppu, Vector2 pivot, Vector4 border, bool repeat = false)
+    {
+        var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (imp == null) return;
+        imp.textureType = TextureImporterType.Sprite;
+        imp.spriteImportMode = SpriteImportMode.Single;
+        imp.spritePixelsPerUnit = ppu;
+        imp.filterMode = FilterMode.Bilinear;               // 벡터→PNG 그림 (픽셀아트 아님)
+        imp.textureCompression = TextureImporterCompression.Uncompressed;
+        imp.mipmapEnabled = false;
+        imp.alphaIsTransparency = true;
+        imp.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+        imp.maxTextureSize = 2048;
+        var s = new TextureImporterSettings(); imp.ReadTextureSettings(s);
+        s.spriteMeshType = SpriteMeshType.FullRect;
+        s.spriteAlignment = (int)SpriteAlignment.Custom;
+        s.spritePivot = pivot;
+        s.spriteBorder = border;
+        imp.SetTextureSettings(s);
+        imp.SaveAndReimport();
+    }
+
+    /// <summary>
+    /// 드라이브 아트: 캔버스 800×800 = 규격 64×64 아트보드 → 2칸 → PPU 400.
+    /// 피벗: 주인공 발바닥(측정값: 바닥선 y≈784/800, 좌우 프레임 몸체 중심 차이 보정), 몬스터 몸체 중심.
+    /// </summary>
+    static void ConfigureDriveArt()
+    {
+        foreach (var f in Directory.GetFiles(Drive + "Player", "*.png"))
+        {
+            string n = Path.GetFileNameWithoutExtension(f);
+            float px = n.StartsWith("run_R") ? 0.44f : n.StartsWith("run_L") ? 0.56f : n.StartsWith("dash_R") ? 0.47f : 0.53f;
+            Import(f.Replace('\\', '/'), 400f, new Vector2(px, 0.02f), Vector4.zero);
+        }
+        foreach (var f in Directory.GetFiles(Drive + "Monster1", "*.png"))
+        {
+            string n = Path.GetFileNameWithoutExtension(f);
+            float ppu = n.StartsWith("magnetic") ? 123f : n.StartsWith("shot") ? 128f : 400f;   // 자기장 원(약 540px)=지름 4.4칸
+            Import(f.Replace('\\', '/'), ppu, new Vector2(0.5f, 0.5f), Vector4.zero);
+        }
+        foreach (var f in Directory.GetFiles(Drive + "Items", "*.png"))
+            Import(f.Replace('\\', '/'), PPU, new Vector2(0.5f, 0.5f), Vector4.zero);
+
+        // 팀 시설 아트: 단말기 960×1344 = 80×112 아트보드 ×12 → PPU 384 (2.5×3.5칸),
+        //              아이템 생성기 1200×1000 = 96×80 ×12.5 → PPU 400 (3×2.5칸). 피벗 = 규격 기준점(중앙)
+        if (Directory.Exists(Fac))
+            foreach (var f in Directory.GetFiles(Fac, "*.png"))
+            {
+                string n = Path.GetFileNameWithoutExtension(f);
+                Import(f.Replace('\\', '/'), n.StartsWith("terminal") ? 384f : 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
+            }
+        const string logo = "Assets/DebugRush/Art/UI/title_logo.png";      // 1024×512 UI
+        if (File.Exists(logo)) Import(logo, 100f, new Vector2(0.5f, 0.5f), Vector4.zero);
+    }
+
     static Sprite S(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Dir + n + ".png");
+    static Sprite D(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Drive + n + ".png");
+    static Sprite[] Seq(string prefix, int count) => Enumerable.Range(0, count).Select(i => S(prefix + i)).ToArray();
+    static Sprite[] DriveSeq(string folder, string prefix) =>
+        Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
+
+    static void BuildFxSet()
+    {
+        Directory.CreateDirectory("Assets/Resources");
+        const string path = "Assets/Resources/FxSet.asset";
+        var fx = AssetDatabase.LoadAssetAtPath<FxSet>(path);
+        if (fx == null) { fx = ScriptableObject.CreateInstance<FxSet>(); AssetDatabase.CreateAsset(fx, path); }
+        fx.bulletNormal = S("bullet_normal"); fx.bulletParry = S("bullet_parry");
+        fx.fireFx = Seq("fx_fire_", 4); fx.hitFx = Seq("fx_hit_", 4); fx.vanishFx = Seq("fx_vanish_", 6);
+        fx.warnCircleFill = S("warn_circle_fill"); fx.warnCircleBorder = S("warn_circle_border"); fx.warnLine = S("warn_line");
+        EditorUtility.SetDirty(fx);
+    }
 
     // =====================================================================================
-    // 씬·프리팹에 연결
+    // 씬·프리팹 연결
     // =====================================================================================
     static void Apply()
     {
-        // ---------- 아이콘 세트 (그림 없는 6종) ----------
+        // ---------- 아이템 아이콘 (규격 표 번호 순서 = ItemType 순서) ----------
         var icons = AssetDatabase.LoadAssetAtPath<ItemIconSet>("Assets/DebugRush/Data/ItemIcons.asset");
-        icons.icons[2] = S("item_02_graphic"); icons.icons[3] = S("item_03_qa");
-        icons.icons[8] = S("item_08_graphic_fix"); icons.icons[9] = S("item_09_game_build");
-        icons.icons[10] = S("item_10_art_final"); icons.icons[11] = S("item_11_error_lump");
+        icons.icons = new[]
+        {
+            D("Items/item_00_plan"), D("Items/item_01_programming"), S("item_02_graphic"), S("item_03_qa"),
+            D("Items/item_04_content_doc"), D("Items/item_05_system_doc"), D("Items/item_06_character_code"), D("Items/item_07_code_fix"),
+            S("item_08_graphic_fix"), S("item_09_game_build"), S("item_10_art_complete"), S("item_11_error"),
+        };
         EditorUtility.SetDirty(icons);
-
         foreach (var id in new[] { "first_clear", "no_damage", "chapter1_clear", "chapter2_clear", "chapter3_clear" })
         {
             var a = AssetDatabase.LoadAssetAtPath<AchievementData>($"Assets/DebugRush/Data/{id}.asset");
@@ -270,73 +395,115 @@ public static class PlaceholderArtGenerator
         }
 
         // ---------- 프리팹 ----------
-        EditPrefab("MonsterRobot", go => { SetSprite(go, "robot", 10); AddShadow(go, 1.2f); });
-        EditPrefab("Monster1B", go => { SetSprite(go, "robot_factory", 10); AddShadow(go, 1.2f); });
-        EditPrefab("Monster1C", go => { SetSprite(go, "robot_scrap", 10); AddShadow(go, 1.2f); });
-        EditPrefab("Monster1A", go => { SetOrder(go, 10); AddShadow(go, 0.9f, -0.75f); });
-        EditPrefab("Player", go => { SetOrder(go, 11); AddShadow(go, 0.8f, -0.62f); });
-        EditPrefab("Shot", go => SetSprite(go, "shot_cyan", 20));
-        EditPrefab("SplitShot", go => SetSprite(go, "shot_orange", 20));
-        EditPrefab("FallShot", go => SetSprite(go, "shot_red", 20));
-        EditPrefab("Blade", go => SetSprite(go, "blade", 20));
-        EditPrefab("Mine", go => SetSprite(go, "mine", -5));
-        EditPrefab("WarnMarker", go => SetSprite(go, "warn", -4));
-        EditPrefab("ElectricLine", go => SetSprite(go, "wire", -5));
-        EditPrefab("Monster1A_Shot", go => SetOrder(go, 20));
-        EditPrefab("MagneticField", go => SetOrder(go, -4));
+        EditPrefab("Player", go =>
+        {
+            var pc = go.GetComponent<PlayerController>();
+            pc.moveSpeed = 7f; pc.interactRadius = 1.4f; pc.interactHeight = 0.6f; pc.jumpHeight = 0.8f;
+            var col = go.GetComponent<CircleCollider2D>(); col.radius = 0.35f; col.offset = new Vector2(0f, 0.3f);
+            var vis = pc.visual.GetComponent<SpriteRenderer>(); vis.sortingOrder = 0; vis.sprite = D("Player/run_R_01");
+            var psa = go.GetComponent<PlayerSpriteAnimator>(); psa.runFps = 11f;
+            AddShadow(go, 0.75f, 0.05f);
+        });
+        EditPrefab("Monster1A", go =>
+        {
+            Monster(go, 2.5f, true);
+            var m = go.GetComponent<Monster1A>();
+            m.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Monster1A_Shot.prefab");
+            m.spreadAngle = 20f;
+            var msa = go.GetComponent<MonsterSpriteAnimator>(); msa.fps = 10f;
+            AddShadow(go, 0.9f, -1.0f);
+        });
+        EditPrefab("MonsterRobot", go => { Monster(go, 0f, false); SetSprite(go, S("robot"), 10); AddShadow(go, 1.0f, -0.85f);
+            var r = go.GetComponent<MonsterRobot>(); r.lineLength = 30f; r.lineThickness = 1f;
+            r.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Shot.prefab"); r.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab"); });
+        EditPrefab("Monster1B", go => { Monster(go, 0f, false); SetSprite(go, S("robot_factory"), 10); AddShadow(go, 1.0f, -0.85f); });
+        EditPrefab("Monster1C", go => { Monster(go, 0f, false); SetSprite(go, S("robot_scrap"), 10); AddShadow(go, 1.0f, -0.85f);
+            var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f; });
+
+        EditPrefab("Shot", go => Bullet(go, 7f, 0.22f));
+        EditPrefab("SplitShot", go => Bullet(go, 7f, 0.22f));
+        EditPrefab("FallShot", go => Bullet(go, 14f, 0.3f));
+        EditPrefab("Monster1A_Shot", go =>
+        {
+            foreach (var a in go.GetComponentsInChildren<SpriteFrameAnimator>()) Object.DestroyImmediate(a, true);   // 깜빡임 원인 제거
+            Bullet(go, 6.5f, 0.22f);
+        });
+        EditPrefab("Blade", go =>
+        {
+            Bullet(go, 14f, 0.3f);
+            var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = true;
+            p.normalSprite = S("blade"); p.parrySprite = S("blade");
+            SetSprite(go, S("blade"), 30);
+        });
+        EditPrefab("Mine", go => SetSprite(go, S("mine"), -5));
+        EditPrefab("WarnMarker", go => { SetSprite(go, S("warn_circle_border"), -40); go.transform.localScale = Vector3.one * 0.35f; go.GetComponentInChildren<SpriteRenderer>().color = new Color(1f, 0.3f, 0.35f, 0.9f); });
+        EditPrefab("ElectricLine", go => SetSprite(go, S("wire"), -5));
+        EditPrefab("MagneticField", go =>
+        {
+            var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 2.2f;
+            go.transform.localScale = Vector3.one;
+            var sr = go.GetComponentInChildren<SpriteRenderer>();
+            var mag = DriveSeq("Monster1", "magnetic");
+            sr.sprite = mag[0]; sr.sortingOrder = -30; sr.color = new Color(1f, 1f, 1f, 0.55f);
+            var a = sr.GetComponent<SpriteFrameAnimator>(); if (a == null) a = sr.gameObject.AddComponent<SpriteFrameAnimator>();
+            a.target = sr; a.frames = mag; a.fps = 10f; a.loop = true;
+        });
 
         // ---------- Stage 씬 ----------
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/Stage.unity");
         var cam = Camera.main;
-        // 방(20.5×10.5칸) 위아래로 HUD 띠 140px가 남도록 (1920×1080 기준)
-        cam.orthographicSize = 7f;
-        cam.transform.position = new Vector3(0f, -0.1f, -10f);
+        cam.orthographicSize = 1080f / 2f / 64f;          // 1칸 = 화면 64px (캐릭터 2칸 = 128px)
+        cam.transform.position = new Vector3(0f, 0f, -10f);
         cam.backgroundColor = Navy;
 
-        var floor = GameObject.Find("Floor");
-        if (floor == null) floor = new GameObject("Floor");
-        var fsr = floor.GetComponent<SpriteRenderer>();
-        if (fsr == null) fsr = floor.AddComponent<SpriteRenderer>();
-        fsr.sprite = S("floor"); fsr.drawMode = SpriteDrawMode.Tiled; fsr.size = new Vector2(20f, 10f);
+        var floor = Find("Floor"); if (floor == null) floor = new GameObject("Floor");
+        var fsr = Get<SpriteRenderer>(floor);
+        fsr.sprite = S("floor_32"); fsr.drawMode = SpriteDrawMode.Tiled; fsr.size = new Vector2(RoomHalfW * 2f - 2f, RoomHalfH * 2f - 2f);
         fsr.sortingOrder = -100; floor.transform.position = Vector3.zero;
 
-        foreach (var name in new[] { "Wall_Top", "Wall_Bottom", "Wall_Left", "Wall_Right", "Wall_InnerA", "Wall_InnerB" })
-        {
-            var w = GameObject.Find(name); if (w == null) continue;
-            var sr = w.GetComponent<SpriteRenderer>();
-            sr.sprite = S("wall"); sr.drawMode = SpriteDrawMode.Tiled; sr.color = Color.white; sr.sortingOrder = -10;
-            sr.size = w.GetComponent<BoxCollider2D>().size;
-        }
+        SetWall("Wall_Top", new Vector2(0f, RoomHalfH - 0.5f), new Vector2(RoomHalfW * 2f, 1f));
+        SetWall("Wall_Bottom", new Vector2(0f, -RoomHalfH + 0.5f), new Vector2(RoomHalfW * 2f, 1f));
+        SetWall("Wall_Left", new Vector2(-RoomHalfW + 0.5f, 0f), new Vector2(1f, RoomHalfH * 2f - 2f));
+        SetWall("Wall_Right", new Vector2(RoomHalfW - 0.5f, 0f), new Vector2(1f, RoomHalfH * 2f - 2f));
+        // 중앙 작업대 라인 (가운데 제작기 양옆, 바깥쪽은 통로)
+        SetWall("Wall_InnerA", new Vector2(-4.5f, 0f), new Vector2(5f, 1f));
+        SetWall("Wall_InnerB", new Vector2(4.5f, 0f), new Vector2(5f, 1f));
 
-        // 중앙 작업대 라인
-        SetWall("Wall_InnerA", new Vector2(-3.4f, 0f), new Vector2(3.4f, 0.4f));
-        SetWall("Wall_InnerB", new Vector2(3.4f, 0f), new Vector2(3.4f, 0.4f));
-
-        var playerGo = GameObject.Find("Player");
+        var playerGo = Find("Player");
         if (playerGo != null) playerGo.transform.position = PlayerStart;
 
         foreach (var st in Object.FindObjectsByType<ResourceStation>(FindObjectsSortMode.None))
         {
             string key = st.material.ToString().ToLower();
             st.transform.position = StationPos[st.material];
+            st.transform.localScale = Vector3.one;
             var sr = st.GetComponent<SpriteRenderer>();
-            sr.sprite = S("station_" + key); sr.color = Color.white; sr.sortingOrder = 0;
-            Child(st.transform, "Icon", icons.Get(st.material), new Vector2(0f, 0.34f), 0.7f, 2);
-            Child(st.transform, "Label", S("station_label_" + key), new Vector2(0f, -0.78f), 1.4f, 3);
+            sr.sprite = Pick("generator_" + (st.material == ItemType.Planning ? "plan" : key), "generator_" + key); sr.color = Color.white; sr.sortingOrder = 0;
+            var box = st.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.7f, 1.9f); box.offset = new Vector2(0f, -0.1f);
+            RemoveChild(st.transform, "Icon"); RemoveChild(st.transform, "Label");
+            Label(st.transform, MaterialName[st.material], new Vector2(0f, -1.55f), ArtLabelColor[st.material]);
         }
 
         var table = Object.FindAnyObjectByType<CraftingTable>();
         if (table != null)
         {
-            table.transform.position = Vector3.zero;
+            table.transform.position = Vector3.zero; table.transform.localScale = Vector3.one;
             var sr = table.GetComponent<SpriteRenderer>();
-            sr.sprite = S("crafting_table"); sr.color = Color.white; sr.sortingOrder = 0;
-            Child(table.transform, "Label", S("station_label_craft"), new Vector2(0f, -0.85f), 1.4f, 3);
+            sr.sprite = S("crafter_idle"); sr.color = Color.white; sr.sortingOrder = 0;
+            var box = table.GetComponent<BoxCollider2D>(); box.size = new Vector2(3.8f, 2.4f); box.offset = new Vector2(0f, -0.1f);
+            RemoveChild(table.transform, "Label"); RemoveChild(table.transform, "Icon");
+            Label(table.transform, "제작대", new Vector2(0f, -1.85f), Orange);
             var view = table.GetComponent<CraftingTableView>();
-            if (view.outputIcon != null) { view.outputIcon.transform.localPosition = new Vector3(0f, 1.0f, 0f); view.outputIcon.transform.localScale = Vector3.one * 0.7f; view.outputIcon.sortingOrder = 6; }
+            view.idleSprite = S("crafter_idle"); view.workingSprite = S("crafter_working"); view.doneSprite = S("crafter_done");
+            if (view.outputIcon != null)
+            {
+                view.outputIcon.transform.localPosition = new Vector3(0f, 0.68f, 0f);
+                view.outputIcon.transform.localScale = Vector3.one * 0.62f;
+                view.outputIcon.sortingOrder = 5;
+            }
+            view.materialSpacing = 1.06f; view.materialScale = 0.62f;
         }
 
-        var frames = Enumerable.Range(0, 7).Select(i => S("terminal_t" + (6 - i))).ToArray();   // [0] = 가득
         var sm = Object.FindAnyObjectByType<StageManager>();
         if (sm != null && sm.terminals != null && sm.terminals.Length >= 2)
         {
@@ -345,26 +512,27 @@ public static class PlaceholderArtGenerator
         }
         foreach (var term in Object.FindObjectsByType<TerminalView>(FindObjectsSortMode.None))
         {
+            term.transform.localScale = Vector3.one;
             var sr = term.GetComponent<SpriteRenderer>();
-            sr.sprite = frames[0]; sr.color = Color.white; sr.sortingOrder = 0;
-            term.timerFrames = frames; term.timerRenderer = sr;
+            sr.sprite = Pick("terminal_error", "terminal_error"); sr.color = Color.white; sr.sortingOrder = 0;
+            term.errorSprite = Pick("terminal_error", "terminal_error"); term.transmitSprite = Pick("terminal_sending", "terminal_transmit"); term.recoveredSprite = Pick("terminal_complete", "terminal_recovered");
+            var box = term.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.2f, 3.0f); box.offset = new Vector2(0f, 0f);
             for (int i = 0; i < term.requestIcons.Length; i++)
             {
                 var r = term.requestIcons[i];
-                r.transform.localPosition = new Vector3(-0.38f + i * 0.76f, 1.3f, 0f);
-                r.transform.localScale = Vector3.one * 0.62f; r.sortingOrder = 6;
+                r.transform.localPosition = new Vector3(-0.48f + i * 0.96f, 2.35f, 0f);
+                r.transform.localScale = Vector3.one * 0.82f;
             }
             for (int i = 0; i < term.gaugeCells.Length; i++)
             {
                 var g = term.gaugeCells[i];
                 g.sprite = S("ui_round"); g.drawMode = SpriteDrawMode.Simple; g.sortingOrder = 6;
-                g.transform.localPosition = new Vector3(-0.595f + i * 0.17f, -0.98f, 0f);
-                g.transform.localScale = Vector3.one * 0.3f;
+                g.transform.localPosition = new Vector3(-0.945f + i * 0.27f, -1.95f, 0f);
+                g.transform.localScale = Vector3.one * 0.42f;
             }
             term.filled = Yellow; term.empty = Hex("2A3450");
         }
 
-        // HUD 하트
         var hud = Object.FindAnyObjectByType<StageHUD>();
         if (hud != null) foreach (var h in hud.hearts) { h.sprite = S("heart"); h.color = Color.white; h.preserveAspect = true; }
 
@@ -376,28 +544,60 @@ public static class PlaceholderArtGenerator
         var menu = Object.FindAnyObjectByType<MainMenu>();
         if (menu != null)
         {
-            menu.heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/DebugRush/Art/Drive/Player/run_R_01.png");
-            menu.monsterSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/DebugRush/Art/Drive/Monster1/move_01.png");
+            menu.heroSprite = D("Player/run_R_01");
+            menu.monsterSprite = D("Monster1/move_01");
+            menu.logoSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/DebugRush/Art/UI/title_logo.png");
             EditorUtility.SetDirty(menu);
         }
         EditorSceneManager.MarkSceneDirty(title);
         EditorSceneManager.SaveScene(title);
     }
 
-    static void SetWall(string name, Vector2 pos, Vector2 size)
+    static void Monster(GameObject go, float speed, bool wander)
     {
-        var w = GameObject.Find(name); if (w == null) return;
-        w.transform.position = pos;
-        w.GetComponent<BoxCollider2D>().size = size;
-        w.GetComponent<SpriteRenderer>().size = size;
+        var m = go.GetComponent<MonsterBase>();
+        m.moveSpeed = speed; m.wander = wander;
+        m.patternInterval = 2.6f; m.windupTime = 0.6f; m.recoverTime = 0.5f;
+        m.moveArea = new Rect(-11f, -4f, 22f, 8f); m.firstAttackDelay = 3f;
+        m.intervalStepMultiplier = 0.92f; m.minPatternInterval = 1.4f; m.maxAggression = 6;
+        m.speedStepBonus = 0.06f; m.maxMoveSpeed = 4.5f;
+        foreach (var sr in go.GetComponentsInChildren<SpriteRenderer>()) if (sr.gameObject.name != "Shadow") sr.sortingOrder = 10;
     }
 
-    static void Child(Transform parent, string name, Sprite sprite, Vector2 pos, float scale, int order)
+    static void Bullet(GameObject go, float speed, float radius)
     {
-        var old = parent.Find(name); if (old != null) Object.DestroyImmediate(old.gameObject);
-        var go = new GameObject(name); go.transform.SetParent(parent, false);
-        go.transform.localPosition = pos; go.transform.localScale = Vector3.one * scale;
-        var sr = go.AddComponent<SpriteRenderer>(); sr.sprite = sprite; sr.sortingOrder = order;
+        var p = go.GetComponent<Projectile>(); p.speed = speed; p.useSharedBullet = true; p.rotateToDirection = false;
+        var circle = go.GetComponent<CircleCollider2D>(); if (circle != null) circle.radius = radius;
+        var box = go.GetComponent<BoxCollider2D>(); if (box != null) box.size = Vector2.one * radius * 2f;
+        var sr = go.GetComponentInChildren<SpriteRenderer>(); sr.sprite = S("bullet_normal"); sr.color = Color.white; sr.sortingOrder = 30;
+        go.transform.localScale = Vector3.one;
+    }
+
+    static GameObject Find(string name) => GameObject.Find(name);
+    static T Get<T>(GameObject go) where T : Component { var c = go.GetComponent<T>(); return c != null ? c : go.AddComponent<T>(); }
+
+    static void SetWall(string name, Vector2 pos, Vector2 size)
+    {
+        var w = Find(name); if (w == null) return;
+        w.transform.position = pos; w.transform.localScale = Vector3.one;
+        w.GetComponent<BoxCollider2D>().size = size;
+        var sr = w.GetComponent<SpriteRenderer>();
+        sr.sprite = S("wall_fill"); sr.drawMode = SpriteDrawMode.Tiled; sr.color = Color.white; sr.sortingOrder = 0;
+        sr.size = size;
+    }
+
+    static void RemoveChild(Transform parent, string name) { var c = parent.Find(name); if (c != null) Object.DestroyImmediate(c.gameObject); }
+
+    static void Label(Transform parent, string text, Vector2 pos, Color color)
+    {
+        var go = new GameObject("Label"); go.transform.SetParent(parent, false);
+        go.transform.localPosition = pos;
+        var t = go.AddComponent<TextMeshPro>();
+        t.font = AssetDatabase.FindAssets("t:TMP_FontAsset NanumGothic").Select(AssetDatabase.GUIDToAssetPath).Select(AssetDatabase.LoadAssetAtPath<TMP_FontAsset>).FirstOrDefault(f => f != null);
+        t.text = text; t.fontSize = 3.6f; t.fontStyle = FontStyles.Bold; t.alignment = TextAlignmentOptions.Center;
+        t.color = color; t.outlineWidth = 0.28f; t.outlineColor = new Color32(8, 12, 24, 255);
+        t.rectTransform.sizeDelta = new Vector2(4f, 0.8f);
+        t.GetComponent<MeshRenderer>().sortingOrder = 40;
     }
 
     static void EditPrefab(string name, System.Action<GameObject> edit)
@@ -410,23 +610,18 @@ public static class PlaceholderArtGenerator
         PrefabUtility.UnloadPrefabContents(go);
     }
 
-    static void SetSprite(GameObject go, string sprite, int order)
+    static void SetSprite(GameObject go, Sprite sprite, int order)
     {
-        var sr = go.GetComponentInChildren<SpriteRenderer>();
-        sr.sprite = S(sprite); sr.color = Color.white; sr.drawMode = SpriteDrawMode.Simple; sr.sortingOrder = order;
+        var sr = go.GetComponentsInChildren<SpriteRenderer>().First(s => s.gameObject.name != "Shadow");
+        sr.sprite = sprite; sr.color = Color.white; sr.drawMode = SpriteDrawMode.Simple; sr.sortingOrder = order;
     }
 
-    static void SetOrder(GameObject go, int order)
-    {
-        foreach (var sr in go.GetComponentsInChildren<SpriteRenderer>()) if (sr.gameObject.name != "Shadow") sr.sortingOrder = order;
-    }
-
-    static void AddShadow(GameObject go, float width, float y = -0.7f)
+    static void AddShadow(GameObject go, float width, float y)
     {
         var old = go.transform.Find("Shadow"); if (old != null) Object.DestroyImmediate(old.gameObject);
         var s = new GameObject("Shadow"); s.transform.SetParent(go.transform, false);
         s.transform.localPosition = new Vector3(0f, y, 0f); s.transform.localScale = new Vector3(width, width, 1f);
-        var sr = s.AddComponent<SpriteRenderer>(); sr.sprite = S("shadow"); sr.sortingOrder = -6;
+        var sr = s.AddComponent<SpriteRenderer>(); sr.sprite = S("shadow"); sr.sortingOrder = -60;
     }
 
     // =====================================================================================
@@ -435,14 +630,16 @@ public static class PlaceholderArtGenerator
     static readonly Color Clear = new Color(0, 0, 0, 0);
     static Color Hex(string h) { ColorUtility.TryParseHtmlString("#" + h, out var c); return c; }
     static Color Darken(Color c, float k) => new Color(c.r * k, c.g * k, c.b * k, c.a);
+    static Color Lighten(Color c, float k) => Color.Lerp(c, White, k);
 
     static Texture2D New(int w, int h, Color fill)
     {
         var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        var px = Enumerable.Repeat(fill, w * h).ToArray(); t.SetPixels(px); return t;
+        t.SetPixels(Enumerable.Repeat(fill, w * h).ToArray()); return t;
     }
 
-    static void Save(Texture2D t, string name) { t.Apply(); File.WriteAllBytes(Dir + name + ".png", t.EncodeToPNG()); }
+    static readonly HashSet<string> Generated = new HashSet<string>();
+    static void Save(Texture2D t, string name) { t.Apply(); File.WriteAllBytes(Dir + name + ".png", t.EncodeToPNG()); Generated.Add(name); }
 
     static void Put(Texture2D t, int x, int y, Color c)
     {
@@ -496,6 +693,68 @@ public static class PlaceholderArtGenerator
         {
             int half = Mathf.RoundToInt(row * 0.6f);
             for (int i = cx - half; i <= cx + half; i++) Put(t, i, top - row, c);
+        }
+    }
+
+    static void Line(Texture2D t, int x0, int y0, int x1, int y1, int width, Color c)
+    {
+        int steps = Mathf.Max(Mathf.Abs(x1 - x0), Mathf.Abs(y1 - y0));
+        for (int s = 0; s <= steps; s++)
+        {
+            float k = steps == 0 ? 0 : s / (float)steps;
+            Circle(t, Mathf.RoundToInt(Mathf.Lerp(x0, x1, k)), Mathf.RoundToInt(Mathf.Lerp(y0, y1, k)), width / 2, c);
+        }
+    }
+
+    static void Chevron(Texture2D t, int cx, int cy, int size, int width, Color c, bool left, bool up = false)
+    {
+        if (up) { Line(t, cx - size, cy - size / 2, cx, cy + size / 2, width, c); Line(t, cx, cy + size / 2, cx + size, cy - size / 2, width, c); return; }
+        int d = left ? -1 : 1;
+        Line(t, cx - d * size / 2, cy + size, cx + d * size / 2, cy, width, c);
+        Line(t, cx + d * size / 2, cy, cx - d * size / 2, cy - size, width, c);
+    }
+
+    static void Burst(Texture2D t, int cx, int cy, int r, int th, Color c, int rays)
+    {
+        CircleOutline(t, cx, cy, r, Mathf.Max(2, th), c);
+        for (int k = 0; k < rays; k++)
+        {
+            float a = k * Mathf.PI * 2f / rays;
+            Line(t, cx + (int)(Mathf.Cos(a) * r * 0.6f), cy + (int)(Mathf.Sin(a) * r * 0.6f), cx + (int)(Mathf.Cos(a) * r * 1.15f), cy + (int)(Mathf.Sin(a) * r * 1.15f), Mathf.Max(2, th), c);
+        }
+        Circle(t, cx, cy, Mathf.Max(2, r / 3), new Color(c.r, c.g, c.b, c.a * 0.8f));
+    }
+
+    static void Star(Texture2D t, int cx, int cy, int r, int inner, Color c)
+    {
+        var pts = new Vector2[10];
+        for (int k = 0; k < 10; k++) { float a = Mathf.PI / 2f + k * Mathf.PI / 5f; float rr = k % 2 == 0 ? r : inner; pts[k] = new Vector2(cx + Mathf.Cos(a) * rr, cy + Mathf.Sin(a) * rr); }
+        for (int j = cy - r; j <= cy + r; j++) for (int i = cx - r; i <= cx + r; i++) if (InPoly(new Vector2(i, j), pts)) Put(t, i, j, c);
+    }
+
+    static bool InPoly(Vector2 p, Vector2[] poly)
+    {
+        bool inside = false;
+        for (int a = 0, b = poly.Length - 1; a < poly.Length; b = a++)
+            if ((poly[a].y > p.y) != (poly[b].y > p.y) && p.x < (poly[b].x - poly[a].x) * (p.y - poly[a].y) / (poly[b].y - poly[a].y) + poly[a].x) inside = !inside;
+        return inside;
+    }
+
+    static void Shield(Texture2D t, Color c)
+    {
+        for (int j = 20; j < 108; j++)
+        {
+            int half = j > 70 ? 38 : Mathf.RoundToInt(38f * (j - 20) / 50f);
+            for (int i = 64 - half; i <= 64 + half; i++) Put(t, i, j, c);
+        }
+    }
+
+    static void Blob(Texture2D t, int cx, int cy, int r, Color c)
+    {
+        for (int k = 0; k < 7; k++)
+        {
+            float a = k * Mathf.PI * 2f / 7f;
+            Circle(t, cx + (int)(Mathf.Cos(a) * r * 0.45f), cy + (int)(Mathf.Sin(a) * r * 0.45f), (int)(r * (k % 2 == 0 ? 0.55f : 0.45f)), c);
         }
     }
 
