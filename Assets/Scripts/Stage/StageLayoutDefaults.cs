@@ -23,9 +23,13 @@ public static class StageLayoutDefaults
         foreach (var c in Block(12, -7)) w.Add(c);                           // 우하단
         l.walls = w.ToList();
         l.playerStart = new Vector2(0f, -4.5f);
-        l.graphic = new Vector2(-10f, 4.5f); l.qa = new Vector2(-5f, 4.5f);
-        l.planning = new Vector2(5f, -4.5f); l.programming = new Vector2(10f, -4.5f);
-        l.craftingTable = Vector2.zero;
+        l.stations = new List<StationSpot>
+        {
+            new StationSpot { material = ItemType.Graphic, pos = new Vector2(-10f, 4.5f) }, new StationSpot { material = ItemType.QA, pos = new Vector2(-5f, 4.5f) },
+            new StationSpot { material = ItemType.Planning, pos = new Vector2(5f, -4.5f) }, new StationSpot { material = ItemType.Programming, pos = new Vector2(10f, -4.5f) },
+        };
+        l.crafters = new List<Vector2> { Vector2.zero };
+        l.MarkListsReady();
         l.terminals = new[] { new Vector2(11.5f, 3f), new Vector2(-11.5f, -3f) };
         return l;
     }
@@ -79,11 +83,15 @@ public static class StageLayoutDefaults
             return Vector2.zero;
         }
         float top = halfH - 1.4f, low = -halfH + 1.4f;              // 재료대 중심이 들어갈 수 있는 위·아래 한계
-        l.craftingTable = Place(CrafterSize, -1f, 1f);
-        l.graphic = Place(StationSize, 2.5f, top); l.qa = Place(StationSize, 2.5f, top);
-        l.planning = Place(StationSize, low, -2.5f); l.programming = Place(StationSize, low, -2.5f);
+        l.crafters = new List<Vector2> { Place(CrafterSize, -1f, 1f) };
+        l.stations = new List<StationSpot>
+        {
+            new StationSpot { material = ItemType.Graphic, pos = Place(StationSize, 2.5f, top) }, new StationSpot { material = ItemType.QA, pos = Place(StationSize, 2.5f, top) },
+            new StationSpot { material = ItemType.Planning, pos = Place(StationSize, low, -2.5f) }, new StationSpot { material = ItemType.Programming, pos = Place(StationSize, low, -2.5f) },
+        };
+        l.MarkListsReady();
         var terms = new List<Vector2>();
-        for (int i = 0; i < Mathf.Clamp(terminalCount, 1, 4); i++) terms.Add(Place(TerminalSize, -halfH + 1.9f, halfH - 1.9f));
+        for (int i = 0; i < Mathf.Max(1, terminalCount); i++) terms.Add(Place(TerminalSize, -halfH + 1.9f, halfH - 1.9f));
         l.terminals = terms.ToArray();
         l.playerStart = Place(new Vector2(1.2f, 1.2f), -halfH + 1.6f, -halfH + 2.4f) - new Vector2(0f, 0.5f);   // 발 위치 = 칸 중심 - 0.5
         monsterSpawn = Place(new Vector2(2f, 2f), 1f, halfH - 1.5f);

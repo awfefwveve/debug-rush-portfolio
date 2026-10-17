@@ -32,6 +32,7 @@ MonoBehaviour:
     patternCount: 3
     patternMask: 7
     spawnPos: {x: 3, y: 3}
+  newMonsterPatternMask: 1
   intro:
   - speaker: "\uB098"
     text: "\uBC8C\uC774 \uD0C4\uC744 \uBD80\uCC44\uAF34\uB85C \uBFCC\uB9AC\uAE30
@@ -161,11 +162,23 @@ MonoBehaviour:
     - {x: 12, y: -6}
     - {x: 13, y: -6}
     playerStart: {x: 0, y: -4.5}
+    stations:
+    - material: 0
+      pos: {x: 5, y: -4.5}
+    - material: 1
+      pos: {x: 10, y: -4.5}
+    - material: 2
+      pos: {x: -10, y: 4.5}
+    - material: 3
+      pos: {x: -5, y: 4.5}
+    crafters:
+    - {x: 0, y: 0}
+    terminals:
+    - {x: 11.5, y: 3}
+    - {x: -11.5, y: -3}
+    listsReady: 1
     planning: {x: 5, y: -4.5}
     programming: {x: 10, y: -4.5}
     graphic: {x: -10, y: 4.5}
     qa: {x: -5, y: 4.5}
     craftingTable: {x: 0, y: 0}
-    terminals:
-    - {x: 11.5, y: 3}
-    - {x: -11.5, y: -3}

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>StageData.layout ↔ Stage 씬 오브젝트 위치. 런타임(StageManager)과 Stage Maker 툴이 함께 사용.</summary>
@@ -31,11 +32,9 @@ public static class StageLayoutApplier
 
         if (sm.player != null) sm.player.transform.position = l.playerStart;
 
-        foreach (var s in Object.FindObjectsByType<ResourceStation>(FindObjectsSortMode.None))
-            s.transform.position = l.MaterialPos(s.material);
-
-        var table = Object.FindAnyObjectByType<CraftingTable>();
-        if (table != null) table.transform.position = l.craftingTable;
+        l.Migrate();
+        PlaceStations(l, allowClone);
+        PlaceCrafters(l, allowClone);
 
         if (sm.terminals == null || sm.terminals.Length == 0 || l.terminals == null || l.terminals.Length == 0) return;
         var used = new List<BugTerminal>();
@@ -61,23 +60,39 @@ public static class StageLayoutApplier
         if (allowClone) sm.terminals = used.ToArray();
     }
 
-    /// <summary>현재 씬 배치를 layout에 기록</summary>
-    public static void Capture(StageLayout l, StageManager sm)
+    /// <summary>재료대: 종류별로 씬에 있는 것을 원본 삼아 필요한 만큼 복제, 안 쓰는 원본은 끔</summary>
+    static void PlaceStations(StageLayout l, bool allowClone)
     {
-        if (l == null || sm == null) return;
-        if (sm.player != null) l.playerStart = sm.player.transform.position;
+        var originals = Object.FindObjectsByType<ResourceStation>(FindObjectsSortMode.None);
+        foreach (var group in originals.GroupBy(s => s.material))
+        {
+            var spots = l.stations.Where(s => s.material == group.Key).ToList();
+            var pool = group.ToList();
+            var src = pool[0];
+            for (int i = 0; i < Mathf.Max(spots.Count, pool.Count); i++)
+            {
+                if (i >= spots.Count) { if (allowClone) pool[i].gameObject.SetActive(false); continue; }
+                var st = i < pool.Count ? pool[i] : (allowClone ? Object.Instantiate(src, src.transform.parent) : null);
+                if (st == null) continue;
+                st.gameObject.SetActive(true);
+                st.transform.position = spots[i].pos;
+            }
+        }
+    }
 
-        foreach (var s in Object.FindObjectsByType<ResourceStation>(FindObjectsSortMode.None))
-            l.SetMaterialPos(s.material, s.transform.position);
-
-        var table = Object.FindAnyObjectByType<CraftingTable>();
-        if (table != null) l.craftingTable = table.transform.position;
-
-        var pos = new List<Vector2>();
-        if (sm.terminals != null)
-            foreach (var t in sm.terminals)
-                if (t != null && t.gameObject.activeSelf) pos.Add(t.transform.position);
-        if (pos.Count > 0) l.terminals = pos.ToArray();
-        l.use = true;
+    /// <summary>제작대: 씬의 제작대를 원본 삼아 필요한 만큼 복제</summary>
+    static void PlaceCrafters(StageLayout l, bool allowClone)
+    {
+        var pool = Object.FindObjectsByType<CraftingTable>(FindObjectsSortMode.None).ToList();
+        if (pool.Count == 0) return;
+        var src = pool[0];
+        for (int i = 0; i < Mathf.Max(l.crafters.Count, pool.Count); i++)
+        {
+            if (i >= l.crafters.Count) { if (allowClone) pool[i].gameObject.SetActive(false); continue; }
+            var t = i < pool.Count ? pool[i] : (allowClone ? Object.Instantiate(src, src.transform.parent) : null);
+            if (t == null) continue;
+            t.gameObject.SetActive(true);
+            t.transform.position = l.crafters[i];
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
@@ -19,6 +20,14 @@ public struct DialogueLine
     public Sprite portrait;
 }
 
+/// <summary>재료대 하나 (종류 + 위치)</summary>
+[System.Serializable]
+public class StationSpot
+{
+    public ItemType material = ItemType.Planning;
+    public Vector2 pos;
+}
+
 /// <summary>스테이지별 맵 배치. use=false면 Stage 씬에 놓인 기본 배치를 그대로 사용.</summary>
 [System.Serializable]
 public class StageLayout
@@ -27,39 +36,37 @@ public class StageLayout
     [Tooltip("방 크기 (칸, 짝수). 기본 30×16 = 1920×1024 화면에 꽉 참")]
     public int width = WallBuilder.DefaultW, height = WallBuilder.DefaultH;
     [Tooltip("벽 칸 (가운데 기준). 비어 있으면 Stage 씬의 기본 벽 사용")]
-    public System.Collections.Generic.List<Vector2Int> walls = new System.Collections.Generic.List<Vector2Int>();
+    public List<Vector2Int> walls = new List<Vector2Int>();
     public Vector2 playerStart = new Vector2(0f, -3.4f);
-    [Header("재료대")]
-    public Vector2 planning = new Vector2(5f, -3.2f);
-    public Vector2 programming = new Vector2(9f, -3.2f);
-    public Vector2 graphic = new Vector2(-9f, 3.2f);
-    public Vector2 qa = new Vector2(-5f, 3.2f);
-    [Header("제작대 / 단말기")]
-    public Vector2 craftingTable = new Vector2(0f, 0f);
-    [Tooltip("단말기 개수 = 배열 길이 (1~4)")]
+    [Tooltip("재료대 (개수 제한 없음)")]
+    public List<StationSpot> stations = new List<StationSpot>();
+    [Tooltip("제작대 (개수 제한 없음)")]
+    public List<Vector2> crafters = new List<Vector2>();
+    [Tooltip("단말기 (개수 제한 없음)")]
     public Vector2[] terminals = { new Vector2(10.5f, 2.0f), new Vector2(-10.5f, -2.4f) };
 
-    public Vector2 MaterialPos(ItemType t)
+    // 예전 형식 (재료대 4개·제작대 1개 고정). 불러올 때 위 목록으로 옮김
+    [SerializeField, HideInInspector] bool listsReady;
+    [SerializeField, HideInInspector] Vector2 planning = new Vector2(5f, -3.2f), programming = new Vector2(9f, -3.2f), graphic = new Vector2(-9f, 3.2f), qa = new Vector2(-5f, 3.2f);
+    [SerializeField, HideInInspector] Vector2 craftingTable = Vector2.zero;
+
+    /// <summary>예전 형식 데이터를 목록 형식으로 변환 (한 번만)</summary>
+    public void Migrate()
     {
-        switch (t)
+        if (listsReady) return;
+        listsReady = true;
+        if (stations.Count == 0)
         {
-            case ItemType.Planning: return planning;
-            case ItemType.Programming: return programming;
-            case ItemType.Graphic: return graphic;
-            default: return qa;
+            stations.Add(new StationSpot { material = ItemType.Planning, pos = planning });
+            stations.Add(new StationSpot { material = ItemType.Programming, pos = programming });
+            stations.Add(new StationSpot { material = ItemType.Graphic, pos = graphic });
+            stations.Add(new StationSpot { material = ItemType.QA, pos = qa });
         }
+        if (crafters.Count == 0) crafters.Add(craftingTable);
     }
 
-    public void SetMaterialPos(ItemType t, Vector2 p)
-    {
-        switch (t)
-        {
-            case ItemType.Planning: planning = p; break;
-            case ItemType.Programming: programming = p; break;
-            case ItemType.Graphic: graphic = p; break;
-            default: qa = p; break;
-        }
-    }
+    /// <summary>새로 만든 배치는 목록 형식으로 시작</summary>
+    public void MarkListsReady() => listsReady = true;
 }
 
 [CreateAssetMenu(menuName = "DebugRush/Stage Data")]
@@ -76,7 +83,8 @@ public class StageData : ScriptableObject
     [Tooltip("난이도별 단말기 완료 목표 (2~8)")] public int[] terminalGoal = { 2, 3, 4 };
     [Tooltip("난이도별 단말기 요구사항 하나당 남은 시간(초). 0 = 무제한")] public float[] requestTime = { 40f, 30f, 22f };
 
-    public MonsterSpawn[] monsters;      // 스테이지당 1~2마리
+    public MonsterSpawn[] monsters;      // 개수 제한 없음 (기획서 기준 1~2마리)
+    [Tooltip("Stage Maker에서 새로 놓는 몬스터의 기본 패턴 (비트)")] public int newMonsterPatternMask = 1;
     public DialogueLine[] intro;         // 스테이지 시작 스토리
     public DialogueLine[] outro;         // 스테이지 종료 스토리
 

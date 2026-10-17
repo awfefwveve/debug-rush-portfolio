@@ -24,15 +24,15 @@ public class StageMakerWindow : EditorWindow
     {
         (Tool.Move, "이동", "물체를 끌어서 옮기기"),
         (Tool.Wall, "벽", "클릭·드래그로 벽 칠하기"),
-        (Tool.Erase, "지우개", "벽·단말기·벌 지우기 (우클릭도 지우기)"),
-        (Tool.Planning, "기획", "기획 재료대 놓기"),
-        (Tool.Programming, "프로그래밍", "프로그래밍 재료대 놓기"),
-        (Tool.Graphic, "그래픽", "그래픽 재료대 놓기"),
-        (Tool.QA, "QA", "QA 재료대 놓기"),
-        (Tool.Crafter, "제작대", "제작대 놓기"),
-        (Tool.Terminal, "단말기", "단말기 추가 (최대 4)"),
+        (Tool.Erase, "지우개", "벽·물체 지우기 (우클릭도 지우기)"),
+        (Tool.Planning, "기획", "기획 재료대 추가 (클릭마다 하나)"),
+        (Tool.Programming, "프로그래밍", "프로그래밍 재료대 추가 (클릭마다 하나)"),
+        (Tool.Graphic, "그래픽", "그래픽 재료대 추가 (클릭마다 하나)"),
+        (Tool.QA, "QA", "QA 재료대 추가 (클릭마다 하나)"),
+        (Tool.Crafter, "제작대", "제작대 추가 (클릭마다 하나)"),
+        (Tool.Terminal, "단말기", "단말기 추가 (클릭마다 하나)"),
         (Tool.Player, "시작점", "플레이어 시작 위치"),
-        (Tool.Bee, "벌", "몬스터(벌) 위치. 최대 2마리"),
+        (Tool.Bee, "벌", "벌 추가. 놓인 벌을 클릭하면 그 벌의 공격 패턴을 오른쪽에서 편집"),
     };
 
     StageData selected;
@@ -41,9 +41,10 @@ public class StageMakerWindow : EditorWindow
     Tool tool = Tool.Wall;
     Vector2 rightScroll, leftScroll;
     int autoSeed = 1;
+    int selBee = -1;           // 오른쪽에서 패턴 편집 중인 벌
 
     // 드래그 상태
-    string dragging;           // "planning", "crafter", "terminal:1", "player", "bee:0" …
+    string dragging;           // "station:0", "crafter:0", "terminal:1", "player", "bee:0" …
     bool painting, erasing;
 
     // 그림
@@ -91,6 +92,9 @@ public class StageMakerWindow : EditorWindow
         if (Btn("저장", 80)) Save(selected);
         if (Btn("▶ 플레이", 100)) Play(selected);
         GUI.enabled = true;
+        GUILayout.Space(16);
+        if (Btn("내보내기", 80)) ExportStages();
+        if (Btn("가져오기", 80)) ImportStages();
         GUILayout.FlexibleSpace();
         GUILayout.Label(selected != null ? $"{selected.chapter}-{selected.stage}  {selected.displayName}" : "스테이지를 고르거나 새로 만드세요", bigBold);
         GUILayout.EndHorizontal();
@@ -183,10 +187,15 @@ public class StageMakerWindow : EditorWindow
         // 물체
         foreach (var o in Objects()) DrawObject(grid, cs, o);
 
-        HandleMouse(grid, cs);
+        HandleMouse(area, grid, cs);
 
         // 경고
         var y0 = grid.yMax + 8;
+        if (OutOfRoom().Any())
+        {
+            if (GUI.Button(new Rect(r.x + 12, y0, 200, 24), "방 밖 물체를 방 안으로 모으기")) GatherIntoRoom();
+            y0 += 28;
+        }
         foreach (var (msg, bad) in Checks())
         {
             GUI.Label(new Rect(r.x + 12, y0, r.width - 24, 20), (bad ? "⚠ " : "✓ ") + msg, bad ? warn : ok);
@@ -199,23 +208,26 @@ public class StageMakerWindow : EditorWindow
     IEnumerable<Obj> Objects()
     {
         var L = selected.layout;
-        yield return O("planning", "기획", L.planning, StageLayoutDefaults.StationSize, "plan");
-        yield return O("programming", "프로그래밍", L.programming, StageLayoutDefaults.StationSize, "programming");
-        yield return O("graphic", "그래픽", L.graphic, StageLayoutDefaults.StationSize, "graphic");
-        yield return O("qa", "QA", L.qa, StageLayoutDefaults.StationSize, "qa");
-        yield return O("crafter", "제작대", L.craftingTable, StageLayoutDefaults.CrafterSize, "crafter");
+        for (int i = 0; i < L.stations.Count; i++)
+            yield return O("station:" + i, MatName(L.stations[i].material), L.stations[i].pos, StageLayoutDefaults.StationSize, MatThumb(L.stations[i].material));
+        for (int i = 0; i < L.crafters.Count; i++) yield return O("crafter:" + i, "제작대", L.crafters[i], StageLayoutDefaults.CrafterSize, "crafter");
         for (int i = 0; i < L.terminals.Length; i++) yield return O("terminal:" + i, $"단말기 {i + 1}", L.terminals[i], StageLayoutDefaults.TerminalSize, "terminal");
         var p = O("player", "시작점", L.playerStart + new Vector2(0f, 1f), new Vector2(2f, 2f), "player"); p.feet = true; yield return p;
         if (selected.monsters != null)
-            for (int i = 0; i < selected.monsters.Length; i++) yield return O("bee:" + i, "벌", selected.monsters[i].spawnPos, new Vector2(2f, 2f), "bee");
+            for (int i = 0; i < selected.monsters.Length; i++) yield return O("bee:" + i, $"벌 {i + 1}", selected.monsters[i].spawnPos, new Vector2(2f, 2f), "bee");
     }
+
+    static readonly ItemType[] Materials = { ItemType.Planning, ItemType.Programming, ItemType.Graphic, ItemType.QA };
+    static string MatName(ItemType t) => t == ItemType.Planning ? "기획" : t == ItemType.Programming ? "프로그래밍" : t == ItemType.Graphic ? "그래픽" : "QA";
+    static string MatThumb(ItemType t) => t == ItemType.Planning ? "plan" : t == ItemType.Programming ? "programming" : t == ItemType.Graphic ? "graphic" : "qa";
+    static ItemType? ToolMaterial(Tool t) => t == Tool.Planning ? ItemType.Planning : t == Tool.Programming ? ItemType.Programming : t == Tool.Graphic ? ItemType.Graphic : t == Tool.QA ? ItemType.QA : (ItemType?)null;
 
     Obj O(string id, string label, Vector2 pos, Vector2 size, string thumb) => new Obj { id = id, label = label, pos = pos, size = size, tex = Thumb(thumb) };
 
     void DrawObject(Rect grid, float cs, Obj o)
     {
         var rect = WorldRect(grid, cs, o.pos, o.size);
-        if (dragging == o.id) EditorGUI.DrawRect(rect, new Color(0.3f, 0.9f, 1f, 0.25f));
+        if (dragging == o.id || o.id == "bee:" + selBee) EditorGUI.DrawRect(rect, new Color(0.3f, 0.9f, 1f, 0.25f));
         if (o.tex != null) GUI.DrawTexture(rect, o.tex, ScaleMode.ScaleToFit);
         else EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.6f, 0.6f));
         var lr = new Rect(rect.x - 20, rect.yMax - 2, rect.width + 40, 18);
@@ -224,10 +236,11 @@ public class StageMakerWindow : EditorWindow
     }
 
     // ---------------- 마우스 ----------------
-    void HandleMouse(Rect grid, float cs)
+    // 격자 밖(방 밖)에 놓인 물체도 집고·옮기고·지울 수 있게 가운데 영역 전체에서 받음
+    void HandleMouse(Rect area, Rect grid, float cs)
     {
         var e = Event.current;
-        if (!grid.Contains(e.mousePosition) && e.type != EventType.MouseUp) return;
+        if (!area.Contains(e.mousePosition) && e.type != EventType.MouseUp) return;
         Vector2 world = new Vector2(WallBuilder.MinX(GW) + (e.mousePosition.x - grid.x) / cs, WallBuilder.MaxY(GH) + 1 - (e.mousePosition.y - grid.y) / cs);
         var cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
         Vector2 snap = new Vector2(StageLayoutDefaults.Snap(world.x), StageLayoutDefaults.Snap(world.y));
@@ -237,27 +250,34 @@ public class StageMakerWindow : EditorWindow
         {
             if (e.button == 1) { erasing = true; EraseAt(world, cell); e.Use(); return; }
             if (e.button != 0) return;
+            var hit = HitObject(world);
+            var mat = ToolMaterial(tool);
+            // 같은 종류 물체를 누르면 새로 놓지 않고 그걸 집음
+            bool sameKind = hit != null && (tool == Tool.Move
+                || (mat != null && hit.StartsWith("station:") && L.stations[Index(hit)].material == mat)
+                || (tool == Tool.Crafter && hit.StartsWith("crafter:"))
+                || (tool == Tool.Terminal && hit.StartsWith("terminal:"))
+                || (tool == Tool.Bee && hit.StartsWith("bee:"))
+                || (tool == Tool.Player && hit == "player"));
+            if (sameKind)
+            {
+                Record("이동"); dragging = hit;
+                if (hit.StartsWith("bee:")) { selBee = Index(hit); GUI.FocusControl(null); }
+                e.Use(); return;
+            }
             switch (tool)
             {
-                case Tool.Move:
-                    var hit = Objects().Reverse().FirstOrDefault(o => WorldRect(grid, cs, o.pos, o.size).Contains(e.mousePosition));
-                    if (hit.id != null) { Record("이동"); dragging = hit.id; }
-                    break;
+                case Tool.Move: if (hit == null) selBee = -1; break;
                 case Tool.Wall: Record("벽"); painting = true; if (WallBuilder.InRoom(cell, GW, GH) && !L.walls.Contains(cell)) L.walls.Add(cell); break;
                 case Tool.Erase: erasing = true; EraseAt(world, cell); break;
-                case Tool.Planning: Record("재료대"); L.planning = snap; dragging = "planning"; break;
-                case Tool.Programming: Record("재료대"); L.programming = snap; dragging = "programming"; break;
-                case Tool.Graphic: Record("재료대"); L.graphic = snap; dragging = "graphic"; break;
-                case Tool.QA: Record("재료대"); L.qa = snap; dragging = "qa"; break;
-                case Tool.Crafter: Record("제작대"); L.craftingTable = snap; dragging = "crafter"; break;
+                case Tool.Planning: case Tool.Programming: case Tool.Graphic: case Tool.QA:
+                    Record("재료대"); L.stations.Add(new StationSpot { material = mat.Value, pos = snap }); dragging = "station:" + (L.stations.Count - 1); break;
+                case Tool.Crafter: Record("제작대"); L.crafters.Add(snap); dragging = "crafter:" + (L.crafters.Count - 1); break;
                 case Tool.Player: Record("시작점"); L.playerStart = snap - new Vector2(0f, 1f); dragging = "player"; break;
-                case Tool.Terminal:
-                    if (L.terminals.Length >= 4) { ShowNotification(new GUIContent("단말기는 최대 4대")); break; }
-                    Record("단말기"); L.terminals = L.terminals.Concat(new[] { snap }).ToArray(); dragging = "terminal:" + (L.terminals.Length - 1); break;
+                case Tool.Terminal: Record("단말기"); L.terminals = L.terminals.Concat(new[] { snap }).ToArray(); dragging = "terminal:" + (L.terminals.Length - 1); break;
                 case Tool.Bee:
                     int count = selected.monsters?.Length ?? 0;
-                    if (count >= 2) { ShowNotification(new GUIContent("몬스터는 스테이지당 최대 2마리")); break; }
-                    Record("벌"); SetBee(count, snap); dragging = "bee:" + count; break;
+                    Record("벌"); SetBee(count, snap); dragging = "bee:" + count; selBee = count; GUI.FocusControl(null); break;
             }
             e.Use();
         }
@@ -276,41 +296,84 @@ public class StageMakerWindow : EditorWindow
         }
     }
 
+    static int Index(string id) => int.Parse(id.Substring(id.IndexOf(':') + 1));
+
+    /// <summary>마우스 위치의 물체 (위에 그려진 것 우선)</summary>
+    string HitObject(Vector2 world)
+    {
+        foreach (var o in Objects().Reverse())
+        {
+            var box = o.id.StartsWith("bee") || o.id == "player" ? new Rect(o.pos - o.size / 2f, o.size) : Box(o);
+            if (box.Contains(world)) return o.id;
+        }
+        return null;
+    }
+
     void MoveObject(string id, Vector2 p)
     {
         var L = selected.layout;
-        if (id == "planning") L.planning = p;
-        else if (id == "programming") L.programming = p;
-        else if (id == "graphic") L.graphic = p;
-        else if (id == "qa") L.qa = p;
-        else if (id == "crafter") L.craftingTable = p;
-        else if (id == "player") L.playerStart = p - new Vector2(0f, 1f);
-        else if (id.StartsWith("terminal:")) L.terminals[int.Parse(id.Substring(9))] = p;
-        else if (id.StartsWith("bee:")) selected.monsters[int.Parse(id.Substring(4))].spawnPos = p;
+        if (id == "player") L.playerStart = p - new Vector2(0f, 1f);
+        else if (id.StartsWith("station:")) L.stations[Index(id)].pos = p;
+        else if (id.StartsWith("crafter:")) L.crafters[Index(id)] = p;
+        else if (id.StartsWith("terminal:")) L.terminals[Index(id)] = p;
+        else if (id.StartsWith("bee:")) selected.monsters[Index(id)].spawnPos = p;
     }
 
+    /// <summary>마우스 아래 물체 하나를 지움 (시작점 제외). 물체가 없으면 벽 칸을 지움</summary>
     void EraseAt(Vector2 world, Vector2Int cell)
     {
         var L = selected.layout;
         Record("지우기");
-        // 단말기 / 벌 지우기
-        for (int i = L.terminals.Length - 1; i >= 0; i--)
-            if (new Rect(L.terminals[i] - StageLayoutDefaults.TerminalSize / 2f, StageLayoutDefaults.TerminalSize).Contains(world) && L.terminals.Length > 1)
-            { L.terminals = L.terminals.Where((t, k) => k != i).ToArray(); return; }
-        if (selected.monsters != null)
-            for (int i = selected.monsters.Length - 1; i >= 0; i--)
-                if (Vector2.Distance(selected.monsters[i].spawnPos, world) < 1f && selected.monsters.Length > 1)
-                { selected.monsters = selected.monsters.Where((m, k) => k != i).ToArray(); return; }
+        var hit = HitObject(world);
+        if (hit != null && hit != "player")
+        {
+            int i = Index(hit);
+            if (hit.StartsWith("station:")) L.stations.RemoveAt(i);
+            else if (hit.StartsWith("crafter:")) L.crafters.RemoveAt(i);
+            else if (hit.StartsWith("terminal:")) L.terminals = L.terminals.Where((t, k) => k != i).ToArray();
+            else if (hit.StartsWith("bee:")) { selected.monsters = selected.monsters.Where((m, k) => k != i).ToArray(); selBee = -1; }
+            erasing = false;              // 드래그로 여러 개가 한꺼번에 지워지지 않게
+            return;
+        }
         L.walls.Remove(cell);
     }
 
     void SetBee(int index, Vector2 pos)
     {
         var list = (selected.monsters ?? new MonsterSpawn[0]).ToList();
+        int mask = selected.newMonsterPatternMask != 0 ? selected.newMonsterPatternMask : 1;
         while (list.Count <= index)
-            list.Add(new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = 1, patternMask = 1 });
+            list.Add(new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = Bits(mask), patternMask = mask });
         list[index].spawnPos = pos;
         selected.monsters = list.ToArray();
+    }
+
+    /// <summary>방 밖으로 나간 물체 이름들</summary>
+    IEnumerable<string> OutOfRoom()
+    {
+        float x0 = WallBuilder.MinX(GW) + 1, x1 = WallBuilder.MaxX(GW), y0 = WallBuilder.MinY(GH) + 1, y1 = WallBuilder.MaxY(GH);
+        foreach (var o in Objects())
+        {
+            var b = o.id == "player" ? Box(o) : new Rect(o.pos - o.size / 2f, o.size);
+            if (b.xMin < x0 - 0.01f || b.xMax > x1 + 0.01f || b.yMin < y0 - 0.01f || b.yMax > y1 + 0.01f) yield return o.id;
+        }
+    }
+
+    /// <summary>방 밖 물체를 방 안쪽 가장자리로 끌어옴</summary>
+    void GatherIntoRoom()
+    {
+        Record("방 안으로 모으기");
+        float x0 = WallBuilder.MinX(GW) + 1, x1 = WallBuilder.MaxX(GW), y0 = WallBuilder.MinY(GH) + 1, y1 = WallBuilder.MaxY(GH);
+        foreach (var id in OutOfRoom().ToList())
+        {
+            var o = Objects().First(x => x.id == id);
+            var half = id == "player" ? new Vector2(0.6f, 0.6f) : o.size / 2f;
+            var c = id == "player" ? selected.layout.playerStart + new Vector2(0f, 0.5f) : o.pos;
+            c.x = Mathf.Clamp(c.x, x0 + half.x, x1 - half.x);
+            c.y = Mathf.Clamp(c.y, y0 + half.y, y1 - half.y);
+            c = new Vector2(StageLayoutDefaults.Snap(c.x), StageLayoutDefaults.Snap(c.y));
+            MoveObject(id, id == "player" ? c + new Vector2(0f, 0.5f) : c);
+        }
     }
 
     // ---------------- 경고 ----------------
@@ -337,8 +400,11 @@ public class StageMakerWindow : EditorWindow
                 var a = Box(objs[i]); var b = Box(objs[j]);
                 if (a.Overlaps(b)) { any = true; yield return ($"{objs[i].label}와(과) {objs[j].label}이(가) 겹쳐 있어요", true); }
             }
-        if (L.terminals.Length < 1 || L.terminals.Length > 4) { any = true; yield return ("단말기는 1~4대", true); }
-        if (s.monsters == null || s.monsters.Length == 0) { any = true; yield return ("몬스터(벌)를 1마리 이상 놓으세요", true); }
+        // 플레이가 안 되는 경우만 경고 (개수 제한 없음)
+        if (L.terminals.Length == 0) { any = true; yield return ("단말기가 없어요 (깰 목표가 없음)", true); }
+        if (L.crafters.Count == 0) { any = true; yield return ("제작대가 없어요 (조합 불가)", true); }
+        foreach (var m in Materials)
+            if (!L.stations.Any(x => x.material == m)) { any = true; yield return ($"{MatName(m)} 재료대가 없어요 (조합표에 필요)", true); }
         if (s.intro == null || s.intro.Length == 0) yield return ("시작 대사가 비어 있어요 (기획서 p.13: 스테이지 시작·끝 스토리)", true);
         if (s.outro == null || s.outro.Length == 0) yield return ("끝 대사가 비어 있어요", true);
         if (!any) yield return ("배치 문제 없음", false);
@@ -394,30 +460,52 @@ public class StageMakerWindow : EditorWindow
             s.terminalGoal = goals; s.requestTime = req;
         }
 
-        Head("벌 공격 패턴 (켠 것만 순서대로 반복)");
-        if (s.monsters != null)
-            for (int m = 0; m < s.monsters.Length; m++)
-            {
-                if (s.monsters.Length > 1) GUILayout.Label($"벌 {m + 1}", EditorStyles.miniBoldLabel);
-                var sp = s.monsters[m];
-                int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
-                int nm = 0;
-                for (int b = 0; b < Monster1A.PatternNames.Length; b++)
-                {
-                    bool on = (mask & (1 << b)) != 0;
-                    var prev = GUI.backgroundColor; GUI.backgroundColor = on ? new Color(1f, 0.8f, 0.3f) : Color.white;
-                    if (GUILayout.Toggle(on, Monster1A.PatternNames[b], "Button", GUILayout.Height(26))) nm |= 1 << b;
-                    GUI.backgroundColor = prev;
-                }
-                if (nm == 0) nm = 1;
-                if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
-            }
+        // 몬스터별 공격 패턴: 맵이나 아래 버튼에서 벌을 고르면 그 벌만 편집
+        int beeCount = s.monsters?.Length ?? 0;
+        if (selBee >= beeCount) selBee = -1;
+        Head("몬스터 공격 패턴 (켠 것만 순서대로 반복)");
+        if (beeCount > 0)
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Toggle(selBee < 0, "새 몬스터 기본값", "Button", GUILayout.Height(24))) selBee = -1;
+            for (int m = 0; m < beeCount; m++)
+                if (GUILayout.Toggle(selBee == m, $"벌 {m + 1}", "Button", GUILayout.Height(24))) selBee = m;
+            GUILayout.EndHorizontal();
+        }
+        if (selBee >= 0)
+        {
+            var sp = s.monsters[selBee];
+            GUILayout.Label($"벌 {selBee + 1} 전용 패턴", EditorStyles.miniBoldLabel);
+            int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
+            int nm = PatternToggles(mask);
+            if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
+        }
+        else
+        {
+            GUILayout.Label("새로 놓는 벌의 기본 패턴 (맵에서 벌을 클릭하면 그 벌만 따로 편집)", EditorStyles.miniLabel);
+            int mask = s.newMonsterPatternMask != 0 ? s.newMonsterPatternMask : 1;
+            int nm = PatternToggles(mask);
+            if (nm != mask) { Record("기본 패턴"); s.newMonsterPatternMask = nm; }
+        }
 
         DrawLines("시작 대사", ref s.intro);
         DrawLines("끝 대사", ref s.outro);
 
         GUILayout.EndScrollView();
         GUILayout.EndArea();
+    }
+
+    static int PatternToggles(int mask)
+    {
+        int nm = 0;
+        for (int b = 0; b < Monster1A.PatternNames.Length; b++)
+        {
+            bool on = (mask & (1 << b)) != 0;
+            var prev = GUI.backgroundColor; GUI.backgroundColor = on ? new Color(1f, 0.8f, 0.3f) : Color.white;
+            if (GUILayout.Toggle(on, Monster1A.PatternNames[b], "Button", GUILayout.Height(26))) nm |= 1 << b;
+            GUI.backgroundColor = prev;
+        }
+        return nm == 0 ? 1 : nm;
     }
 
     void DrawLines(string head, ref DialogueLine[] lines)
@@ -445,7 +533,7 @@ public class StageMakerWindow : EditorWindow
     // =====================================================================================
     // 동작
     // =====================================================================================
-    void Select(StageData s) { selected = s; selectedPath = s != null ? AssetDatabase.GetAssetPath(s) : null; GUI.FocusControl(null); }
+    void Select(StageData s) { selected = s; selBee = -1; selectedPath = s != null ? AssetDatabase.GetAssetPath(s) : null; GUI.FocusControl(null); }
 
     void Record(string what) { if (selected != null) { Undo.RecordObject(selected, what); EditorUtility.SetDirty(selected); } }
 
@@ -458,7 +546,7 @@ public class StageMakerWindow : EditorWindow
             s.layout = StageLayoutDefaults.Default();
             EditorUtility.SetDirty(s);
         }
-        if (s.layout.terminals == null || s.layout.terminals.Length == 0) s.layout.terminals = new[] { new Vector2(10.5f, 2f) };
+        s.layout.Migrate();
     }
 
     /// <summary>방 크기 변경: 옛 바깥 벽과 방 밖 벽을 지우고 새 바깥 벽을 깖. 물체는 그대로 (경고로 알려 줌)</summary>
@@ -514,9 +602,72 @@ public class StageMakerWindow : EditorWindow
     void AutoGenerate()
     {
         Record("자동 생성");
-        int terms = Mathf.Clamp(selected.layout?.terminals?.Length ?? 2, 1, 4);
+        int terms = Mathf.Max(1, selected.layout?.terminals?.Length ?? 2);
         selected.layout = StageLayoutDefaults.Random(autoSeed++ * 7919 + selected.stage, terms, selected.layout.width, selected.layout.height, out var spawn);
         SetBee(0, spawn);
+    }
+
+    // ---------------- 내보내기 / 가져오기 (기획자 ↔ 개발자 스테이지 주고받기) ----------------
+    [System.Serializable] class StagePack { public List<string> stages = new List<string>(); }
+
+    void ExportStages()
+    {
+        int c = chapterTab + 1;
+        int pick = EditorUtility.DisplayDialogComplex("스테이지 내보내기", "어떤 스테이지를 파일로 저장할까요?",
+            selected != null ? $"선택한 {selected.chapter}-{selected.stage}만" : "선택한 스테이지 (없음)", "취소", $"{c}학년 전체");
+        if (pick == 1 || (pick == 0 && selected == null)) return;
+        var list = pick == 0 ? new[] { selected } : LoadAll().Where(s => s.chapter == c).ToArray();
+        if (list.Length == 0) return;
+        string name = pick == 0 ? $"Stage_{selected.chapter}_{selected.stage}" : $"Stages_{c}학년";
+        string path = EditorUtility.SaveFilePanel("스테이지 내보내기", "", name, "stage");
+        if (string.IsNullOrEmpty(path)) return;
+        var pack = new StagePack();
+        foreach (var s in list) { s.layout?.Migrate(); pack.stages.Add(EditorJsonUtility.ToJson(s)); }
+        System.IO.File.WriteAllText(path, JsonUtility.ToJson(pack, true));
+        EditorUtility.RevealInFinder(path);
+        ShowNotification(new GUIContent($"{list.Length}개 내보냄"));
+    }
+
+    void ImportStages()
+    {
+        string path = EditorUtility.OpenFilePanel("스테이지 가져오기", "", "stage");
+        if (string.IsNullOrEmpty(path)) return;
+        var pack = JsonUtility.FromJson<StagePack>(System.IO.File.ReadAllText(path));
+        if (pack == null || pack.stages.Count == 0) { EditorUtility.DisplayDialog("가져오기", "스테이지가 들어 있지 않은 파일이에요.", "확인"); return; }
+        int added = 0, replaced = 0;
+        StageData last = null;
+        foreach (var json in pack.stages)
+        {
+            var tmp = CreateInstance<StageData>();
+            EditorJsonUtility.FromJsonOverwrite(json, tmp);
+            var existing = LoadAll().FirstOrDefault(x => x.chapter == tmp.chapter && x.stage == tmp.stage);
+            if (existing != null)
+            {
+                int a = EditorUtility.DisplayDialogComplex("같은 번호가 있어요",
+                    $"{tmp.chapter}-{tmp.stage} \"{existing.displayName}\"이(가) 이미 있어요.\n가져오는 것: \"{tmp.displayName}\"", "덮어쓰기", "건너뛰기", "빈 번호로 추가");
+                if (a == 1) { DestroyImmediate(tmp); continue; }
+                if (a == 0)
+                {
+                    Undo.RecordObject(existing, "가져오기");
+                    string keepName = existing.name;
+                    EditorJsonUtility.FromJsonOverwrite(json, existing);
+                    existing.name = keepName;
+                    Save(existing);
+                    DestroyImmediate(tmp); replaced++; last = existing; continue;
+                }
+                int free = Enumerable.Range(1, PerChapter).FirstOrDefault(k => !LoadAll().Any(x => x.chapter == tmp.chapter && x.stage == k));
+                if (free == 0) { EditorUtility.DisplayDialog("가져오기", $"{tmp.chapter}학년 10칸이 모두 찼어요. 건너뜀.", "확인"); DestroyImmediate(tmp); continue; }
+                tmp.stage = free;
+            }
+            string p = AssetDatabase.GenerateUniqueAssetPath($"{DataFolder}/Stage_{tmp.chapter}_{tmp.stage}.asset");
+            tmp.name = System.IO.Path.GetFileNameWithoutExtension(p);
+            AssetDatabase.CreateAsset(tmp, p);
+            Register(tmp, true);
+            added++; last = tmp;
+        }
+        AssetDatabase.SaveAssets();
+        if (last != null) { chapterTab = Mathf.Clamp(last.chapter - 1, 0, Chapters - 1); Select(last); }
+        EditorUtility.DisplayDialog("가져오기", $"추가 {added}개, 덮어쓰기 {replaced}개", "확인");
     }
 
     static void Save(StageData s)
@@ -722,7 +873,7 @@ public class StageMakerWindow : EditorWindow
         var w = CreateInstance<StageMakerWindow>();
         foreach (var s in LoadAll())
         {
-            w.selected = s;
+            w.selected = s; w.EnsureLayout(s);
             foreach (var (msg, bad) in w.Checks()) Debug.Log($"[StageMaker] {s.chapter}-{s.stage} {s.layout.width}x{s.layout.height}: {(bad ? "BAD " : "OK ")}{msg}");
         }
         DestroyImmediate(w);
@@ -738,6 +889,7 @@ public class StageMakerWindow : EditorWindow
                 s.layout = StageLayoutDefaults.Default();
                 EditorUtility.SetDirty(s);
             }
+            if (s.layout != null) { s.layout.Migrate(); EditorUtility.SetDirty(s); }
         }
         AssetDatabase.SaveAssets();
         Debug.Log("[StageMaker] converted");
