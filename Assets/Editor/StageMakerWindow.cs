@@ -188,7 +188,7 @@ public class StageMakerWindow : EditorWindow
         }
 
         // 보유 자료 칸에 가려지는 구역 (물체 금지)
-        var hz = StageLayoutDefaults.HudZone(GW, GH);
+        var hz = StageLayoutDefaults.HudZone(selected.layout.PaintedBounds());
         var hzr = WorldRect(grid, cs, hz.center, hz.size);
         EditorGUI.DrawRect(hzr, new Color(1f, 0.35f, 0.35f, 0.22f));
         GUI.Label(hzr, "보유 자료\n(놓지 말 것)", EditorStyles.centeredGreyMiniLabel);
@@ -445,7 +445,7 @@ public class StageMakerWindow : EditorWindow
             if (StageLayoutDefaults.HitsWall(w, center, size)) { any = true; yield return ($"{o.label}이(가) 벽과 겹쳐 있어요", true); }
             if (center.x - size.x / 2f < WallBuilder.MinX(GW) + 1 || center.x + size.x / 2f > WallBuilder.MaxX(GW) || center.y - size.y / 2f < WallBuilder.MinY(GH) + 1 || center.y + size.y / 2f > WallBuilder.MaxY(GH))
             { any = true; yield return ($"{o.label}이(가) 방 밖으로 나가 있어요", true); }
-            if (new Rect(center - size / 2f, size).Overlaps(StageLayoutDefaults.HudZone(GW, GH)))
+            if (new Rect(center - size / 2f, size).Overlaps(StageLayoutDefaults.HudZone(selected.layout.PaintedBounds())))
             { any = true; yield return ($"{o.label}이(가) 왼쪽 아래 보유 자료 칸에 가려져요 (빗금 구역)", true); }
         }
         for (int i = 0; i < objs.Count; i++)
@@ -493,7 +493,7 @@ public class StageMakerWindow : EditorWindow
         Head("한 줄 요약 (맵 카드에 표시)");
         string summary = EditorGUILayout.TextArea(s.summary ?? "", big, GUILayout.Height(48));
 
-        Head("방 크기 (칸) — 기본 30×16 = 화면에 꽉 참");
+        Head("방 크기 (칸) — 기본 30×16 = 화면에 딱 맞음");
         GUILayout.BeginHorizontal();
         GUILayout.Label("가로", big, GUILayout.Width(36));
         int nw = EditorGUILayout.DelayedIntField(s.layout.width, big, GUILayout.Width(50), GUILayout.Height(26));
@@ -501,7 +501,7 @@ public class StageMakerWindow : EditorWindow
         int nh = EditorGUILayout.DelayedIntField(s.layout.height, big, GUILayout.Width(50), GUILayout.Height(26));
         if (GUILayout.Button("기본 30×16", GUILayout.Height(26))) { nw = WallBuilder.DefaultW; nh = WallBuilder.DefaultH; }
         GUILayout.EndHorizontal();
-        GUILayout.Label("짝수만 (가로 16~40, 세로 10~22). 바꾸면 바깥 벽이 새 크기로 다시 깔림", EditorStyles.miniLabel);
+        GUILayout.Label("크기 자유 (8×6 ~ 120×80). 게임에서는 카메라가 그린 맵 전체에 맞춰 자동으로 확대·축소", EditorStyles.miniLabel);
         if (nw != s.layout.width || nh != s.layout.height) ResizeRoom(nw, nh);
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("바닥 전부 채우기", GUILayout.Height(24))) { Record("바닥 채우기"); s.layout.customFloor = false; s.layout.floor.Clear(); }
@@ -623,7 +623,7 @@ public class StageMakerWindow : EditorWindow
     /// <summary>방 크기 변경: 옛 바깥 벽과 방 밖 벽을 지우고 새 바깥 벽을 깖. 물체는 그대로 (경고로 알려 줌)</summary>
     void ResizeRoom(int w, int h)
     {
-        w = Mathf.Clamp(w + (w & 1), 16, 40); h = Mathf.Clamp(h + (h & 1), 10, 22);
+        w = Mathf.Clamp(w, 8, 120); h = Mathf.Clamp(h, 6, 80);   // 칸 수 제한 없음 (툴 안전선만). 게임 카메라가 맵 전체에 맞춰 줌
         var L = selected.layout;
         if (w == L.width && h == L.height) return;
         Record("방 크기");

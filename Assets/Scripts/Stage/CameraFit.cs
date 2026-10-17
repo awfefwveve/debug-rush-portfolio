@@ -16,6 +16,8 @@ public class CameraFit : MonoBehaviour
     [Tooltip("오른쪽에 비워 둘 폭 (캔버스 단위). 조합표는 맵 위에 겹치므로 0")] public float sidebar = 0f;
 
     float sidebarNow;
+    StageLayout cachedFor;
+    RectInt cachedBounds;
     Camera cam;
 
     void Awake() { I = this; cam = GetComponent<Camera>(); sidebarNow = sidebar; Fit(); }
@@ -30,7 +32,13 @@ public class CameraFit : MonoBehaviour
     void Fit()
     {
         var l = StageManager.I != null && StageManager.I.Data != null ? StageManager.I.Data.layout : null;
-        if (l != null && l.use && l.walls != null && l.walls.Count > 0) { roomWidth = l.width; roomHeight = l.height; }
+        // 실제로 그린 칸(바닥+벽) 범위에 맞춰 확대·축소 (맵 크기 제한 없음)
+        RectInt b = new RectInt(WallBuilder.MinX(Mathf.RoundToInt(roomWidth)), WallBuilder.MinY(Mathf.RoundToInt(roomHeight)), Mathf.RoundToInt(roomWidth), Mathf.RoundToInt(roomHeight));
+        if (l != null && l.use && l.walls != null && l.walls.Count > 0)
+        {
+            if (cachedFor != l) { cachedFor = l; cachedBounds = l.PaintedBounds(); }   // 스테이지 중엔 맵이 안 바뀜
+            b = cachedBounds; roomWidth = b.width; roomHeight = b.height;
+        }
         float scale = Screen.height / 1080f;
         float availW = Mathf.Max(100f, Screen.width - sidebarNow * scale);
         float availH = Mathf.Max(100f, Screen.height - (bandTop + bandBottom) * scale);
@@ -39,9 +47,8 @@ public class CameraFit : MonoBehaviour
         float roomH = roomHeight * ppu;                                // 방을 상단 바 바로 아래에 붙임
         float cx = availW * 0.5f, cy = Screen.height - bandTop * scale - roomH * 0.5f;
         float dx = cx - Screen.width * 0.5f, dy = cy - Screen.height * 0.5f;
-        // 방 중심 (홀수 칸이면 반 칸 어긋남)
-        int w = Mathf.RoundToInt(roomWidth), h = Mathf.RoundToInt(roomHeight);
-        float rx = WallBuilder.MinX(w) + w * 0.5f, ry = WallBuilder.MinY(h) + h * 0.5f;
+        // 그린 범위의 중심
+        float rx = b.x + b.width * 0.5f, ry = b.y + b.height * 0.5f;
         Base = new Vector3(rx - dx / ppu, ry - dy / ppu, -10f);
     }
 

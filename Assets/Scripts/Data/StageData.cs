@@ -78,6 +78,16 @@ public class StageLayout
         return s;
     }
 
+    /// <summary>실제로 칠해진 칸(바닥+벽)의 범위. 카메라가 이 범위에 맞춰 줌. 아무것도 없으면 방 크기</summary>
+    public RectInt PaintedBounds()
+    {
+        int x0 = int.MaxValue, y0 = int.MaxValue, x1 = int.MinValue, y1 = int.MinValue;
+        foreach (var c in FloorSet()) { x0 = Mathf.Min(x0, c.x); y0 = Mathf.Min(y0, c.y); x1 = Mathf.Max(x1, c.x); y1 = Mathf.Max(y1, c.y); }
+        foreach (var c in walls) { x0 = Mathf.Min(x0, c.x); y0 = Mathf.Min(y0, c.y); x1 = Mathf.Max(x1, c.x); y1 = Mathf.Max(y1, c.y); }
+        if (x0 > x1) return new RectInt(WallBuilder.MinX(width), WallBuilder.MinY(height), width, height);
+        return new RectInt(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+    }
+
     /// <summary>바닥을 칸 목록으로 바꿔서 직접 칠할 수 있게</summary>
     public void MakeFloorExplicit()
     {

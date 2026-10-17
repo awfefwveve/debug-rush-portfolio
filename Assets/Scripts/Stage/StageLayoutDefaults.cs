@@ -8,8 +8,13 @@ public static class StageLayoutDefaults
     // 물체가 차지하는 칸 크기 (가로, 세로)
     public static readonly Vector2 StationSize = new Vector2(3f, 2.5f), CrafterSize = new Vector2(4f, 3f), TerminalSize = new Vector2(2.5f, 3.5f);
 
-    /// <summary>좌하단 보유 자료 박스가 겹치는 자리 (물체 금지). 방 왼쪽 아래 모서리 기준 3칸×2칸</summary>
-    public static Rect HudZone(int w, int h) => new Rect(WallBuilder.MinX(w), WallBuilder.MinY(h), 3f, 2f);
+    /// <summary>좌하단 보유 자료 박스(화면 190×120)가 겹치는 자리 (물체 금지). 카메라 줌에 따라 칸 수가 달라짐 (30×16이면 3×2칸)</summary>
+    public static Rect HudZone(RectInt b)
+    {
+        float ppu = Mathf.Min(1920f / Mathf.Max(1, b.width), 1024f / Mathf.Max(1, b.height));
+        return new Rect(b.xMin, b.yMin, Mathf.Ceil(190f / ppu - 0.05f), Mathf.Ceil(120f / ppu - 0.05f));
+    }
+    public static Rect HudZone(int w, int h) => HudZone(new RectInt(WallBuilder.MinX(w), WallBuilder.MinY(h), w, h));
 
     /// <summary>기획서 p.18 기본 배치 (30×16): 그래픽·QA 위 / 기획·프로그래밍 아래, 가운데 작업대 라인 위 제작대, 단말기 우상단·좌하단, 좌상단·우하단 튀어나온 벽</summary>
     public static StageLayout Default()
