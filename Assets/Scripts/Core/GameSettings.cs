@@ -27,4 +27,14 @@ public static class GameSettings
         get => Mathf.Clamp(PlayerPrefs.GetInt(LangKey, 0), 0, Languages.Length - 1);
         set { PlayerPrefs.SetInt(LangKey, Mathf.Clamp(value, 0, Languages.Length - 1)); PlayerPrefs.Save(); Changed?.Invoke(); }
     }
+
+    /// <summary>진행도(스테이지 클리어·업적) 전부 삭제. 설정(음량·언어)과 화면 설정은 유지. 시연용</summary>
+    public static void ResetProgress()
+    {
+        for (int c = 1; c <= 3; c++)
+            for (int s = 1; s <= 10; s++)
+                for (int d = 0; d < 3; d++) PlayerPrefs.DeleteKey($"clear_{c}_{s}_{d}");
+        AchievementManager.ResetAll();
+        PlayerPrefs.Save();
+    }
 }

@@ -32,6 +32,7 @@ public abstract class MonsterBase : MonoBehaviour
     public Phase CurrentPhase { get; private set; } = Phase.Move;
 
     protected Transform target;
+    public Transform Target => target;
     protected int patternCount = 1;
     /// <summary>예고 시작 순간 플레이어 방향 (예고와 실제 발사 방향을 일치시킴)</summary>
     protected Vector2 AimDir { get; private set; } = Vector2.down;
@@ -163,7 +164,7 @@ public abstract class MonsterBase : MonoBehaviour
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = fx.warnLine; sr.drawMode = SpriteDrawMode.Sliced;
         sr.size = new Vector2(width, length);
-        sr.sortingOrder = -40;
+        sr.sortingOrder = 20;                                   // 맵 물체보다 위 (예고가 가려지지 않게)
         sr.color = new Color(1f, 0.3f, 0.35f, 0.25f);
         telegraphs.Add(go);
     }
@@ -175,7 +176,7 @@ public abstract class MonsterBase : MonoBehaviour
         child.transform.SetParent(root.transform, false);
         child.transform.localScale = Vector3.one * scale;
         var sr = child.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite; sr.sortingOrder = -40;
+        sr.sprite = sprite; sr.sortingOrder = 20;
         sr.color = new Color(1f, 0.3f, 0.35f, alpha);
     }
 

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 몬스터 프레임 애니메이션: 이동 = 움직임 반복, 예고~공격 = 패턴 프레임 1회 재생(준비→발사), 회복 후 움직임으로 복귀,
-/// 기절 중 = 정지 + 깜빡이지 않게 살짝 어둡게.
+/// 기절 중 = 정지 + 깜빡이지 않게 살짝 어둡게. 항상 플레이어 쪽을 바라봄.
 /// </summary>
 [RequireComponent(typeof(MonsterBase))]
 public class MonsterSpriteAnimator : MonoBehaviour
@@ -29,6 +29,14 @@ public class MonsterSpriteAnimator : MonoBehaviour
         bool stunned = monster.IsStunned;
         anim.Paused = stunned;
         if (sr != null) sr.color = stunned ? new Color(0.65f, 0.65f, 0.8f) : Color.white;
+
+        // 항상 플레이어 쪽을 바라봄 (원본 그림은 왼쪽을 봄). 바로 위·아래일 땐 떨리지 않게 그대로
+        if (sr != null && monster.Target != null)
+        {
+            float dx = monster.Target.position.x - transform.position.x;
+            if (dx > 0.3f) sr.flipX = true;
+            else if (dx < -0.3f) sr.flipX = false;
+        }
 
         bool attacking = monster.CurrentPhase == MonsterBase.Phase.Windup || monster.CurrentPhase == MonsterBase.Phase.Attack;
         int want = attacking ? monster.CurrentPattern : -1;

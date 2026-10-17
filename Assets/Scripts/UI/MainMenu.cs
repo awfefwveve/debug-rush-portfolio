@@ -81,9 +81,9 @@ public class MainMenu : MonoBehaviour
         return img;
     }
 
-    public void OnStart() => SceneManager.LoadScene("Map");
-    public void OnAchievements() => SceneManager.LoadScene("Achievements");
-    public void OnSettings() { if (settingsPanel) settingsPanel.SetActive(!settingsPanel.activeSelf); }
+    public void OnStart() { if (!confirmReset) SceneManager.LoadScene("Map"); }
+    public void OnAchievements() { if (!confirmReset) SceneManager.LoadScene("Achievements"); }
+    public void OnSettings() { if (settingsPanel && !confirmReset) settingsPanel.SetActive(!settingsPanel.activeSelf); }
     public void OnQuit()
     {
 #if UNITY_EDITOR
@@ -92,10 +92,40 @@ public class MainMenu : MonoBehaviour
         Application.Quit();
 #endif
     }
+    // 진행도 초기화 (시연용: 여러 사람이 연달아 처음부터 플레이)
+    bool confirmReset;
+    float resetDoneUntil;
+
     void OnGUI()
     {
         KoreanIMGUIFont.Apply();
-        if (!settingsPanel || !settingsPanel.activeSelf) return;
-        if (SettingsWindow.Draw()) settingsPanel.SetActive(false);
+        if (settingsPanel && settingsPanel.activeSelf)
+        {
+            if (SettingsWindow.Draw()) settingsPanel.SetActive(false);
+            return;
+        }
+
+        float s = Screen.height / 1080f;
+        var btn = new Rect(24f * s, Screen.height - 70f * s, 200f * s, 46f * s);
+        var style = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(20 * s) };
+        if (!confirmReset && GUI.Button(btn, "진행도 초기화", style)) confirmReset = true;
+        if (Time.unscaledTime < resetDoneUntil)
+            GUI.Label(new Rect(btn.xMax + 16f * s, btn.y, 400f * s, btn.height), "초기화했어요. 처음부터 플레이할 수 있어요.", new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(20 * s), alignment = TextAnchor.MiddleLeft, normal = { textColor = new Color(0.4f, 0.95f, 0.6f) } });
+
+        if (!confirmReset) return;
+        GUI.color = new Color(0f, 0f, 0f, 0.6f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        float w = 460f * s, h = 220f * s;
+        var r = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+        GUI.Box(r, "");
+        GUI.Box(r, "");
+        var big = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(26 * s), alignment = TextAnchor.MiddleCenter, wordWrap = true, richText = true };
+        string sub = "<size=" + Mathf.RoundToInt(18 * s) + ">스테이지 클리어·업적이 지워져요 (설정은 유지)</size>";
+        GUI.Label(new Rect(r.x + 20f * s, r.y + 24f * s, w - 40f * s, 90f * s), "진행도를 모두 초기화할까요?\n" + sub, big);
+        var b1 = new Rect(r.x + 40f * s, r.yMax - 76f * s, (w - 100f * s) * 0.5f, 50f * s);
+        var b2 = new Rect(b1.xMax + 20f * s, b1.y, b1.width, b1.height);
+        if (GUI.Button(b1, "초기화", style)) { GameSettings.ResetProgress(); confirmReset = false; resetDoneUntil = Time.unscaledTime + 3f; }
+        if (GUI.Button(b2, "취소", style)) confirmReset = false;
     }
 }

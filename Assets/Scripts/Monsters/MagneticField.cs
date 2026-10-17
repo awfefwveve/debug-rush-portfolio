@@ -7,7 +7,12 @@ public class MagneticField : MonoBehaviour
     public float pullDuration = 0.4f;
     [HideInInspector] public Transform center;
 
-    void Start() => Destroy(gameObject, lifetime);
+    void Start()
+    {
+        // 파장은 단말기·재료대 등 맵 물체보다 위에 보이게 (탄환 30보다는 아래)
+        foreach (var r in GetComponentsInChildren<SpriteRenderer>()) r.sortingOrder = 25;
+        Destroy(gameObject, lifetime);
+    }
 
     void OnTriggerStay2D(Collider2D c)
     {

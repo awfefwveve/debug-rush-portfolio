@@ -8,7 +8,11 @@ public class Hazard : MonoBehaviour
     public bool destroyOnHit = false;      // 지뢰=true
     public float lifetime = 0f;            // 0이면 영구 (지뢰), 전선은 3초 등
 
-    void Start() { if (lifetime > 0f) Destroy(gameObject, lifetime); }
+    void Start()
+    {
+        foreach (var r in GetComponentsInChildren<SpriteRenderer>()) r.sortingOrder = 22;   // 전선·낙하 표시는 맵 물체보다 위
+        if (lifetime > 0f) Destroy(gameObject, lifetime);
+    }
 
     void OnTriggerStay2D(Collider2D c)
     {
