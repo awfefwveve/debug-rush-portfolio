@@ -18,13 +18,14 @@ public class StageMakerWindow : EditorWindow
     const string BeePrefab = "Assets/DebugRush/Prefabs/Monster1A.prefab";
     const int Chapters = 3, PerChapter = 10;
 
-    enum Tool { Move, Wall, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee }
+    enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee }
 
     static readonly (Tool tool, string label, string tip)[] Palette =
     {
         (Tool.Move, "이동", "물체를 끌어서 옮기기"),
         (Tool.Wall, "벽", "클릭·드래그로 벽 칠하기"),
-        (Tool.Erase, "지우개", "벽·물체 지우기 (우클릭도 지우기)"),
+        (Tool.Floor, "바닥", "클릭·드래그로 바닥 칠하기 (바닥 없는 칸은 게임에서 빈 공간, 못 들어감)"),
+        (Tool.Erase, "지우개", "물체 → 벽 → 바닥 순으로 지우기 (우클릭도 지우기)"),
         (Tool.Planning, "기획", "기획 재료대 추가 (클릭마다 하나)"),
         (Tool.Programming, "프로그래밍", "프로그래밍 재료대 추가 (클릭마다 하나)"),
         (Tool.Graphic, "그래픽", "그래픽 재료대 추가 (클릭마다 하나)"),
@@ -45,7 +46,8 @@ public class StageMakerWindow : EditorWindow
 
     // 드래그 상태
     string dragging;           // "station:0", "crafter:0", "terminal:1", "player", "bee:0" …
-    bool painting, erasing;
+    bool painting, erasing, flooring;
+    int eraseMode;             // 한 번 드래그하는 동안 지우는 대상 고정: 0 미정, 1 벽, 2 바닥
 
     // 그림
     readonly Dictionary<string, Texture2D> thumbs = new Dictionary<string, Texture2D>();
@@ -164,11 +166,18 @@ public class StageMakerWindow : EditorWindow
         var area = new Rect(r.x + 8, r.y + 90, r.width - 16, r.height - 170);
         float cs = Mathf.Floor(Mathf.Min(area.width / GW, area.height / GH));
         var grid = new Rect(area.x + (area.width - cs * GW) / 2f, area.y, cs * GW, cs * GH);
-        EditorGUI.DrawRect(grid, new Color(0.09f, 0.11f, 0.17f));
+        // 빈칸(바닥 없음) = 어두운 배경, 바닥 칸 = 바닥 그림
+        EditorGUI.DrawRect(grid, new Color(0.03f, 0.04f, 0.07f));
+        var L = selected.layout;
+        var floorTex = Thumb("floor");
+        foreach (var c in L.FloorSet())
+        {
+            var fr = CellRect(grid, cs, c);
+            if (floorTex != null) GUI.DrawTexture(fr, floorTex); else EditorGUI.DrawRect(fr, new Color(0.09f, 0.11f, 0.17f));
+        }
         for (int x = 0; x <= GW; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
         for (int y = 0; y <= GH; y++) EditorGUI.DrawRect(new Rect(grid.x, grid.y + y * cs, grid.width, 1), new Color(1, 1, 1, 0.05f));
 
-        var L = selected.layout;
         var wallSet = new HashSet<Vector2Int>(L.walls);
         var fx = FxSet.Get();
         foreach (var c in wallSet)
@@ -248,7 +257,7 @@ public class StageMakerWindow : EditorWindow
 
         if (e.type == EventType.MouseDown)
         {
-            if (e.button == 1) { erasing = true; EraseAt(world, cell); e.Use(); return; }
+            if (e.button == 1) { erasing = true; eraseMode = 0; EraseAt(world, cell); e.Use(); return; }
             if (e.button != 0) return;
             var hit = HitObject(world);
             var mat = ToolMaterial(tool);
@@ -265,11 +274,15 @@ public class StageMakerWindow : EditorWindow
                 if (hit.StartsWith("bee:")) { selBee = Index(hit); GUI.FocusControl(null); }
                 e.Use(); return;
             }
+            // 물체는 바닥 칸 위에만
+            bool placing = mat != null || tool == Tool.Crafter || tool == Tool.Terminal || tool == Tool.Bee || tool == Tool.Player;
+            if (placing && !OnFloor(tool == Tool.Player ? snap - new Vector2(0f, 0.5f) : snap)) { ShowNotification(new GUIContent("바닥 위에만 놓을 수 있어요")); e.Use(); return; }
             switch (tool)
             {
                 case Tool.Move: if (hit == null) selBee = -1; break;
                 case Tool.Wall: Record("벽"); painting = true; if (WallBuilder.InRoom(cell, GW, GH) && !L.walls.Contains(cell)) L.walls.Add(cell); break;
-                case Tool.Erase: erasing = true; EraseAt(world, cell); break;
+                case Tool.Floor: Record("바닥"); flooring = true; L.MakeFloorExplicit(); if (WallBuilder.InRoom(cell, GW, GH) && !L.floor.Contains(cell)) L.floor.Add(cell); break;
+                case Tool.Erase: erasing = true; eraseMode = 0; EraseAt(world, cell); break;
                 case Tool.Planning: case Tool.Programming: case Tool.Graphic: case Tool.QA:
                     Record("재료대"); L.stations.Add(new StationSpot { material = mat.Value, pos = snap }); dragging = "station:" + (L.stations.Count - 1); break;
                 case Tool.Crafter: Record("제작대"); L.crafters.Add(snap); dragging = "crafter:" + (L.crafters.Count - 1); break;
@@ -285,13 +298,14 @@ public class StageMakerWindow : EditorWindow
         {
             if (erasing) EraseAt(world, cell);
             else if (painting && WallBuilder.InRoom(cell, GW, GH) && !L.walls.Contains(cell)) L.walls.Add(cell);
-            else if (dragging != null) MoveObject(dragging, snap);
+            else if (flooring && WallBuilder.InRoom(cell, GW, GH) && !L.floor.Contains(cell)) L.floor.Add(cell);
+            else if (dragging != null && OnFloor(dragging == "player" ? snap - new Vector2(0f, 0.5f) : snap)) MoveObject(dragging, snap);
             e.Use();
         }
         else if (e.type == EventType.MouseUp)
         {
-            if (painting || erasing || dragging != null) EditorUtility.SetDirty(selected);
-            painting = erasing = false; dragging = null;
+            if (painting || erasing || flooring || dragging != null) EditorUtility.SetDirty(selected);
+            painting = erasing = flooring = false; dragging = null;
             e.Use();
         }
     }
@@ -309,6 +323,45 @@ public class StageMakerWindow : EditorWindow
         return null;
     }
 
+    /// <summary>그 점이 바닥 칸(벽 아님) 위인지</summary>
+    bool OnFloor(Vector2 p)
+    {
+        var c = new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y));
+        var L = selected.layout;
+        return L.FloorSet().Contains(c) && !L.walls.Contains(c);
+    }
+
+    /// <summary>물체가 차지하는 칸들</summary>
+    static IEnumerable<Vector2Int> Cells(Rect r)
+    {
+        for (int x = Mathf.FloorToInt(r.xMin + 0.05f); x <= Mathf.FloorToInt(r.xMax - 0.05f); x++)
+            for (int y = Mathf.FloorToInt(r.yMin + 0.05f); y <= Mathf.FloorToInt(r.yMax - 0.05f); y++)
+                yield return new Vector2Int(x, y);
+    }
+
+    /// <summary>시작점에서 걸어서 갈 수 있는 칸 (바닥 − 벽 − 물체)</summary>
+    HashSet<Vector2Int> Reachable(HashSet<Vector2Int> floor, HashSet<Vector2Int> walls, List<Obj> objs)
+    {
+        var blocked = new HashSet<Vector2Int>(walls);
+        foreach (var o in objs.Where(o => o.id != "player" && !o.id.StartsWith("bee"))) foreach (var c in Cells(Box(o))) blocked.Add(c);
+        var start = new Vector2Int(Mathf.FloorToInt(selected.layout.playerStart.x), Mathf.FloorToInt(selected.layout.playerStart.y + 0.5f));
+        var seen = new HashSet<Vector2Int>();
+        if (!floor.Contains(start) || blocked.Contains(start)) return seen;
+        var q = new Queue<Vector2Int>(); q.Enqueue(start); seen.Add(start);
+        var dirs = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+        while (q.Count > 0)
+        {
+            var c = q.Dequeue();
+            foreach (var d in dirs)
+            {
+                var n = c + d;
+                if (seen.Contains(n) || !floor.Contains(n) || blocked.Contains(n)) continue;
+                seen.Add(n); q.Enqueue(n);
+            }
+        }
+        return seen;
+    }
+
     void MoveObject(string id, Vector2 p)
     {
         var L = selected.layout;
@@ -319,7 +372,7 @@ public class StageMakerWindow : EditorWindow
         else if (id.StartsWith("bee:")) selected.monsters[Index(id)].spawnPos = p;
     }
 
-    /// <summary>마우스 아래 물체 하나를 지움 (시작점 제외). 물체가 없으면 벽 칸을 지움</summary>
+    /// <summary>마우스 아래 물체 하나를 지움 (시작점 제외). 물체가 없으면 벽 → 바닥 순으로 지움</summary>
     void EraseAt(Vector2 world, Vector2Int cell)
     {
         var L = selected.layout;
@@ -335,7 +388,9 @@ public class StageMakerWindow : EditorWindow
             erasing = false;              // 드래그로 여러 개가 한꺼번에 지워지지 않게
             return;
         }
-        L.walls.Remove(cell);
+        if (eraseMode == 0) eraseMode = L.walls.Contains(cell) ? 1 : 2;
+        if (eraseMode == 1) L.walls.Remove(cell);
+        else { L.MakeFloorExplicit(); L.floor.Remove(cell); }
     }
 
     void SetBee(int index, Vector2 pos)
@@ -400,6 +455,18 @@ public class StageMakerWindow : EditorWindow
                 var a = Box(objs[i]); var b = Box(objs[j]);
                 if (a.Overlaps(b)) { any = true; yield return ($"{objs[i].label}와(과) {objs[j].label}이(가) 겹쳐 있어요", true); }
             }
+        // 바닥 밖 / 시작점에서 못 가는 물체
+        var floorSet = L.FloorSet();
+        var reach = Reachable(floorSet, w, objs);
+        foreach (var o in objs)
+        {
+            var box = o.id == "player" ? Box(o) : o.id.StartsWith("bee") ? new Rect(o.pos - Vector2.one * 0.5f, Vector2.one) : Box(o);
+            if (Cells(box).Any(c => !floorSet.Contains(c))) { any = true; yield return ($"{o.label}이(가) 바닥 밖(빈칸)에 있어요", true); continue; }
+            if (o.id == "player" || o.id.StartsWith("bee")) continue;
+            var around = new Rect(box.x - 1f, box.y - 1f, box.width + 2f, box.height + 2f);
+            if (!Cells(around).Any(reach.Contains)) { any = true; yield return ($"{o.label}에 시작점에서 걸어서 갈 수 없어요", true); }
+        }
+
         // 플레이가 안 되는 경우만 경고 (개수 제한 없음)
         if (L.terminals.Length == 0) { any = true; yield return ("단말기가 없어요 (깰 목표가 없음)", true); }
         if (L.crafters.Count == 0) { any = true; yield return ("제작대가 없어요 (조합 불가)", true); }
@@ -436,6 +503,10 @@ public class StageMakerWindow : EditorWindow
         GUILayout.EndHorizontal();
         GUILayout.Label("짝수만 (가로 16~40, 세로 10~22). 바꾸면 바깥 벽이 새 크기로 다시 깔림", EditorStyles.miniLabel);
         if (nw != s.layout.width || nh != s.layout.height) ResizeRoom(nw, nh);
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("바닥 전부 채우기", GUILayout.Height(24))) { Record("바닥 채우기"); s.layout.customFloor = false; s.layout.floor.Clear(); }
+        if (GUILayout.Button("바닥 둘레에 벽 두르기", GUILayout.Height(24))) WallAroundFloor();
+        GUILayout.EndHorizontal();
 
         Head("제한시간 (쉬움 기준: 이 값 × 1.3)");
         int total = Mathf.RoundToInt(s.timeLimit);
@@ -556,10 +627,36 @@ public class StageMakerWindow : EditorWindow
         var L = selected.layout;
         if (w == L.width && h == L.height) return;
         Record("방 크기");
-        var oldBorder = new HashSet<Vector2Int>(WallBuilder.Border(L.width, L.height));
-        L.walls = L.walls.Where(c => !oldBorder.Contains(c) && WallBuilder.InRoom(c, w, h)).ToList();
-        L.walls.AddRange(WallBuilder.Border(w, h).Where(c => !L.walls.Contains(c)));
+        if (L.customFloor)
+        {
+            // 직접 칠한 바닥: 최대 크기 밖 칸만 정리, 새로 생긴 자리는 빈칸
+            L.walls = L.walls.Where(c => WallBuilder.InRoom(c, w, h)).ToList();
+            L.floor = L.floor.Where(c => WallBuilder.InRoom(c, w, h)).ToList();
+        }
+        else
+        {
+            var oldBorder = new HashSet<Vector2Int>(WallBuilder.Border(L.width, L.height));
+            L.walls = L.walls.Where(c => !oldBorder.Contains(c) && WallBuilder.InRoom(c, w, h)).ToList();
+            L.walls.AddRange(WallBuilder.Border(w, h).Where(c => !L.walls.Contains(c)));
+        }
         L.width = w; L.height = h;
+    }
+
+    /// <summary>바닥 칸에 붙어 있는 빈칸(대각선 포함)에 벽을 깖</summary>
+    void WallAroundFloor()
+    {
+        Record("바닥 둘레 벽");
+        var L = selected.layout;
+        var floor = L.FloorSet();
+        var add = new HashSet<Vector2Int>();
+        foreach (var c in floor)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    var n = new Vector2Int(c.x + dx, c.y + dy);
+                    if (!floor.Contains(n) && WallBuilder.InRoom(n, L.width, L.height)) add.Add(n);
+                }
+        foreach (var n in add) if (!L.walls.Contains(n)) L.walls.Add(n);
     }
 
     void NewStage(bool duplicate)
@@ -761,6 +858,7 @@ public class StageMakerWindow : EditorWindow
         switch (t)
         {
             case Tool.Wall: return Thumb("wall");
+            case Tool.Floor: return Thumb("floor");
             case Tool.Erase: return null;
             case Tool.Move: return null;
             case Tool.Planning: return Thumb("plan");
@@ -787,6 +885,7 @@ public class StageMakerWindow : EditorWindow
             "terminal" => "Assets/DebugRush/Art/Facilities/terminal_error.png",
             "player" => "Assets/DebugRush/Art/Drive/Player/run_R_01.png",
             "bee" => "Assets/DebugRush/Art/Drive/Monster1/move_01.png",
+            "floor" => "Assets/DebugRush/Art/Placeholder/floor_32.png",
             _ => "Assets/DebugRush/Art/Placeholder/wall_single.png",
         };
         t = AssetDatabase.LoadAssetAtPath<Texture2D>(path);

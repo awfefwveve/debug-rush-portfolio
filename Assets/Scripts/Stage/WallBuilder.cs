@@ -39,6 +39,36 @@ public static class WallBuilder
         return root;
     }
 
+    /// <summary>
+    /// 바닥 칸마다 바닥 그림을 깔고, 바닥도 벽도 아닌 빈칸(방 둘레 한 칸 포함)은 그림 없이 막음 → 빈칸은 배경색, 못 들어감.
+    /// </summary>
+    public static GameObject BuildFloor(HashSet<Vector2Int> floor, ICollection<Vector2Int> walls, int w, int h, Sprite sprite, int sortingOrder, int layer)
+    {
+        var root = new GameObject("Floor (StageLayout)");
+        var wallSet = new HashSet<Vector2Int>(walls);
+        foreach (var c in floor)
+        {
+            var t = new GameObject("FloorTile");
+            t.transform.SetParent(root.transform, false);
+            t.transform.position = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
+            var sr = t.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite; sr.sortingOrder = sortingOrder;
+            if (sprite != null) t.transform.localScale = new Vector3(1f / sprite.bounds.size.x, 1f / sprite.bounds.size.y, 1f);
+        }
+        for (int x = MinX(w) - 1; x <= MaxX(w) + 1; x++)
+            for (int y = MinY(h) - 1; y <= MaxY(h) + 1; y++)
+            {
+                var c = new Vector2Int(x, y);
+                if (floor.Contains(c) || wallSet.Contains(c)) continue;
+                var v = new GameObject("Void");
+                v.transform.SetParent(root.transform, false);
+                v.transform.position = new Vector3(x + 0.5f, y + 0.5f, 0f);
+                v.layer = layer; v.tag = "Wall";
+                v.AddComponent<BoxCollider2D>().size = Vector2.one;
+            }
+        return root;
+    }
+
     public static void Piece(HashSet<Vector2Int> cells, Vector2Int c, out Sprite sprite, out float angle, FxSet fx)
     {
         bool l = cells.Contains(c + Vector2Int.left), r = cells.Contains(c + Vector2Int.right),

@@ -19,14 +19,13 @@ public static class StageLayoutApplier
                 { layer = col.gameObject.layer; col.gameObject.SetActive(false); }
             WallBuilder.Build(l.walls, layer);
 
-            // 바닥을 방 크기에 맞춤
+            // 바닥: 칠한 칸에만 깔고, 빈칸은 그림 없이 막음 (씬의 통짜 바닥은 끔)
             var floor = GameObject.Find("Floor");
             var fsr = floor != null ? floor.GetComponent<SpriteRenderer>() : null;
             if (fsr != null)
             {
-                floor.transform.position = new Vector3(WallBuilder.MinX(l.width) + l.width * 0.5f, WallBuilder.MinY(l.height) + l.height * 0.5f, floor.transform.position.z);
-                floor.transform.localScale = Vector3.one;
-                fsr.size = new Vector2(l.width - 2f, l.height - 2f);
+                WallBuilder.BuildFloor(l.FloorSet(), l.walls, l.width, l.height, fsr.sprite, fsr.sortingOrder, layer);
+                floor.SetActive(false);
             }
         }
 

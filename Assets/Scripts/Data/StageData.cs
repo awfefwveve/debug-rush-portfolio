@@ -37,6 +37,9 @@ public class StageLayout
     public int width = WallBuilder.DefaultW, height = WallBuilder.DefaultH;
     [Tooltip("벽 칸 (가운데 기준). 비어 있으면 Stage 씬의 기본 벽 사용")]
     public List<Vector2Int> walls = new List<Vector2Int>();
+    [Tooltip("바닥 칸. customFloor가 꺼져 있으면 방 안쪽 전체가 바닥")]
+    public bool customFloor;
+    public List<Vector2Int> floor = new List<Vector2Int>();
     public Vector2 playerStart = new Vector2(0f, -3.4f);
     [Tooltip("재료대 (개수 제한 없음)")]
     public List<StationSpot> stations = new List<StationSpot>();
@@ -63,6 +66,24 @@ public class StageLayout
             stations.Add(new StationSpot { material = ItemType.QA, pos = qa });
         }
         if (crafters.Count == 0) crafters.Add(craftingTable);
+    }
+
+    /// <summary>바닥 칸 집합 (직접 칠하지 않았으면 방 안쪽 전체)</summary>
+    public HashSet<Vector2Int> FloorSet()
+    {
+        if (customFloor) return new HashSet<Vector2Int>(floor);
+        var s = new HashSet<Vector2Int>();
+        for (int x = WallBuilder.MinX(width) + 1; x < WallBuilder.MaxX(width); x++)
+            for (int y = WallBuilder.MinY(height) + 1; y < WallBuilder.MaxY(height); y++) s.Add(new Vector2Int(x, y));
+        return s;
+    }
+
+    /// <summary>바닥을 칸 목록으로 바꿔서 직접 칠할 수 있게</summary>
+    public void MakeFloorExplicit()
+    {
+        if (customFloor) return;
+        floor = new List<Vector2Int>(FloorSet());
+        customFloor = true;
     }
 
     /// <summary>새로 만든 배치는 목록 형식으로 시작</summary>

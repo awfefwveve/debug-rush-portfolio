@@ -193,7 +193,7 @@ public class AutoShot : MonoBehaviour
         int cells = 0, bad = 0;
         foreach (var c in FindObjectsByType<Collider2D>(FindObjectsSortMode.None))
         {
-            if (c.isTrigger || !c.enabled || c.attachedRigidbody != null && c.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) continue;
+            if (c.name == "Void" || c.isTrigger || !c.enabled || c.attachedRigidbody != null && c.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) continue;
             var b = c.bounds;
             for (float x = b.min.x + 0.5f; x < b.max.x; x += 1f)
                 for (float y = b.min.y + 0.5f; y < b.max.y; y += 1f)
