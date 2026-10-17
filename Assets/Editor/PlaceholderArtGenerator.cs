@@ -44,16 +44,16 @@ public static class PlaceholderArtGenerator
         { ItemType.Planning, "기획" }, { ItemType.Programming, "프로그래밍" }, { ItemType.Graphic, "그래픽" }, { ItemType.QA, "QA" },
     };
 
-    // ---------- 방 배치 (1칸 = 1유닛). 바깥 28×12칸, 안쪽 26×10칸 ----------
-    public const float RoomHalfW = 14f, RoomHalfH = 6f;
+    // ---------- 방 배치 (1칸 = 1유닛). 바깥 30×16칸, 안쪽 28×14칸 (스테이지 데이터가 있으면 그 배치 사용) ----------
+    public const float RoomHalfW = 15f, RoomHalfH = 8f;
     // 기획서 p.18: 재료대 그래픽·QA 위 / 기획·프로그래밍 아래, 중앙 작업대 라인 위 제작대, 단말기 우상단·좌하단
     public static readonly Dictionary<ItemType, Vector2> StationPos = new Dictionary<ItemType, Vector2>
     {
-        { ItemType.Graphic, new Vector2(-9f, 3.2f) }, { ItemType.QA, new Vector2(-5f, 3.2f) },
-        { ItemType.Planning, new Vector2(5f, -3.2f) }, { ItemType.Programming, new Vector2(9f, -3.2f) },
+        { ItemType.Graphic, new Vector2(-10f, 4.5f) }, { ItemType.QA, new Vector2(-5f, 4.5f) },
+        { ItemType.Planning, new Vector2(5f, -4.5f) }, { ItemType.Programming, new Vector2(10f, -4.5f) },
     };
-    public static readonly Vector2 TerminalTopRight = new Vector2(10.5f, 2.0f), TerminalBottomLeft = new Vector2(-10.5f, -2.4f);
-    public static readonly Vector2 PlayerStart = new Vector2(0f, -3.4f);
+    public static readonly Vector2 TerminalTopRight = new Vector2(11.5f, 3f), TerminalBottomLeft = new Vector2(-11.5f, -3f);
+    public static readonly Vector2 PlayerStart = new Vector2(0f, -4.5f);
 
     [MenuItem("DebugRush/Generate Placeholder Art")]
     public static void Run()
@@ -477,8 +477,8 @@ public static class PlaceholderArtGenerator
         SetWall("Wall_InnerA", new Vector2(-4.5f, 0f), new Vector2(5f, 1f));
         SetWall("Wall_InnerB", new Vector2(4.5f, 0f), new Vector2(5f, 1f));
         // 기획서 p.18 벽 모양: 좌상단·우하단 튀어나온 벽 (2×2칸)
-        CloneWall("Wall_CornerTL", "Wall_Top"); SetWall("Wall_CornerTL", new Vector2(-12f, 4f), new Vector2(2f, 2f));
-        CloneWall("Wall_CornerBR", "Wall_Top"); SetWall("Wall_CornerBR", new Vector2(12f, -4f), new Vector2(2f, 2f));
+        CloneWall("Wall_CornerTL", "Wall_Top"); SetWall("Wall_CornerTL", new Vector2(-13f, 6f), new Vector2(2f, 2f));
+        CloneWall("Wall_CornerBR", "Wall_Top"); SetWall("Wall_CornerBR", new Vector2(13f, -6f), new Vector2(2f, 2f));
 
         BuildWallTiles();
 

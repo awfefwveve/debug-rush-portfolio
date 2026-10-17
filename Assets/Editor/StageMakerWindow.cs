@@ -155,13 +155,14 @@ public class StageMakerWindow : EditorWindow
         }
         EnsureLayout(selected);
 
-        // 격자 (28×12)
+        // 격자 (방 크기 = 스테이지별, 기본 30×16)
+        GW = selected.layout.width; GH = selected.layout.height;
         var area = new Rect(r.x + 8, r.y + 90, r.width - 16, r.height - 170);
-        float cs = Mathf.Floor(Mathf.Min(area.width / 28f, area.height / 12f));
-        var grid = new Rect(area.x + (area.width - cs * 28f) / 2f, area.y, cs * 28f, cs * 12f);
+        float cs = Mathf.Floor(Mathf.Min(area.width / GW, area.height / GH));
+        var grid = new Rect(area.x + (area.width - cs * GW) / 2f, area.y, cs * GW, cs * GH);
         EditorGUI.DrawRect(grid, new Color(0.09f, 0.11f, 0.17f));
-        for (int x = 0; x <= 28; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
-        for (int y = 0; y <= 12; y++) EditorGUI.DrawRect(new Rect(grid.x, grid.y + y * cs, grid.width, 1), new Color(1, 1, 1, 0.05f));
+        for (int x = 0; x <= GW; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
+        for (int y = 0; y <= GH; y++) EditorGUI.DrawRect(new Rect(grid.x, grid.y + y * cs, grid.width, 1), new Color(1, 1, 1, 0.05f));
 
         var L = selected.layout;
         var wallSet = new HashSet<Vector2Int>(L.walls);
@@ -172,6 +173,12 @@ public class StageMakerWindow : EditorWindow
             var cell = CellRect(grid, cs, c);
             if (spr != null) DrawSprite(cell, spr, ang); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
         }
+
+        // 보유 자료 칸에 가려지는 구역 (물체 금지)
+        var hz = StageLayoutDefaults.HudZone(GW, GH);
+        var hzr = WorldRect(grid, cs, hz.center, hz.size);
+        EditorGUI.DrawRect(hzr, new Color(1f, 0.35f, 0.35f, 0.22f));
+        GUI.Label(hzr, "보유 자료\n(놓지 말 것)", EditorStyles.centeredGreyMiniLabel);
 
         // 물체
         foreach (var o in Objects()) DrawObject(grid, cs, o);
@@ -221,7 +228,7 @@ public class StageMakerWindow : EditorWindow
     {
         var e = Event.current;
         if (!grid.Contains(e.mousePosition) && e.type != EventType.MouseUp) return;
-        Vector2 world = new Vector2(-14f + (e.mousePosition.x - grid.x) / cs, 6f - (e.mousePosition.y - grid.y) / cs);
+        Vector2 world = new Vector2(WallBuilder.MinX(GW) + (e.mousePosition.x - grid.x) / cs, WallBuilder.MaxY(GH) + 1 - (e.mousePosition.y - grid.y) / cs);
         var cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
         Vector2 snap = new Vector2(StageLayoutDefaults.Snap(world.x), StageLayoutDefaults.Snap(world.y));
         var L = selected.layout;
@@ -236,7 +243,7 @@ public class StageMakerWindow : EditorWindow
                     var hit = Objects().Reverse().FirstOrDefault(o => WorldRect(grid, cs, o.pos, o.size).Contains(e.mousePosition));
                     if (hit.id != null) { Record("이동"); dragging = hit.id; }
                     break;
-                case Tool.Wall: Record("벽"); painting = true; if (WallBuilder.InRoom(cell) && !L.walls.Contains(cell)) L.walls.Add(cell); break;
+                case Tool.Wall: Record("벽"); painting = true; if (WallBuilder.InRoom(cell, GW, GH) && !L.walls.Contains(cell)) L.walls.Add(cell); break;
                 case Tool.Erase: erasing = true; EraseAt(world, cell); break;
                 case Tool.Planning: Record("재료대"); L.planning = snap; dragging = "planning"; break;
                 case Tool.Programming: Record("재료대"); L.programming = snap; dragging = "programming"; break;
@@ -257,7 +264,7 @@ public class StageMakerWindow : EditorWindow
         else if (e.type == EventType.MouseDrag)
         {
             if (erasing) EraseAt(world, cell);
-            else if (painting && WallBuilder.InRoom(cell) && !L.walls.Contains(cell)) L.walls.Add(cell);
+            else if (painting && WallBuilder.InRoom(cell, GW, GH) && !L.walls.Contains(cell)) L.walls.Add(cell);
             else if (dragging != null) MoveObject(dragging, snap);
             e.Use();
         }
@@ -309,7 +316,7 @@ public class StageMakerWindow : EditorWindow
     // ---------------- 경고 ----------------
     IEnumerable<(string, bool)> Checks()
     {
-        var s = selected; var L = s.layout;
+        var s = selected; var L = s.layout; GW = L.width; GH = L.height;
         var w = new HashSet<Vector2Int>(L.walls);
         var objs = Objects().ToList();
         bool any = false;
@@ -318,8 +325,10 @@ public class StageMakerWindow : EditorWindow
             var size = o.id == "player" ? new Vector2(1f, 1f) : o.size;
             var center = o.id == "player" ? L.playerStart + new Vector2(0f, 0.5f) : o.pos;
             if (StageLayoutDefaults.HitsWall(w, center, size)) { any = true; yield return ($"{o.label}이(가) 벽과 겹쳐 있어요", true); }
-            if (center.x - size.x / 2f < -13f || center.x + size.x / 2f > 13f || center.y - size.y / 2f < -5f || center.y + size.y / 2f > 5f)
+            if (center.x - size.x / 2f < WallBuilder.MinX(GW) + 1 || center.x + size.x / 2f > WallBuilder.MaxX(GW) || center.y - size.y / 2f < WallBuilder.MinY(GH) + 1 || center.y + size.y / 2f > WallBuilder.MaxY(GH))
             { any = true; yield return ($"{o.label}이(가) 방 밖으로 나가 있어요", true); }
+            if (new Rect(center - size / 2f, size).Overlaps(StageLayoutDefaults.HudZone(GW, GH)))
+            { any = true; yield return ($"{o.label}이(가) 왼쪽 아래 보유 자료 칸에 가려져요 (빗금 구역)", true); }
         }
         for (int i = 0; i < objs.Count; i++)
             for (int j = i + 1; j < objs.Count; j++)
@@ -350,6 +359,17 @@ public class StageMakerWindow : EditorWindow
         string name = EditorGUILayout.TextField(s.displayName, big, GUILayout.Height(28));
         Head("한 줄 요약 (맵 카드에 표시)");
         string summary = EditorGUILayout.TextArea(s.summary ?? "", big, GUILayout.Height(48));
+
+        Head("방 크기 (칸) — 기본 30×16 = 화면에 꽉 참");
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("가로", big, GUILayout.Width(36));
+        int nw = EditorGUILayout.DelayedIntField(s.layout.width, big, GUILayout.Width(50), GUILayout.Height(26));
+        GUILayout.Label("세로", big, GUILayout.Width(36));
+        int nh = EditorGUILayout.DelayedIntField(s.layout.height, big, GUILayout.Width(50), GUILayout.Height(26));
+        if (GUILayout.Button("기본 30×16", GUILayout.Height(26))) { nw = WallBuilder.DefaultW; nh = WallBuilder.DefaultH; }
+        GUILayout.EndHorizontal();
+        GUILayout.Label("짝수만 (가로 16~40, 세로 10~22). 바꾸면 바깥 벽이 새 크기로 다시 깔림", EditorStyles.miniLabel);
+        if (nw != s.layout.width || nh != s.layout.height) ResizeRoom(nw, nh);
 
         Head("제한시간 (쉬움 기준: 이 값 × 1.3)");
         int total = Mathf.RoundToInt(s.timeLimit);
@@ -441,6 +461,19 @@ public class StageMakerWindow : EditorWindow
         if (s.layout.terminals == null || s.layout.terminals.Length == 0) s.layout.terminals = new[] { new Vector2(10.5f, 2f) };
     }
 
+    /// <summary>방 크기 변경: 옛 바깥 벽과 방 밖 벽을 지우고 새 바깥 벽을 깖. 물체는 그대로 (경고로 알려 줌)</summary>
+    void ResizeRoom(int w, int h)
+    {
+        w = Mathf.Clamp(w + (w & 1), 16, 40); h = Mathf.Clamp(h + (h & 1), 10, 22);
+        var L = selected.layout;
+        if (w == L.width && h == L.height) return;
+        Record("방 크기");
+        var oldBorder = new HashSet<Vector2Int>(WallBuilder.Border(L.width, L.height));
+        L.walls = L.walls.Where(c => !oldBorder.Contains(c) && WallBuilder.InRoom(c, w, h)).ToList();
+        L.walls.AddRange(WallBuilder.Border(w, h).Where(c => !L.walls.Contains(c)));
+        L.width = w; L.height = h;
+    }
+
     void NewStage(bool duplicate)
     {
         int c = chapterTab + 1;
@@ -482,7 +515,7 @@ public class StageMakerWindow : EditorWindow
     {
         Record("자동 생성");
         int terms = Mathf.Clamp(selected.layout?.terminals?.Length ?? 2, 1, 4);
-        selected.layout = StageLayoutDefaults.Random(autoSeed++ * 7919 + selected.stage, terms, out var spawn);
+        selected.layout = StageLayoutDefaults.Random(autoSeed++ * 7919 + selected.stage, terms, selected.layout.width, selected.layout.height, out var spawn);
         SetBee(0, spawn);
     }
 
@@ -556,9 +589,10 @@ public class StageMakerWindow : EditorWindow
     // =====================================================================================
     // 그리기 도구
     // =====================================================================================
-    static Rect CellRect(Rect grid, float cs, Vector2Int c) => new Rect(grid.x + (c.x + 14) * cs, grid.y + (5 - c.y) * cs, cs, cs);
+    static int GW = WallBuilder.DefaultW, GH = WallBuilder.DefaultH;   // 지금 그리는 방 크기
+    static Rect CellRect(Rect grid, float cs, Vector2Int c) => new Rect(grid.x + (c.x - WallBuilder.MinX(GW)) * cs, grid.y + (WallBuilder.MaxY(GH) - c.y) * cs, cs, cs);
     static Rect WorldRect(Rect grid, float cs, Vector2 center, Vector2 size)
-        => new Rect(grid.x + (center.x - size.x / 2f + 14f) * cs, grid.y + (6f - center.y - size.y / 2f) * cs, size.x * cs, size.y * cs);
+        => new Rect(grid.x + (center.x - size.x / 2f - WallBuilder.MinX(GW)) * cs, grid.y + (WallBuilder.MaxY(GH) + 1 - center.y - size.y / 2f) * cs, size.x * cs, size.y * cs);
 
     static void DrawSprite(Rect r, Sprite s, float angle)
     {
@@ -636,7 +670,9 @@ public class StageMakerWindow : EditorWindow
         s.layout.terminals = new[] { Vector2.zero, Vector2.zero, Vector2.zero };   // 단말기 3대
         w.AutoGenerate();                                   // [자동 생성]
         var boxes = w.Objects().Select(w.Box).ToList();
-        for (int x = -3; x <= 2; x++) { var c = new Vector2Int(x, 2); if (!boxes.Any(b => b.Overlaps(new Rect(x - 0.5f, 1.5f, 2f, 2f)))) s.layout.walls.Add(c); }   // [벽] 칠하기 (물체 피해서)
+        // [벽] 칠하기: 위쪽 가로 칸막이 한 줄 (물체와 겹치면 통째로 생략)
+        var line = Enumerable.Range(-3, 6).Select(x => new Vector2Int(x, 3)).ToList();
+        if (!line.Any(c => boxes.Any(b => b.Overlaps(new Rect(c.x - 0.5f, c.y - 0.5f, 2f, 2f))))) s.layout.walls.AddRange(line.Where(c => !s.layout.walls.Contains(c)));
         s.displayName = "마감 전날 밤";
         s.summary = "단말기 3대가 동시에 터진다. 벌은 전 패턴 사용.";
         s.timeLimit = 100;
@@ -680,11 +716,24 @@ public class StageMakerWindow : EditorWindow
 
     // ---------------- 배치(batch) 검증·변환용 ----------------
     /// <summary>1-1~1-5를 맵 데이터(벽 포함) 방식으로 변환</summary>
+    /// <summary>모든 스테이지 배치 경고 출력</summary>
+    public static void CheckAll()
+    {
+        var w = CreateInstance<StageMakerWindow>();
+        foreach (var s in LoadAll())
+        {
+            w.selected = s;
+            foreach (var (msg, bad) in w.Checks()) Debug.Log($"[StageMaker] {s.chapter}-{s.stage} {s.layout.width}x{s.layout.height}: {(bad ? "BAD " : "OK ")}{msg}");
+        }
+        DestroyImmediate(w);
+    }
+
     public static void ConvertExisting()
     {
         foreach (var s in LoadAll())
         {
-            if (s.layout == null || !s.layout.use || s.layout.walls == null || s.layout.walls.Count == 0)
+            bool oldSize = s.layout != null && s.layout.walls != null && s.layout.walls.Contains(new Vector2Int(-14, -6)) && s.layout.walls.Contains(new Vector2Int(13, 5)) && !s.layout.walls.Contains(new Vector2Int(WallBuilder.MinX(s.layout.width), WallBuilder.MinY(s.layout.height)));   // 28×12 시절 데이터
+            if (s.layout == null || !s.layout.use || s.layout.walls == null || s.layout.walls.Count == 0 || oldSize)
             {
                 s.layout = StageLayoutDefaults.Default();
                 EditorUtility.SetDirty(s);

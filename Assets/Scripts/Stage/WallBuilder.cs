@@ -8,8 +8,14 @@ using UnityEngine;
 /// </summary>
 public static class WallBuilder
 {
-    /// <summary>방 격자: x -14~13, y -6~5 (28×12칸). 칸 (x,y)의 중심 = (x+0.5, y+0.5)</summary>
-    public const int MinX = -14, MaxX = 13, MinY = -6, MaxY = 5;
+    /// <summary>기본 방 크기 (칸). 1칸 = 화면 64px 기준 30×16 = 1920×1024 (상단 바 56px 아래 꽉 참)</summary>
+    public const int DefaultW = 30, DefaultH = 16;
+
+    /// <summary>방 격자: 가운데 기준 x -W/2 ~ W/2-1, y -H/2 ~ H/2-1. 칸 (x,y)의 중심 = (x+0.5, y+0.5)</summary>
+    public static int MinX(int w) => -w / 2;
+    public static int MaxX(int w) => -w / 2 + w - 1;
+    public static int MinY(int h) => -h / 2;
+    public static int MaxY(int h) => -h / 2 + h - 1;
 
     public static GameObject Build(ICollection<Vector2Int> cells, int layer)
     {
@@ -47,12 +53,12 @@ public static class WallBuilder
         else { sprite = fx?.wallCorner; angle = r && d ? 0f : u && r ? 90f : l && u ? 180f : 270f; }
     }
 
-    public static bool InRoom(Vector2Int c) => c.x >= MinX && c.x <= MaxX && c.y >= MinY && c.y <= MaxY;
+    public static bool InRoom(Vector2Int c, int w, int h) => c.x >= MinX(w) && c.x <= MaxX(w) && c.y >= MinY(h) && c.y <= MaxY(h);
 
     /// <summary>바깥 테두리 칸</summary>
-    public static IEnumerable<Vector2Int> Border()
+    public static IEnumerable<Vector2Int> Border(int w, int h)
     {
-        for (int x = MinX; x <= MaxX; x++) { yield return new Vector2Int(x, MinY); yield return new Vector2Int(x, MaxY); }
-        for (int y = MinY + 1; y < MaxY; y++) { yield return new Vector2Int(MinX, y); yield return new Vector2Int(MaxX, y); }
+        for (int x = MinX(w); x <= MaxX(w); x++) { yield return new Vector2Int(x, MinY(h)); yield return new Vector2Int(x, MaxY(h)); }
+        for (int y = MinY(h) + 1; y < MaxY(h); y++) { yield return new Vector2Int(MinX(w), y); yield return new Vector2Int(MaxX(w), y); }
     }
 }

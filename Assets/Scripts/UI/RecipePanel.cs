@@ -44,7 +44,7 @@ public class RecipePanel : MonoBehaviour
         panel.SetParent(canvasRoot, false);
         panel.anchorMin = new Vector2(1f, 0f); panel.anchorMax = new Vector2(1f, 1f);
         panel.pivot = new Vector2(1f, 0.5f);
-        panel.offsetMin = new Vector2(-Width, 60f); panel.offsetMax = new Vector2(0f, -70f);   // 상단 바 아래, 맵 위에 겹침
+        panel.offsetMin = new Vector2(-Width, 60f); panel.offsetMax = new Vector2(0f, -64f);   // 상단 바 아래, 맵 위에 겹침
         var bg = panel.GetComponent<Image>(); bg.color = Bg; bg.raycastTarget = false;
         var ol = panel.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.6f; ol.effectDistance = new Vector2(2f, -2f);
 
@@ -137,7 +137,7 @@ public class RecipePanel : MonoBehaviour
             var tabBg = new GameObject("RecipeTab", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             tabBg.transform.SetParent(panel.parent, false);
             var r = tabBg.rectTransform; r.anchorMin = r.anchorMax = new Vector2(1f, 1f); r.pivot = new Vector2(1f, 1f);
-            r.anchoredPosition = new Vector2(0f, -70f); r.sizeDelta = new Vector2(150f, 48f);
+            r.anchoredPosition = new Vector2(0f, -64f); r.sizeDelta = new Vector2(150f, 48f);
             tabBg.color = Bg; tabBg.raycastTarget = false;
             tab = StageHUD.Label(r, "조합표 <size=18>(Tab)</size>", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140f, 50f), 24f, TextAlignmentOptions.Center, Accent, true);
         }

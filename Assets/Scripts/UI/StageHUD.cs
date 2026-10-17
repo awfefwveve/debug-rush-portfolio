@@ -84,7 +84,7 @@ public class StageHUD : MonoBehaviour
 
         Vector2 TL = new Vector2(0, 1), TC = new Vector2(0.5f, 1), TR = new Vector2(1, 1), BL = new Vector2(0, 0), BR = new Vector2(1, 0);
         // 상단: 화면 맨 위에 붙은 얇은 반투명 바 (기획서 p.7) — 맵 위에 겹침
-        const float barH = 60f, y = -30f;
+        const float barH = 56f, y = -28f;
         var top = MakeBand(root, "TopBand", true, barH, Band); top.transform.SetAsFirstSibling();
         var line = MakeBand(root, "TopLine", true, 2f, Accent * 0.7f, -barH); line.transform.SetSiblingIndex(1);
         var oldPanel = root.Find("HUDPanel"); if (oldPanel != null) oldPanel.gameObject.SetActive(false);

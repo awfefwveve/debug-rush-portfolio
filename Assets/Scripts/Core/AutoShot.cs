@@ -143,7 +143,7 @@ public class AutoShot : MonoBehaviour
                 else { var m = !hasA ? a : b; goal = Station(stations, m); approach = Near(goal.transform.position, 1.75f); }
             }
 
-            // 이동: 아래 통로(y=-2) / 위 통로(y=+1.4), 가운데 작업대 라인은 x=±8에서 건넘
+            // 이동: 아래 통로 / 위 통로, 가운데 작업대 라인은 x=±9.5에서 건넘
             Vector2 pos = player.transform.position;
             Vector2 wp = Nav(pos, approach);
             Vector2 d = wp - pos;
@@ -160,7 +160,7 @@ public class AutoShot : MonoBehaviour
         }
     }
 
-    const float LaneBottom = -2.0f, LaneTop = 1.4f, CrossX = 8f;
+    const float LaneBottom = -2.6f, LaneTop = 2.4f, CrossX = 9.5f;
     static Vector2 Near(Vector3 p, float dy) => new Vector2(p.x, p.y > 0 ? LaneTop : LaneBottom);
     static Vector2 Side(Vector3 p, float dx) => new Vector2(p.x + (p.x > 0 ? -1.9f : 1.9f), p.y > 0 ? LaneTop : LaneBottom);
 

@@ -17,6 +17,16 @@ public static class StageLayoutApplier
                 if (col.gameObject.name.StartsWith("Wall_") || (col.CompareTag("Wall") && !col.isTrigger))
                 { layer = col.gameObject.layer; col.gameObject.SetActive(false); }
             WallBuilder.Build(l.walls, layer);
+
+            // 바닥을 방 크기에 맞춤
+            var floor = GameObject.Find("Floor");
+            var fsr = floor != null ? floor.GetComponent<SpriteRenderer>() : null;
+            if (fsr != null)
+            {
+                floor.transform.position = new Vector3(WallBuilder.MinX(l.width) + l.width * 0.5f, WallBuilder.MinY(l.height) + l.height * 0.5f, floor.transform.position.z);
+                floor.transform.localScale = Vector3.one;
+                fsr.size = new Vector2(l.width - 2f, l.height - 2f);
+            }
         }
 
         if (sm.player != null) sm.player.transform.position = l.playerStart;
