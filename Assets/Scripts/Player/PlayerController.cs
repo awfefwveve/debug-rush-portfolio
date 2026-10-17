@@ -54,7 +54,6 @@ public class PlayerController : MonoBehaviour
         if (GetComponent<StageFX>() == null) gameObject.AddComponent<StageFX>();
         if (GetComponent<InteractFocus>() == null) gameObject.AddComponent<InteractFocus>();
         if (GetComponent<CarryDisplay>() == null) gameObject.AddComponent<CarryDisplay>();
-        if (GetComponent<GameRestoreFX>() == null) gameObject.AddComponent<GameRestoreFX>();
     }
 
     void Update()

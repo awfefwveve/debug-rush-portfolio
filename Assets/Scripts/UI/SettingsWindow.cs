@@ -32,10 +32,6 @@ public static class SettingsWindow
             for (int i = 0; i < GameSettings.Languages.Length; i++)
                 if (GUILayout.Button("   " + GameSettings.Languages[i])) { GameSettings.Language = i; languageOpen = false; }
 
-        GUILayout.Space(10);
-        bool noise = GUILayout.Toggle(GameSettings.ScreenNoise, "  화면 노이즈 효과");
-        if (noise != GameSettings.ScreenNoise) GameSettings.ScreenNoise = noise;
-
         GUILayout.FlexibleSpace();
         bool back = GUILayout.Button("돌아가기");
         GUILayout.EndArea();
