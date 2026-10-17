@@ -25,7 +25,9 @@ public class StageCard : MonoBehaviour
         if (play == null) return;
         play.gameObject.SetActive(unlocked);
         play.onClick.RemoveAllListeners();
-        play.onClick.AddListener(() => GameManager.I.StartStage(s, Difficulty.Normal));
+        // 기획서 p.12: 챕터마다 난이도 고정 (1학년 Easy · 2학년 Normal · 3학년 Hard)
+        var diff = (Difficulty)Mathf.Clamp(s.chapter - 1, 0, 2);
+        play.onClick.AddListener(() => GameManager.I.StartStage(s, diff));
     }
 
     /// <summary>아직 기획되지 않은 스테이지 슬롯: 잠금 + "준비 중"</summary>

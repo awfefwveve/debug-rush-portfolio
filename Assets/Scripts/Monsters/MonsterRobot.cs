@@ -10,15 +10,25 @@ public class MonsterRobot : MonsterBase
     [Header("패턴 1")]
     public Projectile projectilePrefab;
     public int shotCount = 3;
-    public float shotGap = 0.25f;
+    public float shotGap = 0.22f;
 
     [Header("패턴 2")]
     public Hazard linePrefab;                  // jumpable = true, lifetime > 0
-    public float lineLength = 24f, lineThickness = 0.6f;
+    public float lineLength = 30f, lineThickness = 1f;
 
     protected override int PatternMax => 2;
 
     void Awake() => wander = false;            // 제자리에서 공격
+
+    protected override void Telegraph(int index)
+    {
+        if (index == 0) TelegraphLine(transform.position, AimDir, 10f, 0.5f);
+        else
+        {
+            foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+                TelegraphLine(transform.position, d, lineLength * 0.5f, lineThickness);
+        }
+    }
 
     protected override IEnumerator RunPattern(int index)
     {
@@ -31,7 +41,7 @@ public class MonsterRobot : MonsterBase
         int parryIdx = Random.Range(0, shotCount);
         for (int i = 0; i < shotCount; i++)
         {
-            Fire(projectilePrefab, transform.position, DirToPlayer, i == parryIdx);
+            Fire(projectilePrefab, transform.position, AimDir, i == parryIdx);
             yield return Wait(shotGap);
         }
     }

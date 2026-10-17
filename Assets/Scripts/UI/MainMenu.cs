@@ -10,6 +10,7 @@ public class MainMenu : MonoBehaviour
     [Header("일러스트 (아트 팀 그림)")]
     public Sprite heroSprite;
     public Sprite monsterSprite;
+    [Tooltip("타이틀 로고 1024×512 (팀 규격, 사방 32px 여백)")] public Sprite logoSprite;
 
     RectTransform monster;
 
@@ -49,12 +50,20 @@ public class MainMenu : MonoBehaviour
         }
         if (heroSprite != null)
         {
-            var h = Img(root, "IllustHero", heroSprite, new Vector2(-470f, -200f), new Vector2(680f, 680f), Color.white);
+            var h = Img(root, "IllustHero", heroSprite, new Vector2(-560f, -260f), new Vector2(600f, 600f), Color.white);
             h.transform.SetSiblingIndex(index + 2);
         }
 
         var title = root.Find("Title")?.GetComponent<TMP_Text>();
-        if (title != null) { title.color = new Color(0.22f, 0.82f, 1f); title.fontStyle = FontStyles.Bold; title.outlineWidth = 0.15f; title.outlineColor = new Color32(255, 79, 163, 255); }
+        var subtitle = root.Find("Subtitle")?.GetComponent<TMP_Text>();
+        if (logoSprite != null)
+        {
+            // 팀 로고가 있으면 글자 제목 대신 로고 (규격 1024×512 그대로, 상단 왼쪽~가운데)
+            Img(root, "Logo", logoSprite, new Vector2(-380f, 290f), new Vector2(880f, 440f), Color.white);
+            if (title != null) title.gameObject.SetActive(false);
+            if (subtitle != null) { var r = subtitle.rectTransform; r.anchoredPosition = new Vector2(-380f, 55f); subtitle.fontSize = 30f; subtitle.color = new Color(0.85f, 0.9f, 1f); }
+        }
+        else if (title != null) { title.color = new Color(0.22f, 0.82f, 1f); title.fontStyle = FontStyles.Bold; title.outlineWidth = 0.15f; title.outlineColor = new Color32(255, 79, 163, 255); }
     }
 
     void Update()

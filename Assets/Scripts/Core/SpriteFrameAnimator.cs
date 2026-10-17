@@ -7,10 +7,14 @@ public class SpriteFrameAnimator : MonoBehaviour
     public Sprite[] frames;
     public float fps = 12f;
     public bool loop = true;
-    [Tooltip("true면 Time.timeScale 영향 없음")] public bool unscaled = false;
+    [Tooltip("재생이 끝나면 오브젝트 삭제 (1회용 이펙트)")] public bool destroyOnEnd = false;
 
     float t;
     Sprite[] playing;
+    bool holding;
+
+    public bool Paused { get; set; }
+    public bool Finished => !loop && playing != null && t * fps >= playing.Length;
 
     void Awake()
     {
@@ -24,27 +28,29 @@ public class SpriteFrameAnimator : MonoBehaviour
     {
         fps = newFps;
         loop = newLoop;
-        if (newFrames == playing && !restart) return;
+        bool same = newFrames == playing && !holding;
+        holding = false;
+        if (same && !restart) return;
         playing = newFrames;
         t = 0f;
         Apply(0);
     }
 
-    /// <summary>재생하지 않고 특정 프레임 표시</summary>
+    /// <summary>재생하지 않고 특정 프레임 고정 표시</summary>
     public void Hold(Sprite[] set, int index)
     {
         playing = set;
+        holding = true;
         t = 0f;
         Apply(index);
     }
 
-    public bool Paused { get; set; }
-
     void Update()
     {
-        if (Paused || playing == null || playing.Length == 0 || fps <= 0f) return;
-        t += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
+        if (Paused || holding || playing == null || playing.Length == 0 || fps <= 0f) return;
+        t += Time.deltaTime;
         int i = Mathf.FloorToInt(t * fps);
+        if (!loop && i >= playing.Length && destroyOnEnd) { Destroy(gameObject); return; }
         Apply(loop ? i % playing.Length : Mathf.Min(i, playing.Length - 1));
     }
 
@@ -53,5 +59,20 @@ public class SpriteFrameAnimator : MonoBehaviour
         if (target == null || playing == null || playing.Length == 0) return;
         var s = playing[Mathf.Clamp(i, 0, playing.Length - 1)];
         if (s != null) target.sprite = s;
+    }
+
+    /// <summary>1회용 프레임 이펙트 생성</summary>
+    public static SpriteFrameAnimator Spawn(Sprite[] frames, Vector3 pos, float fps, int sortingOrder, float scale = 1f)
+    {
+        if (frames == null || frames.Length == 0) return null;
+        var go = new GameObject("FX");
+        go.transform.position = pos;
+        go.transform.localScale = Vector3.one * scale;
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sortingOrder = sortingOrder;
+        var a = go.AddComponent<SpriteFrameAnimator>();
+        a.target = sr; a.frames = frames; a.fps = fps; a.loop = false; a.destroyOnEnd = true;
+        a.playing = frames; a.Apply(0);
+        return a;
     }
 }

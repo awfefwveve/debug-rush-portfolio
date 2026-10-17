@@ -18,6 +18,9 @@ public class CraftingTable : MonoBehaviour, IInteractable
     /// <summary>투입된 재료 아이콘 표시용 (0~2개).</summary>
     public event Action<IReadOnlyList<ItemType>> MaterialsChanged;
     public IReadOnlyList<ItemType> Materials => mats;
+    public bool IsCrafting => crafting;
+    public bool HasOutput => output.HasValue;
+    public ItemType? Output => output;
 
     public void Interact(PlayerController player)
     {

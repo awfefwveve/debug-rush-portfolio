@@ -16,6 +16,14 @@ public class Monster1B : MonsterBase
 
     void Awake() => wander = false;         // "제자리에서" 공격
 
+    protected override void Telegraph(int index)
+    {
+        if (index == 0) TelegraphLine(transform.position, Cardinal(AimDir), 12f, 0.6f);
+        else TelegraphCircle(transform.position, 0.8f);
+    }
+
+    static Vector2 Cardinal(Vector2 d) => Mathf.Abs(d.x) > Mathf.Abs(d.y) ? new Vector2(Mathf.Sign(d.x), 0) : new Vector2(0, Mathf.Sign(d.y));
+
     protected override IEnumerator RunPattern(int index)
     {
         if (index == 0) yield return Pattern1();
@@ -24,7 +32,7 @@ public class Monster1B : MonsterBase
 
     IEnumerator Pattern1()
     {
-        Vector2 d = DirToPlayer;
+        Vector2 d = AimDir;
         // 4방향 중 플레이어와 가장 가까운 축으로
         Vector2 card = Mathf.Abs(d.x) > Mathf.Abs(d.y)
             ? new Vector2(Mathf.Sign(d.x), 0) : new Vector2(0, Mathf.Sign(d.y));

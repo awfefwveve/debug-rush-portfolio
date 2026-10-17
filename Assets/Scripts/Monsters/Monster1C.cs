@@ -13,7 +13,7 @@ public class Monster1C : MonsterBase
 
     [Header("패턴 2")]
     public Hazard linePrefab;                  // jumpable = true, lifetime = 3
-    public float lineLength = 24f, lineThickness = 0.6f;
+    public float lineLength = 30f, lineThickness = 1f;
 
     [Header("패턴 3")]
     public GameObject warnMarkerPrefab;
@@ -24,6 +24,14 @@ public class Monster1C : MonsterBase
     protected override int PatternMax => 3;
 
     void Awake() => wander = false;
+
+    protected override void Telegraph(int index)
+    {
+        if (index == 0) TelegraphLine(transform.position, AimDir, 10f, 0.6f);
+        else if (index == 1)
+            foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+                TelegraphLine(transform.position, d, lineLength * 0.5f, lineThickness);
+    }
 
     protected override IEnumerator RunPattern(int index)
     {
@@ -37,7 +45,7 @@ public class Monster1C : MonsterBase
 
     IEnumerator Pattern1()
     {
-        Fire(splitProjectilePrefab, transform.position, DirToPlayer, Random.value < parryChance);
+        Fire(splitProjectilePrefab, transform.position, AimDir, Random.value < parryChance);
         yield return Wait(0.8f);
     }
 

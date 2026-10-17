@@ -106,6 +106,8 @@ public class StageManager : MonoBehaviour
             if (m == null || m.prefab == null) continue;
             var go = Instantiate(m.prefab, m.spawnPos, Quaternion.identity);
             var mon = go.GetComponent<MonsterBase>();
+            // 난이도별 공격 템포: Easy 느리게 · Hard 빠르게 (기획서 p.12 챕터별 난이도)
+            mon.patternInterval *= Diff == Difficulty.Easy ? 1.3f : Diff == Difficulty.Hard ? 0.8f : 1f;
             mon.Init(player.transform, m.patternCount);
             mon.SetAggression(CompletedCount());
             monsters.Add(mon);
