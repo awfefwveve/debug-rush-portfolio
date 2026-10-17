@@ -24,6 +24,8 @@ public struct DialogueLine
 public class StageLayout
 {
     public bool use;
+    [Tooltip("벽 칸 (x -14~13, y -6~5). 비어 있으면 Stage 씬의 기본 벽 사용")]
+    public System.Collections.Generic.List<Vector2Int> walls = new System.Collections.Generic.List<Vector2Int>();
     public Vector2 playerStart = new Vector2(0f, -3.4f);
     [Header("재료대")]
     public Vector2 planning = new Vector2(5f, -3.2f);

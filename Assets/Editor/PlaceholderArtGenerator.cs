@@ -70,6 +70,7 @@ public static class PlaceholderArtGenerator
         AssetDatabase.Refresh();
         BuildFxSet();
         Apply();
+        StageMakerWindow.ConvertExisting();
         AssetDatabase.SaveAssets();
         Debug.Log("[Placeholder] done");
     }
@@ -371,6 +372,8 @@ public static class PlaceholderArtGenerator
         fx.bulletNormal = S("bullet_normal"); fx.bulletParry = S("bullet_parry");
         fx.fireFx = Seq("fx_fire_", 4); fx.hitFx = Seq("fx_hit_", 4); fx.vanishFx = Seq("fx_vanish_", 6);
         fx.warnCircleFill = S("warn_circle_fill"); fx.warnCircleBorder = S("warn_circle_border"); fx.warnLine = S("warn_line");
+        fx.wallSingle = S("wall_single"); fx.wallEnd = S("wall_end"); fx.wallStraight = S("wall_straight");
+        fx.wallCorner = S("wall_corner"); fx.wallT = S("wall_t"); fx.wallCross = S("wall_cross");
         EditorUtility.SetDirty(fx);
     }
 

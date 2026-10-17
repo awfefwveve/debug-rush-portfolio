@@ -23,6 +23,10 @@ MonoBehaviour:
   - 1
   - 0.8
   terminalGoal: 030000000400000005000000
+  requestTime:
+  - 40
+  - 30
+  - 22
   monsters:
   - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
     patternCount: 3
@@ -30,10 +34,13 @@ MonoBehaviour:
     spawnPos: {x: 3, y: 3}
   intro:
   - speaker: "\uB098"
-    text: "\uBC8C\uC774 \uD0C4\uC744 \uBD80\uCC44\uAF34\uB85C \uBFCC\uB9AC\uAE30 \uC2DC\uC791\uD588\uC5B4!"
+    text: "\uBC8C\uC774 \uD0C4\uC744 \uBD80\uCC44\uAF34\uB85C \uBFCC\uB9AC\uAE30
+      \uC2DC\uC791\uD588\uC5B4!"
     portrait: {fileID: 0}
   - speaker: "\uC2DC\uC2A4\uD15C"
-    text: "\uBD84\uD64D \uB9C8\uB984\uBAA8 \uD0C4\uC740 \uC810\uD504\uB85C \uBC1B\uC544\uCE60 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uBC1B\uC544\uCE58\uBA74 \uBAAC\uC2A4\uD130\uAC00 \uC7A0\uC2DC \uBA48\uCDA5\uB2C8\uB2E4."
+    text: "\uBD84\uD64D \uB9C8\uB984\uBAA8 \uD0C4\uC740 \uC810\uD504\uB85C \uBC1B\uC544\uCE60
+      \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uBC1B\uC544\uCE58\uBA74 \uBAAC\uC2A4\uD130\uAC00
+      \uC7A0\uC2DC \uBA48\uCDA5\uB2C8\uB2E4."
     portrait: {fileID: 0}
   outro:
   - speaker: "\uB098"
@@ -41,7 +48,102 @@ MonoBehaviour:
       \uC11C\uB450\uB974\uC790."
     portrait: {fileID: 0}
   layout:
-    use: 0
+    use: 1
+    walls:
+    - {x: -14, y: -6}
+    - {x: -14, y: 5}
+    - {x: -13, y: -6}
+    - {x: -13, y: 5}
+    - {x: -12, y: -6}
+    - {x: -12, y: 5}
+    - {x: -11, y: -6}
+    - {x: -11, y: 5}
+    - {x: -10, y: -6}
+    - {x: -10, y: 5}
+    - {x: -9, y: -6}
+    - {x: -9, y: 5}
+    - {x: -8, y: -6}
+    - {x: -8, y: 5}
+    - {x: -7, y: -6}
+    - {x: -7, y: 5}
+    - {x: -6, y: -6}
+    - {x: -6, y: 5}
+    - {x: -5, y: -6}
+    - {x: -5, y: 5}
+    - {x: -4, y: -6}
+    - {x: -4, y: 5}
+    - {x: -3, y: -6}
+    - {x: -3, y: 5}
+    - {x: -2, y: -6}
+    - {x: -2, y: 5}
+    - {x: -1, y: -6}
+    - {x: -1, y: 5}
+    - {x: 0, y: -6}
+    - {x: 0, y: 5}
+    - {x: 1, y: -6}
+    - {x: 1, y: 5}
+    - {x: 2, y: -6}
+    - {x: 2, y: 5}
+    - {x: 3, y: -6}
+    - {x: 3, y: 5}
+    - {x: 4, y: -6}
+    - {x: 4, y: 5}
+    - {x: 5, y: -6}
+    - {x: 5, y: 5}
+    - {x: 6, y: -6}
+    - {x: 6, y: 5}
+    - {x: 7, y: -6}
+    - {x: 7, y: 5}
+    - {x: 8, y: -6}
+    - {x: 8, y: 5}
+    - {x: 9, y: -6}
+    - {x: 9, y: 5}
+    - {x: 10, y: -6}
+    - {x: 10, y: 5}
+    - {x: 11, y: -6}
+    - {x: 11, y: 5}
+    - {x: 12, y: -6}
+    - {x: 12, y: 5}
+    - {x: 13, y: -6}
+    - {x: 13, y: 5}
+    - {x: -14, y: -5}
+    - {x: 13, y: -5}
+    - {x: -14, y: -4}
+    - {x: 13, y: -4}
+    - {x: -14, y: -3}
+    - {x: 13, y: -3}
+    - {x: -14, y: -2}
+    - {x: 13, y: -2}
+    - {x: -14, y: -1}
+    - {x: 13, y: -1}
+    - {x: -14, y: 0}
+    - {x: 13, y: 0}
+    - {x: -14, y: 1}
+    - {x: 13, y: 1}
+    - {x: -14, y: 2}
+    - {x: 13, y: 2}
+    - {x: -14, y: 3}
+    - {x: 13, y: 3}
+    - {x: -14, y: 4}
+    - {x: 13, y: 4}
+    - {x: -7, y: 0}
+    - {x: -6, y: 0}
+    - {x: -5, y: 0}
+    - {x: -4, y: 0}
+    - {x: -3, y: 0}
+    - {x: 2, y: 0}
+    - {x: 3, y: 0}
+    - {x: 4, y: 0}
+    - {x: 5, y: 0}
+    - {x: 6, y: 0}
+    - {x: -13, y: 4}
+    - {x: -12, y: 4}
+    - {x: -13, y: 3}
+    - {x: -12, y: 3}
+    - {x: 11, y: -4}
+    - {x: 12, y: -4}
+    - {x: 11, y: -5}
+    - {x: 12, y: -5}
     playerStart: {x: 0, y: -3.4}
     planning: {x: 5, y: -3.2}
     programming: {x: 9, y: -3.2}

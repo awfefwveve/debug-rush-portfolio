@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -5,395 +6,691 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 기획자용 스테이지 제작 툴. 메뉴: DebugRush > Stage Maker
-/// 사용법: Assets/Editor/StageMaker_사용법.md
+/// 기획자용 맵 그리기 툴. 메뉴: DebugRush > Stage Maker
+/// 한 창 안에서 끝남: 왼쪽 스테이지 목록 / 가운데 팔레트+방 격자 / 오른쪽 정보 입력 / 위 툴바.
+/// 씬을 열거나 오브젝트를 찾을 필요 없음. 스테이지별 데이터(StageData 에셋)에 저장.
 /// </summary>
 public class StageMakerWindow : EditorWindow
 {
     const string DataFolder = "Assets/DebugRush/Data";
     const string TitleScenePath = "Assets/Scenes/Title.unity";
-    const int Chapters = 3;
+    const string StageScenePath = "Assets/Scenes/Stage.unity";
+    const string BeePrefab = "Assets/DebugRush/Prefabs/Monster1A.prefab";
+    const int Chapters = 3, PerChapter = 10;
+
+    enum Tool { Move, Wall, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee }
+
+    static readonly (Tool tool, string label, string tip)[] Palette =
+    {
+        (Tool.Move, "이동", "물체를 끌어서 옮기기"),
+        (Tool.Wall, "벽", "클릭·드래그로 벽 칠하기"),
+        (Tool.Erase, "지우개", "벽·단말기·벌 지우기 (우클릭도 지우기)"),
+        (Tool.Planning, "기획", "기획 재료대 놓기"),
+        (Tool.Programming, "프로그래밍", "프로그래밍 재료대 놓기"),
+        (Tool.Graphic, "그래픽", "그래픽 재료대 놓기"),
+        (Tool.QA, "QA", "QA 재료대 놓기"),
+        (Tool.Crafter, "제작대", "제작대 놓기"),
+        (Tool.Terminal, "단말기", "단말기 추가 (최대 4)"),
+        (Tool.Player, "시작점", "플레이어 시작 위치"),
+        (Tool.Bee, "벌", "몬스터(벌) 위치. 최대 2마리"),
+    };
 
     StageData selected;
     string selectedPath;
-    SerializedObject so;
-    Vector2 leftScroll, rightScroll;
-    int newChapter = 1, newStage = 1;
+    int chapterTab;
+    Tool tool = Tool.Wall;
+    Vector2 rightScroll, leftScroll;
+    int autoSeed = 1;
+
+    // 드래그 상태
+    string dragging;           // "planning", "crafter", "terminal:1", "player", "bee:0" …
+    bool painting, erasing;
+
+    // 그림
+    readonly Dictionary<string, Texture2D> thumbs = new Dictionary<string, Texture2D>();
+    GUIStyle big, bigBold, title, warn, ok, cardOn, cardOff, cardSel;
 
     [MenuItem("DebugRush/Stage Maker")]
-    public static void Open() => GetWindow<StageMakerWindow>("Stage Maker");
+    public static void Open()
+    {
+        var w = GetWindow<StageMakerWindow>("Stage Maker");
+        w.minSize = new Vector2(1280, 720);
+    }
 
+    void OnEnable() => Undo.undoRedoPerformed += Repaint;
+    void OnDisable() => Undo.undoRedoPerformed -= Repaint;
+
+    // =====================================================================================
     void OnGUI()
     {
-        // 씬 열기/닫기 후 에셋이 언로드되면 경로로 다시 로드
-        if (selected == null && !string.IsNullOrEmpty(selectedPath))
-        {
-            selected = AssetDatabase.LoadAssetAtPath<StageData>(selectedPath);
-            so = null;
-            if (selected == null) selectedPath = null;
-        }
-        var all = LoadAllStages();
-        EditorGUILayout.BeginHorizontal();
-        DrawLeft(all);
-        DrawRight(all);
-        EditorGUILayout.EndHorizontal();
+        Styles();
+        if (selected == null && !string.IsNullOrEmpty(selectedPath)) selected = AssetDatabase.LoadAssetAtPath<StageData>(selectedPath);
+
+        DrawToolbar();
+        var r = new Rect(0, 44, position.width, position.height - 44);
+        float leftW = 230f, rightW = 380f;
+        DrawStageList(new Rect(r.x, r.y, leftW, r.height));
+        DrawCenter(new Rect(r.x + leftW, r.y, r.width - leftW - rightW, r.height));
+        DrawRight(new Rect(r.xMax - rightW, r.y, rightW, r.height));
     }
 
-    // ---------------- 왼쪽: 3챕터 x 10스테이지 그리드 ----------------
-    void DrawLeft(StageData[] all)
+    // ---------------- 위 툴바 ----------------
+    void DrawToolbar()
     {
-        EditorGUILayout.BeginVertical(GUILayout.Width(260));
-        leftScroll = EditorGUILayout.BeginScrollView(leftScroll);
-        var registered = RegisteredStages();
+        GUILayout.BeginArea(new Rect(6, 6, position.width - 12, 34));
+        GUILayout.BeginHorizontal();
+        if (Btn("＋ 새 스테이지", 120)) NewStage(false);
+        GUI.enabled = selected != null;
+        if (Btn("복제", 70)) NewStage(true);
+        if (Btn("삭제", 70)) DeleteStage();
+        GUILayout.Space(16);
+        if (Btn("자동 생성", 90)) AutoGenerate();
+        if (Btn("기본 배치", 90)) { Record("기본 배치"); selected.layout = StageLayoutDefaults.Default(); SetBee(0, new Vector2(3f, 3f)); }
+        if (Btn("되돌리기 (Ctrl+Z)", 140)) Undo.PerformUndo();
+        GUILayout.Space(16);
+        if (Btn("저장", 80)) Save(selected);
+        if (Btn("▶ 플레이", 100)) Play(selected);
+        GUI.enabled = true;
+        GUILayout.FlexibleSpace();
+        GUILayout.Label(selected != null ? $"{selected.chapter}-{selected.stage}  {selected.displayName}" : "스테이지를 고르거나 새로 만드세요", bigBold);
+        GUILayout.EndHorizontal();
+        GUILayout.EndArea();
+    }
 
-        for (int c = 1; c <= Chapters; c++)
+    bool Btn(string text, float w) => GUILayout.Button(text, GUILayout.Width(w), GUILayout.Height(30));
+
+    // ---------------- 왼쪽 스테이지 목록 ----------------
+    void DrawStageList(Rect r)
+    {
+        GUILayout.BeginArea(new Rect(r.x + 6, r.y, r.width - 10, r.height - 6));
+        chapterTab = GUILayout.Toolbar(chapterTab, new[] { "1학년", "2학년", "3학년" }, GUILayout.Height(30));
+        GUILayout.Space(6);
+        leftScroll = GUILayout.BeginScrollView(leftScroll);
+        int c = chapterTab + 1;
+        var all = LoadAll();
+        var reg = Registered();
+        for (int n = 1; n <= PerChapter; n++)
         {
-            EditorGUILayout.LabelField($"챕터 {c} ({c}학년)", EditorStyles.boldLabel);
-            int max = Mathf.Max(StageManager.StagesPerChapter, all.Where(s => s.chapter == c).Select(s => s.stage).DefaultIfEmpty(0).Max());
-            for (int row = 0; row < Mathf.CeilToInt(max / 5f); row++)
+            var s = all.FirstOrDefault(x => x.chapter == c && x.stage == n);
+            string label = s != null ? $"{c}-{n}   {s.displayName}\n<size=11>{(reg.Contains(s) ? "완성 · 맵에 표시됨" : "미등록")}</size>" : $"{c}-{n}   비어 있음\n<size=11>눌러서 새로 만들기</size>";
+            var style = s == null ? cardOff : s == selected ? cardSel : cardOn;
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = s == null ? new Color(0.55f, 0.55f, 0.6f) : s == selected ? new Color(0.4f, 0.85f, 1f) : new Color(0.45f, 1f, 0.55f);
+            bool clicked = GUILayout.Button(label, style, GUILayout.Height(52));
+            GUI.backgroundColor = prevBg;
+            if (clicked)
             {
-                EditorGUILayout.BeginHorizontal();
-                for (int col = 1; col <= 5; col++)
-                {
-                    int n = row * 5 + col;
-                    if (n > max) break;
-                    var s = all.FirstOrDefault(x => x.chapter == c && x.stage == n);
-                    var prev = GUI.backgroundColor;
-                    if (s == null) GUI.backgroundColor = new Color(0.55f, 0.55f, 0.55f);
-                    else if (!registered.Contains(s)) GUI.backgroundColor = new Color(1f, 0.75f, 0.3f);
-                    else GUI.backgroundColor = s == selected ? new Color(0.4f, 0.8f, 1f) : new Color(0.5f, 0.95f, 0.5f);
-                    if (GUILayout.Button($"{c}-{n}", GUILayout.Width(45), GUILayout.Height(28)))
-                    {
-                        if (s != null) Select(s);
-                        else { Select(null); newChapter = c; newStage = n; }
-                    }
-                    GUI.backgroundColor = prev;
-                }
-                EditorGUILayout.EndHorizontal();
+                if (s != null) Select(s);
+                else CreateAt(c, n, null);
             }
-            EditorGUILayout.Space(6);
         }
-        EditorGUILayout.HelpBox("초록: 플레이 가능\n주황: 에셋은 있지만 게임에 미등록\n회색: 없음(맵에 '준비 중'으로 잠김)", MessageType.None);
-        EditorGUILayout.EndScrollView();
-        EditorGUILayout.EndVertical();
+        GUILayout.EndScrollView();
+        GUILayout.EndArea();
     }
 
-    // ---------------- 오른쪽: 편집 ----------------
-    void DrawRight(StageData[] all)
+    // ---------------- 가운데: 팔레트 + 격자 ----------------
+    void DrawCenter(Rect r)
     {
-        EditorGUILayout.BeginVertical();
-        rightScroll = EditorGUILayout.BeginScrollView(rightScroll);
+        // 팔레트
+        var pal = new Rect(r.x + 6, r.y, r.width - 12, 64);
+        float bw = (pal.width - 4) / Palette.Length;
+        for (int i = 0; i < Palette.Length; i++)
+        {
+            var b = new Rect(pal.x + i * bw, pal.y, bw - 4, 60);
+            bool on = tool == Palette[i].tool;
+            var prev = GUI.backgroundColor;
+            GUI.backgroundColor = on ? new Color(0.35f, 0.85f, 1f) : Color.white;
+            if (GUI.Button(b, new GUIContent("", Palette[i].tip))) tool = Palette[i].tool;
+            GUI.backgroundColor = prev;
+            var tex = ToolThumb(Palette[i].tool);
+            if (tex != null) GUI.DrawTexture(new Rect(b.x + 4, b.y + 3, b.width - 8, 34), tex, ScaleMode.ScaleToFit);
+            GUI.Label(new Rect(b.x, b.y + 38, b.width, 20), Palette[i].label, title);
+        }
+        GUI.Label(new Rect(r.x + 8, r.y + 66, r.width, 20), Palette.First(p => p.tool == tool).tip + "   ·   우클릭 = 지우기   ·   이동 도구로 물체를 끌기", EditorStyles.miniLabel);
 
         if (selected == null)
         {
-            DrawCreate(all);
-            EditorGUILayout.EndScrollView();
-            EditorGUILayout.EndVertical();
+            GUI.Label(new Rect(r.x, r.y + 200, r.width, 40), "왼쪽에서 스테이지를 고르거나 [＋ 새 스테이지]를 누르세요", title);
             return;
         }
+        EnsureLayout(selected);
 
-        if (so == null || so.targetObject != selected) so = new SerializedObject(selected);
-        so.Update();
+        // 격자 (28×12)
+        var area = new Rect(r.x + 8, r.y + 90, r.width - 16, r.height - 170);
+        float cs = Mathf.Floor(Mathf.Min(area.width / 28f, area.height / 12f));
+        var grid = new Rect(area.x + (area.width - cs * 28f) / 2f, area.y, cs * 28f, cs * 12f);
+        EditorGUI.DrawRect(grid, new Color(0.09f, 0.11f, 0.17f));
+        for (int x = 0; x <= 28; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
+        for (int y = 0; y <= 12; y++) EditorGUI.DrawRect(new Rect(grid.x, grid.y + y * cs, grid.width, 1), new Color(1, 1, 1, 0.05f));
 
-        EditorGUILayout.LabelField($"스테이지 {selected.chapter}-{selected.stage}", EditorStyles.largeLabel);
-        EditorGUILayout.ObjectField("에셋", selected, typeof(StageData), false);
-
-        Section("기본 정보");
-        Prop("chapter", "챕터");
-        Prop("stage", "스테이지 번호");
-        Prop("displayName", "표시 이름 (카드 제목)");
-        Prop("summary", "요약 (카드 설명)");
-        Prop("sceneName", "씬 이름");
-
-        Section("난이도");
-        Prop("timeLimit", "제한시간 (초, Normal 기준)");
-        Prop("timeMultiplier", "난이도별 시간 배율 (Easy/Normal/Hard)");
-        Prop("terminalGoal", "난이도별 단말기 목표 (2~8)");
-        Prop("requestTime", "난이도별 요구사항 남은 시간 (초, 0=무제한)");
-
-        Section("몬스터 (스테이지당 1~2마리)");
-        Prop("monsters", "몬스터 목록");
-        DrawPatternChecks();
-
-        Section("스토리");
-        Prop("intro", "시작 대사");
-        Prop("outro", "종료 대사");
-
-        Section("맵 배치");
-        Prop("layout", "배치 데이터");
-        so.ApplyModifiedProperties();
-        DrawLayoutButtons();
-
-        Section("확인");
-        DrawWarnings();
-
-        EditorGUILayout.Space(8);
-        EditorGUILayout.BeginHorizontal();
-        bool registered = RegisteredStages().Contains(selected);
-        if (!registered && GUILayout.Button("게임에 등록 (잠금 해제)", GUILayout.Height(30))) Register(selected);
-        if (GUILayout.Button("저장", GUILayout.Height(30))) Save(selected);
-        if (GUILayout.Button("▶ 이 스테이지 플레이", GUILayout.Height(30))) Play(selected);
-        EditorGUILayout.EndHorizontal();
-        if (GUILayout.Button("새 스테이지 만들기로 돌아가기")) Select(null);
-
-        EditorGUILayout.EndScrollView();
-        EditorGUILayout.EndVertical();
-    }
-
-    void DrawCreate(StageData[] all)
-    {
-        EditorGUILayout.LabelField("새 스테이지 만들기", EditorStyles.largeLabel);
-        newChapter = EditorGUILayout.IntSlider("챕터", newChapter, 1, Chapters);
-        newStage = EditorGUILayout.IntSlider("스테이지 번호", newStage, 1, StageManager.StagesPerChapter);
-
-        var exists = all.FirstOrDefault(s => s.chapter == newChapter && s.stage == newStage);
-        if (exists != null)
+        var L = selected.layout;
+        var wallSet = new HashSet<Vector2Int>(L.walls);
+        var fx = FxSet.Get();
+        foreach (var c in wallSet)
         {
-            EditorGUILayout.HelpBox($"{newChapter}-{newStage}는 이미 있습니다.", MessageType.Info);
-            if (GUILayout.Button("열기")) Select(exists);
-            return;
+            WallBuilder.Piece(wallSet, c, out var spr, out float ang, fx);
+            var cell = CellRect(grid, cs, c);
+            if (spr != null) DrawSprite(cell, spr, ang); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
         }
 
-        var template = all.Where(s => s.chapter == newChapter && s.stage < newStage).OrderByDescending(s => s.stage).FirstOrDefault()
-                       ?? all.OrderBy(s => s.chapter).ThenBy(s => s.stage).FirstOrDefault();
-        EditorGUILayout.HelpBox(template != null
-            ? $"수치·몬스터·배치는 {template.displayName}에서 복사해서 시작합니다. 대사는 비어 있습니다."
-            : "기본값으로 시작합니다.", MessageType.None);
+        // 물체
+        foreach (var o in Objects()) DrawObject(grid, cs, o);
 
-        if (GUILayout.Button("새 스테이지 만들기", GUILayout.Height(32)))
-            Select(Create(newChapter, newStage, template));
+        HandleMouse(grid, cs);
+
+        // 경고
+        var y0 = grid.yMax + 8;
+        foreach (var (msg, bad) in Checks())
+        {
+            GUI.Label(new Rect(r.x + 12, y0, r.width - 24, 20), (bad ? "⚠ " : "✓ ") + msg, bad ? warn : ok);
+            y0 += 20;
+        }
     }
 
-    /// <summary>몬스터별 사용할 공격 패턴 체크 (벌: A-1~A-5). 체크한 패턴을 순서대로 반복.</summary>
-    void DrawPatternChecks()
-    {
-        var mons = so.FindProperty("monsters");
-        if (mons == null) return;
-        for (int i = 0; i < mons.arraySize; i++)
-        {
-            var el = mons.GetArrayElementAtIndex(i);
-            var prefab = el.FindPropertyRelative("prefab").objectReferenceValue as GameObject;
-            var maskProp = el.FindPropertyRelative("patternMask");
-            var countProp = el.FindPropertyRelative("patternCount");
-            if (prefab == null || maskProp == null) continue;
-            bool bee = prefab.GetComponent<Monster1A>() != null;
-            string[] names = bee ? Monster1A.PatternNames : new[] { "패턴 1", "패턴 2", "패턴 3" };
+    struct Obj { public string id, label; public Vector2 pos, size; public Texture2D tex; public bool feet; }
 
-            int mask = maskProp.intValue;
-            if (mask == 0) for (int b = 0; b < countProp.intValue && b < names.Length; b++) mask |= 1 << b;
-            EditorGUILayout.LabelField($"몬스터 {i + 1} ({prefab.name}) 공격 패턴", EditorStyles.miniBoldLabel);
-            EditorGUILayout.BeginHorizontal();
-            int newMask = 0;
-            for (int b = 0; b < names.Length; b++)
-                if (GUILayout.Toggle((mask & (1 << b)) != 0, names[b], "Button")) newMask |= 1 << b;
-            EditorGUILayout.EndHorizontal();
-            if (newMask == 0) newMask = 1;                       // 최소 1개
-            if (newMask != maskProp.intValue)
+    IEnumerable<Obj> Objects()
+    {
+        var L = selected.layout;
+        yield return O("planning", "기획", L.planning, StageLayoutDefaults.StationSize, "plan");
+        yield return O("programming", "프로그래밍", L.programming, StageLayoutDefaults.StationSize, "programming");
+        yield return O("graphic", "그래픽", L.graphic, StageLayoutDefaults.StationSize, "graphic");
+        yield return O("qa", "QA", L.qa, StageLayoutDefaults.StationSize, "qa");
+        yield return O("crafter", "제작대", L.craftingTable, StageLayoutDefaults.CrafterSize, "crafter");
+        for (int i = 0; i < L.terminals.Length; i++) yield return O("terminal:" + i, $"단말기 {i + 1}", L.terminals[i], StageLayoutDefaults.TerminalSize, "terminal");
+        var p = O("player", "시작점", L.playerStart + new Vector2(0f, 1f), new Vector2(2f, 2f), "player"); p.feet = true; yield return p;
+        if (selected.monsters != null)
+            for (int i = 0; i < selected.monsters.Length; i++) yield return O("bee:" + i, "벌", selected.monsters[i].spawnPos, new Vector2(2f, 2f), "bee");
+    }
+
+    Obj O(string id, string label, Vector2 pos, Vector2 size, string thumb) => new Obj { id = id, label = label, pos = pos, size = size, tex = Thumb(thumb) };
+
+    void DrawObject(Rect grid, float cs, Obj o)
+    {
+        var rect = WorldRect(grid, cs, o.pos, o.size);
+        if (dragging == o.id) EditorGUI.DrawRect(rect, new Color(0.3f, 0.9f, 1f, 0.25f));
+        if (o.tex != null) GUI.DrawTexture(rect, o.tex, ScaleMode.ScaleToFit);
+        else EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.6f, 0.6f));
+        var lr = new Rect(rect.x - 20, rect.yMax - 2, rect.width + 40, 18);
+        EditorGUI.DrawRect(new Rect(lr.center.x - 40, lr.y, 80, 18), new Color(0, 0, 0, 0.55f));
+        GUI.Label(lr, o.label, title);
+    }
+
+    // ---------------- 마우스 ----------------
+    void HandleMouse(Rect grid, float cs)
+    {
+        var e = Event.current;
+        if (!grid.Contains(e.mousePosition) && e.type != EventType.MouseUp) return;
+        Vector2 world = new Vector2(-14f + (e.mousePosition.x - grid.x) / cs, 6f - (e.mousePosition.y - grid.y) / cs);
+        var cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
+        Vector2 snap = new Vector2(StageLayoutDefaults.Snap(world.x), StageLayoutDefaults.Snap(world.y));
+        var L = selected.layout;
+
+        if (e.type == EventType.MouseDown)
+        {
+            if (e.button == 1) { erasing = true; EraseAt(world, cell); e.Use(); return; }
+            if (e.button != 0) return;
+            switch (tool)
             {
-                maskProp.intValue = newMask;
-                int c = 0; for (int b = 0; b < names.Length; b++) if ((newMask & (1 << b)) != 0) c++;
-                countProp.intValue = c;
+                case Tool.Move:
+                    var hit = Objects().Reverse().FirstOrDefault(o => WorldRect(grid, cs, o.pos, o.size).Contains(e.mousePosition));
+                    if (hit.id != null) { Record("이동"); dragging = hit.id; }
+                    break;
+                case Tool.Wall: Record("벽"); painting = true; if (WallBuilder.InRoom(cell) && !L.walls.Contains(cell)) L.walls.Add(cell); break;
+                case Tool.Erase: erasing = true; EraseAt(world, cell); break;
+                case Tool.Planning: Record("재료대"); L.planning = snap; dragging = "planning"; break;
+                case Tool.Programming: Record("재료대"); L.programming = snap; dragging = "programming"; break;
+                case Tool.Graphic: Record("재료대"); L.graphic = snap; dragging = "graphic"; break;
+                case Tool.QA: Record("재료대"); L.qa = snap; dragging = "qa"; break;
+                case Tool.Crafter: Record("제작대"); L.craftingTable = snap; dragging = "crafter"; break;
+                case Tool.Player: Record("시작점"); L.playerStart = snap - new Vector2(0f, 1f); dragging = "player"; break;
+                case Tool.Terminal:
+                    if (L.terminals.Length >= 4) { ShowNotification(new GUIContent("단말기는 최대 4대")); break; }
+                    Record("단말기"); L.terminals = L.terminals.Concat(new[] { snap }).ToArray(); dragging = "terminal:" + (L.terminals.Length - 1); break;
+                case Tool.Bee:
+                    int count = selected.monsters?.Length ?? 0;
+                    if (count >= 2) { ShowNotification(new GUIContent("몬스터는 스테이지당 최대 2마리")); break; }
+                    Record("벌"); SetBee(count, snap); dragging = "bee:" + count; break;
             }
+            e.Use();
         }
-        so.ApplyModifiedProperties();
+        else if (e.type == EventType.MouseDrag)
+        {
+            if (erasing) EraseAt(world, cell);
+            else if (painting && WallBuilder.InRoom(cell) && !L.walls.Contains(cell)) L.walls.Add(cell);
+            else if (dragging != null) MoveObject(dragging, snap);
+            e.Use();
+        }
+        else if (e.type == EventType.MouseUp)
+        {
+            if (painting || erasing || dragging != null) EditorUtility.SetDirty(selected);
+            painting = erasing = false; dragging = null;
+            e.Use();
+        }
     }
 
-    void DrawLayoutButtons()
+    void MoveObject(string id, Vector2 p)
     {
-        EditorGUILayout.HelpBox("1) [Stage 씬 열기]  2) 씬에서 재료대·제작대·단말기·플레이어를 드래그로 배치  3) [씬 배치를 이 스테이지에 저장]\n" +
-                                "단말기를 늘리려면 씬에서 BugTerminal을 복제(Ctrl+D)하고 StageManager의 terminals 목록에 추가한 뒤 저장하세요. " +
-                                "저장 후 Stage 씬 자체는 저장하지 않아도 됩니다 (배치는 스테이지 데이터에 들어감).", MessageType.Info);
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Stage 씬 열기")) OpenStageScene(selected);
-        if (GUILayout.Button("씬에 미리보기")) Preview(selected);
-        if (GUILayout.Button("씬 배치를 이 스테이지에 저장")) CaptureLayout(selected);
-        if (GUILayout.Button("씬 되돌리기")) RevertScene(selected);
-        EditorGUILayout.EndHorizontal();
+        var L = selected.layout;
+        if (id == "planning") L.planning = p;
+        else if (id == "programming") L.programming = p;
+        else if (id == "graphic") L.graphic = p;
+        else if (id == "qa") L.qa = p;
+        else if (id == "crafter") L.craftingTable = p;
+        else if (id == "player") L.playerStart = p - new Vector2(0f, 1f);
+        else if (id.StartsWith("terminal:")) L.terminals[int.Parse(id.Substring(9))] = p;
+        else if (id.StartsWith("bee:")) selected.monsters[int.Parse(id.Substring(4))].spawnPos = p;
     }
 
-    void DrawWarnings()
+    void EraseAt(Vector2 world, Vector2Int cell)
     {
-        var s = selected;
+        var L = selected.layout;
+        Record("지우기");
+        // 단말기 / 벌 지우기
+        for (int i = L.terminals.Length - 1; i >= 0; i--)
+            if (new Rect(L.terminals[i] - StageLayoutDefaults.TerminalSize / 2f, StageLayoutDefaults.TerminalSize).Contains(world) && L.terminals.Length > 1)
+            { L.terminals = L.terminals.Where((t, k) => k != i).ToArray(); return; }
+        if (selected.monsters != null)
+            for (int i = selected.monsters.Length - 1; i >= 0; i--)
+                if (Vector2.Distance(selected.monsters[i].spawnPos, world) < 1f && selected.monsters.Length > 1)
+                { selected.monsters = selected.monsters.Where((m, k) => k != i).ToArray(); return; }
+        L.walls.Remove(cell);
+    }
+
+    void SetBee(int index, Vector2 pos)
+    {
+        var list = (selected.monsters ?? new MonsterSpawn[0]).ToList();
+        while (list.Count <= index)
+            list.Add(new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = 1, patternMask = 1 });
+        list[index].spawnPos = pos;
+        selected.monsters = list.ToArray();
+    }
+
+    // ---------------- 경고 ----------------
+    IEnumerable<(string, bool)> Checks()
+    {
+        var s = selected; var L = s.layout;
+        var w = new HashSet<Vector2Int>(L.walls);
+        var objs = Objects().ToList();
         bool any = false;
-        void Warn(string msg) { EditorGUILayout.HelpBox(msg, MessageType.Warning); any = true; }
-
-        if (s.monsters == null || s.monsters.Length == 0) Warn("몬스터가 없습니다. (기획서: 스테이지마다 1~2마리)");
-        else if (s.monsters.Length > 2) Warn("몬스터가 3마리 이상입니다. (기획서: 1~2마리)");
-        else if (s.monsters.Any(m => m.prefab == null)) Warn("프리팹이 비어 있는 몬스터가 있습니다.");
-        if (s.intro == null || s.intro.Length == 0) Warn("시작 대사가 없습니다. (기획서: 스테이지 시작과 끝에 스토리)");
-        if (s.outro == null || s.outro.Length == 0) Warn("종료 대사가 없습니다.");
-        if (s.layout != null && s.layout.use && (s.layout.terminals == null || s.layout.terminals.Length == 0 || s.layout.terminals.Length > 4))
-            Warn("단말기는 1~4개로 배치하세요.");
-        if (s.terminalGoal == null || s.terminalGoal.Length < 3 || s.timeMultiplier == null || s.timeMultiplier.Length < 3)
-            Warn("난이도별 값은 3개(Easy/Normal/Hard)가 필요합니다.");
-        if (!RegisteredStages().Contains(s)) Warn("아직 게임에 등록되지 않아 맵에서 '준비 중'으로 잠겨 있습니다. [게임에 등록]을 누르세요.");
-        if (!any) EditorGUILayout.HelpBox("문제 없음", MessageType.Info);
+        foreach (var o in objs.Where(o => !o.id.StartsWith("bee")))
+        {
+            var size = o.id == "player" ? new Vector2(1f, 1f) : o.size;
+            var center = o.id == "player" ? L.playerStart + new Vector2(0f, 0.5f) : o.pos;
+            if (StageLayoutDefaults.HitsWall(w, center, size)) { any = true; yield return ($"{o.label}이(가) 벽과 겹쳐 있어요", true); }
+            if (center.x - size.x / 2f < -13f || center.x + size.x / 2f > 13f || center.y - size.y / 2f < -5f || center.y + size.y / 2f > 5f)
+            { any = true; yield return ($"{o.label}이(가) 방 밖으로 나가 있어요", true); }
+        }
+        for (int i = 0; i < objs.Count; i++)
+            for (int j = i + 1; j < objs.Count; j++)
+            {
+                if (objs[i].id.StartsWith("bee") || objs[j].id.StartsWith("bee")) continue;
+                var a = Box(objs[i]); var b = Box(objs[j]);
+                if (a.Overlaps(b)) { any = true; yield return ($"{objs[i].label}와(과) {objs[j].label}이(가) 겹쳐 있어요", true); }
+            }
+        if (L.terminals.Length < 1 || L.terminals.Length > 4) { any = true; yield return ("단말기는 1~4대", true); }
+        if (s.monsters == null || s.monsters.Length == 0) { any = true; yield return ("몬스터(벌)를 1마리 이상 놓으세요", true); }
+        if (s.intro == null || s.intro.Length == 0) yield return ("시작 대사가 비어 있어요 (기획서 p.13: 스테이지 시작·끝 스토리)", true);
+        if (s.outro == null || s.outro.Length == 0) yield return ("끝 대사가 비어 있어요", true);
+        if (!any) yield return ("배치 문제 없음", false);
     }
 
-    // ---------------- 동작 ----------------
-    void Select(StageData s)
+    Rect Box(Obj o) => o.id == "player" ? new Rect(selected.layout.playerStart + new Vector2(-0.6f, -0.1f), new Vector2(1.2f, 1.2f)) : new Rect(o.pos - o.size / 2f, o.size);
+
+    // ---------------- 오른쪽: 정보 입력 ----------------
+    void DrawRight(Rect r)
     {
-        selected = s;
-        selectedPath = s != null ? AssetDatabase.GetAssetPath(s) : null;
-        so = s != null ? new SerializedObject(s) : null;
-        GUI.FocusControl(null);
+        GUILayout.BeginArea(new Rect(r.x + 6, r.y, r.width - 12, r.height - 6));
+        if (selected == null) { GUILayout.EndArea(); return; }
+        rightScroll = GUILayout.BeginScrollView(rightScroll);
+        var s = selected;
+        EditorGUI.BeginChangeCheck();
+
+        Head("스테이지 이름");
+        string name = EditorGUILayout.TextField(s.displayName, big, GUILayout.Height(28));
+        Head("한 줄 요약 (맵 카드에 표시)");
+        string summary = EditorGUILayout.TextArea(s.summary ?? "", big, GUILayout.Height(48));
+
+        Head("제한시간 (쉬움 기준: 이 값 × 1.3)");
+        int total = Mathf.RoundToInt(s.timeLimit);
+        GUILayout.BeginHorizontal();
+        int min = EditorGUILayout.IntField(total / 60, big, GUILayout.Width(60), GUILayout.Height(26)); GUILayout.Label("분", big, GUILayout.Width(24));
+        int sec = EditorGUILayout.IntField(total % 60, big, GUILayout.Width(60), GUILayout.Height(26)); GUILayout.Label("초", big, GUILayout.Width(24));
+        GUILayout.EndHorizontal();
+
+        Head("단말기 1대당 고칠 칸 수 (2~8)");
+        var goals = (s.terminalGoal != null && s.terminalGoal.Length == 3) ? (int[])s.terminalGoal.Clone() : new[] { 2, 3, 4 };
+        for (int i = 0; i < 3; i++) goals[i] = EditorGUILayout.IntSlider(new[] { "쉬움 (1학년)", "보통 (2학년)", "어려움 (3학년)" }[i], goals[i], 2, 8);
+
+        Head("요구사항 하나당 남은 시간 (초)");
+        var req = (s.requestTime != null && s.requestTime.Length == 3) ? (float[])s.requestTime.Clone() : new[] { 40f, 30f, 22f };
+        for (int i = 0; i < 3; i++) req[i] = EditorGUILayout.IntSlider(new[] { "쉬움", "보통", "어려움" }[i], Mathf.RoundToInt(req[i]), 10, 90);
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            Record("정보 수정");
+            s.displayName = name; s.summary = summary;
+            s.timeLimit = Mathf.Max(10, min * 60 + sec);
+            s.terminalGoal = goals; s.requestTime = req;
+        }
+
+        Head("벌 공격 패턴 (켠 것만 순서대로 반복)");
+        if (s.monsters != null)
+            for (int m = 0; m < s.monsters.Length; m++)
+            {
+                if (s.monsters.Length > 1) GUILayout.Label($"벌 {m + 1}", EditorStyles.miniBoldLabel);
+                var sp = s.monsters[m];
+                int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
+                int nm = 0;
+                for (int b = 0; b < Monster1A.PatternNames.Length; b++)
+                {
+                    bool on = (mask & (1 << b)) != 0;
+                    var prev = GUI.backgroundColor; GUI.backgroundColor = on ? new Color(1f, 0.8f, 0.3f) : Color.white;
+                    if (GUILayout.Toggle(on, Monster1A.PatternNames[b], "Button", GUILayout.Height(26))) nm |= 1 << b;
+                    GUI.backgroundColor = prev;
+                }
+                if (nm == 0) nm = 1;
+                if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
+            }
+
+        DrawLines("시작 대사", ref s.intro);
+        DrawLines("끝 대사", ref s.outro);
+
+        GUILayout.EndScrollView();
+        GUILayout.EndArea();
     }
 
-    static StageData Create(int chapter, int stage, StageData template)
+    void DrawLines(string head, ref DialogueLine[] lines)
     {
+        Head(head);
+        var list = (lines ?? new DialogueLine[0]).ToList();
+        int remove = -1;
+        for (int i = 0; i < list.Count; i++)
+        {
+            GUILayout.BeginHorizontal();
+            var d = list[i];
+            EditorGUI.BeginChangeCheck();
+            string sp = EditorGUILayout.TextField(d.speaker ?? "", big, GUILayout.Width(80), GUILayout.Height(26));
+            string tx = EditorGUILayout.TextArea(d.text ?? "", big, GUILayout.Height(40));
+            if (EditorGUI.EndChangeCheck()) { Record("대사"); d.speaker = sp; d.text = tx; list[i] = d; lines = list.ToArray(); }
+            if (GUILayout.Button("✕", GUILayout.Width(26), GUILayout.Height(26))) remove = i;
+            GUILayout.EndHorizontal();
+        }
+        if (remove >= 0) { Record("대사 삭제"); list.RemoveAt(remove); lines = list.ToArray(); }
+        if (GUILayout.Button("＋ 줄 추가", GUILayout.Height(26))) { Record("대사 추가"); list.Add(new DialogueLine { speaker = list.Count > 0 ? list[list.Count - 1].speaker : "나", text = "" }); lines = list.ToArray(); }
+    }
+
+    void Head(string t) { GUILayout.Space(8); GUILayout.Label(t, bigBold); }
+
+    // =====================================================================================
+    // 동작
+    // =====================================================================================
+    void Select(StageData s) { selected = s; selectedPath = s != null ? AssetDatabase.GetAssetPath(s) : null; GUI.FocusControl(null); }
+
+    void Record(string what) { if (selected != null) { Undo.RecordObject(selected, what); EditorUtility.SetDirty(selected); } }
+
+    static int Bits(int m) { int c = 0; while (m != 0) { c += m & 1; m >>= 1; } return c; }
+
+    void EnsureLayout(StageData s)
+    {
+        if (s.layout == null || !s.layout.use || s.layout.walls == null || s.layout.walls.Count == 0)
+        {
+            s.layout = StageLayoutDefaults.Default();
+            EditorUtility.SetDirty(s);
+        }
+        if (s.layout.terminals == null || s.layout.terminals.Length == 0) s.layout.terminals = new[] { new Vector2(10.5f, 2f) };
+    }
+
+    void NewStage(bool duplicate)
+    {
+        int c = chapterTab + 1;
+        var all = LoadAll();
+        int n = Enumerable.Range(1, PerChapter).FirstOrDefault(k => !all.Any(x => x.chapter == c && x.stage == k));
+        if (n == 0) { EditorUtility.DisplayDialog("Stage Maker", $"{c}학년 스테이지 10칸이 모두 찼어요.", "확인"); return; }
+        CreateAt(c, n, duplicate ? selected : null);
+    }
+
+    void CreateAt(int chapter, int stage, StageData template)
+    {
+        var all = LoadAll();
+        if (template == null) template = all.Where(s => s.chapter == chapter && s.stage < stage).OrderByDescending(s => s.stage).FirstOrDefault();
         StageData s = template != null ? Instantiate(template) : CreateInstance<StageData>();
-        s.chapter = chapter;
-        s.stage = stage;
+        s.chapter = chapter; s.stage = stage;
         s.displayName = $"{chapter}-{stage}";
-        s.summary = "";
-        s.intro = new DialogueLine[0];
-        s.outro = new DialogueLine[0];
-        if (s.monsters == null) s.monsters = new MonsterSpawn[0];
-
-        if (!AssetDatabase.IsValidFolder(DataFolder)) AssetDatabase.CreateFolder("Assets/DebugRush", "Data");
+        if (template == null || template != selected) { s.intro = new DialogueLine[0]; s.outro = new DialogueLine[0]; s.summary = ""; }
+        if (s.monsters == null || s.monsters.Length == 0)
+            s.monsters = new[] { new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = 1, patternMask = 1, spawnPos = new Vector2(3f, 3f) } };
+        if (s.layout == null || !s.layout.use || s.layout.walls.Count == 0) s.layout = StageLayoutDefaults.Default();
         string path = AssetDatabase.GenerateUniqueAssetPath($"{DataFolder}/Stage_{chapter}_{stage}.asset");
         AssetDatabase.CreateAsset(s, path);
         AssetDatabase.SaveAssets();
-        Register(s);
-        return s;
+        Register(s, true);
+        Select(AssetDatabase.LoadAssetAtPath<StageData>(path));
+    }
+
+    void DeleteStage()
+    {
+        if (selected == null) return;
+        if (!EditorUtility.DisplayDialog("스테이지 삭제", $"{selected.chapter}-{selected.stage} \"{selected.displayName}\"을(를) 지울까요?\n되돌릴 수 없어요.", "삭제", "취소")) return;
+        var path = AssetDatabase.GetAssetPath(selected);
+        Register(selected, false);
+        AssetDatabase.DeleteAsset(path);
+        Select(null);
+    }
+
+    void AutoGenerate()
+    {
+        Record("자동 생성");
+        int terms = Mathf.Clamp(selected.layout?.terminals?.Length ?? 2, 1, 4);
+        selected.layout = StageLayoutDefaults.Random(autoSeed++ * 7919 + selected.stage, terms, out var spawn);
+        SetBee(0, spawn);
     }
 
     static void Save(StageData s)
     {
+        if (s == null) return;
         EditorUtility.SetDirty(s);
         AssetDatabase.SaveAssetIfDirty(s);
-        if (!RegisteredStages().Contains(s)) Register(s);   // 저장하면 자동으로 잠금 해제
-    }
-
-    static StageData[] LoadAllStages()
-        => AssetDatabase.FindAssets("t:StageData")
-            .Select(g => AssetDatabase.LoadAssetAtPath<StageData>(AssetDatabase.GUIDToAssetPath(g)))
-            .Where(s => s != null).OrderBy(s => s.chapter).ThenBy(s => s.stage).ToArray();
-
-    /// <summary>Title 씬 GameManager.allStages에 들어있는 스테이지</summary>
-    static StageData[] RegisteredStages()
-    {
-        var gm = Object.FindAnyObjectByType<GameManager>();
-        if (gm != null && gm.allStages != null) return gm.allStages;
-        return ReadTitleSceneStages();
-    }
-
-    static StageData[] ReadTitleSceneStages()
-    {
-        // 씬을 열지 않고 YAML에서 GUID 목록만 읽음 (그리기마다 씬을 열면 느려서)
-        var text = System.IO.File.Exists(TitleScenePath) ? System.IO.File.ReadAllText(TitleScenePath) : "";
-        int i = text.IndexOf("allStages:");
-        if (i < 0) return new StageData[0];
-        var list = new System.Collections.Generic.List<StageData>();
-        foreach (var line in text.Substring(i).Split('\n').Skip(1))
-        {
-            var t = line.Trim();
-            if (!t.StartsWith("- {fileID")) break;
-            int g = t.IndexOf("guid: ");
-            if (g < 0) continue;
-            string guid = t.Substring(g + 6, 32);
-            var s = AssetDatabase.LoadAssetAtPath<StageData>(AssetDatabase.GUIDToAssetPath(guid));
-            if (s != null) list.Add(s);
-        }
-        return list.ToArray();
-    }
-
-    /// <summary>Title 씬의 GameManager.allStages에 추가 → 맵에 나타나고 진행 조건에 따라 해금</summary>
-    static void Register(StageData s)
-    {
-        var scene = SceneManager.GetSceneByPath(TitleScenePath);
-        bool opened = false;
-        if (!scene.isLoaded)
-        {
-            scene = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Additive);
-            opened = true;
-        }
-
-        GameManager gm = scene.GetRootGameObjects().Select(r => r.GetComponentInChildren<GameManager>(true)).FirstOrDefault(x => x != null);
-        if (gm == null)
-        {
-            Debug.LogError("[Stage Maker] Title 씬에서 GameManager를 찾지 못했습니다.");
-        }
-        else
-        {
-            var gso = new SerializedObject(gm);
-            var arr = gso.FindProperty("allStages");
-            bool has = false;
-            for (int i = 0; i < arr.arraySize; i++) if (arr.GetArrayElementAtIndex(i).objectReferenceValue == s) has = true;
-            if (!has)
-            {
-                arr.InsertArrayElementAtIndex(arr.arraySize);
-                arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = s;
-                gso.ApplyModifiedPropertiesWithoutUndo();
-                EditorSceneManager.MarkSceneDirty(scene);
-                EditorSceneManager.SaveScene(scene);
-                Debug.Log($"[Stage Maker] {s.displayName} 등록 완료");
-            }
-        }
-        if (opened) EditorSceneManager.CloseScene(scene, true);
-    }
-
-    static string ScenePath(StageData s) => $"Assets/Scenes/{(string.IsNullOrEmpty(s.sceneName) ? "Stage" : s.sceneName)}.unity";
-
-    static StageManager OpenStageScene(StageData s)
-    {
-        string path = ScenePath(s);
-        var active = SceneManager.GetActiveScene();
-        if (active.path != path)
-        {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return null;
-            EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
-        }
-        var sm = Object.FindAnyObjectByType<StageManager>();
-        if (sm == null) Debug.LogError($"[Stage Maker] {path}에서 StageManager를 찾지 못했습니다.");
-        return sm;
-    }
-
-    static void Preview(StageData s)
-    {
-        var sm = OpenStageScene(s);
-        if (sm == null || s.layout == null) return;
-        StageLayoutApplier.Apply(s.layout, sm, false);
-        if (s.layout.terminals != null && sm.terminals != null && s.layout.terminals.Length > sm.terminals.Length)
-            Debug.Log($"[Stage Maker] 단말기 {s.layout.terminals.Length}개 중 씬에 있는 {sm.terminals.Length}개만 미리보기됩니다. 나머지는 플레이 시 자동 생성됩니다.");
-        if (!s.layout.use) Debug.Log("[Stage Maker] 배치 데이터의 'use'가 꺼져 있어 플레이 시에는 씬 기본 배치가 쓰입니다.");
-    }
-
-    static void CaptureLayout(StageData s)
-    {
-        var sm = Object.FindAnyObjectByType<StageManager>();
-        if (sm == null) { Debug.LogError("[Stage Maker] 먼저 [Stage 씬 열기]를 누르세요."); return; }
-        Undo.RecordObject(s, "Capture Stage Layout");
-        if (s.layout == null) s.layout = new StageLayout();
-        StageLayoutApplier.Capture(s.layout, sm);
-        Save(s);
-        Debug.Log($"[Stage Maker] {s.displayName} 배치 저장 (단말기 {s.layout.terminals.Length}개)");
-    }
-
-    static void RevertScene(StageData s)
-    {
-        string path = ScenePath(s);
-        if (SceneManager.GetActiveScene().path == path) EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+        Register(s, true);
     }
 
     static void Play(StageData s)
     {
         Save(s);
-        if (OpenStageScene(s) == null) return;
+        if (SceneManager.GetActiveScene().path != StageScenePath)
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorSceneManager.OpenScene(StageScenePath, OpenSceneMode.Single);
+        }
         SessionState.SetString(StageManager.EditorPlayStageKey, AssetDatabase.GetAssetPath(s));
         EditorApplication.EnterPlaymode();
     }
 
-    // ---------------- GUI 헬퍼 ----------------
-    static void Section(string title)
+    static StageData[] LoadAll()
+        => AssetDatabase.FindAssets("t:StageData", new[] { DataFolder })
+            .Select(g => AssetDatabase.LoadAssetAtPath<StageData>(AssetDatabase.GUIDToAssetPath(g)))
+            .Where(s => s != null).OrderBy(s => s.chapter).ThenBy(s => s.stage).ToArray();
+
+    static StageData[] Registered()
     {
-        EditorGUILayout.Space(8);
-        EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+        var text = System.IO.File.Exists(TitleScenePath) ? System.IO.File.ReadAllText(TitleScenePath) : "";
+        int i = text.IndexOf("allStages:");
+        if (i < 0) return new StageData[0];
+        var list = new List<StageData>();
+        foreach (var line in text.Substring(i).Split('\n').Skip(1))
+        {
+            var t = line.Trim();
+            if (!t.StartsWith("- {fileID")) break;
+            int g = t.IndexOf("guid: "); if (g < 0) continue;
+            var s = AssetDatabase.LoadAssetAtPath<StageData>(AssetDatabase.GUIDToAssetPath(t.Substring(g + 6, 32)));
+            if (s != null) list.Add(s);
+        }
+        return list.ToArray();
     }
 
-    void Prop(string name, string label)
+    /// <summary>Title 씬 GameManager.allStages에 넣기/빼기 → 맵 화면에 표시/숨김</summary>
+    static void Register(StageData s, bool add)
     {
-        var p = so.FindProperty(name);
-        if (p != null) EditorGUILayout.PropertyField(p, new GUIContent(label), true);
+        if (add && Registered().Contains(s)) return;
+        var scene = SceneManager.GetSceneByPath(TitleScenePath);
+        bool opened = false;
+        if (!scene.isLoaded) { scene = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Additive); opened = true; }
+        var gm = scene.GetRootGameObjects().Select(r => r.GetComponentInChildren<GameManager>(true)).FirstOrDefault(x => x != null);
+        if (gm != null)
+        {
+            var gso = new SerializedObject(gm);
+            var arr = gso.FindProperty("allStages");
+            for (int i = arr.arraySize - 1; i >= 0; i--)
+            {
+                var v = arr.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (v == null || v == s) { arr.GetArrayElementAtIndex(i).objectReferenceValue = null; arr.DeleteArrayElementAtIndex(i); }
+            }
+            if (add) { arr.InsertArrayElementAtIndex(arr.arraySize); arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = s; }
+            gso.ApplyModifiedPropertiesWithoutUndo();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+        if (opened) EditorSceneManager.CloseScene(scene, true);
+    }
+
+    // =====================================================================================
+    // 그리기 도구
+    // =====================================================================================
+    static Rect CellRect(Rect grid, float cs, Vector2Int c) => new Rect(grid.x + (c.x + 14) * cs, grid.y + (5 - c.y) * cs, cs, cs);
+    static Rect WorldRect(Rect grid, float cs, Vector2 center, Vector2 size)
+        => new Rect(grid.x + (center.x - size.x / 2f + 14f) * cs, grid.y + (6f - center.y - size.y / 2f) * cs, size.x * cs, size.y * cs);
+
+    static void DrawSprite(Rect r, Sprite s, float angle)
+    {
+        var tex = s.texture;
+        var uv = new Rect(s.textureRect.x / tex.width, s.textureRect.y / tex.height, s.textureRect.width / tex.width, s.textureRect.height / tex.height);
+        if (Mathf.Approximately(angle, 0f)) { GUI.DrawTextureWithTexCoords(r, tex, uv); return; }
+        var m = GUI.matrix;
+        GUIUtility.RotateAroundPivot(-angle, r.center);
+        GUI.DrawTextureWithTexCoords(r, tex, uv);
+        GUI.matrix = m;
+    }
+
+    Texture2D ToolThumb(Tool t)
+    {
+        switch (t)
+        {
+            case Tool.Wall: return Thumb("wall");
+            case Tool.Erase: return null;
+            case Tool.Move: return null;
+            case Tool.Planning: return Thumb("plan");
+            case Tool.Programming: return Thumb("programming");
+            case Tool.Graphic: return Thumb("graphic");
+            case Tool.QA: return Thumb("qa");
+            case Tool.Crafter: return Thumb("crafter");
+            case Tool.Terminal: return Thumb("terminal");
+            case Tool.Player: return Thumb("player");
+            default: return Thumb("bee");
+        }
+    }
+
+    Texture2D Thumb(string key)
+    {
+        if (thumbs.TryGetValue(key, out var t) && t != null) return t;
+        string path = key switch
+        {
+            "plan" => "Assets/DebugRush/Art/Facilities/generator_plan.png",
+            "programming" => "Assets/DebugRush/Art/Facilities/generator_programming.png",
+            "graphic" => "Assets/DebugRush/Art/Facilities/generator_graphic.png",
+            "qa" => "Assets/DebugRush/Art/Facilities/generator_qa.png",
+            "crafter" => "Assets/DebugRush/Art/Placeholder/crafter_idle.png",
+            "terminal" => "Assets/DebugRush/Art/Facilities/terminal_error.png",
+            "player" => "Assets/DebugRush/Art/Drive/Player/run_R_01.png",
+            "bee" => "Assets/DebugRush/Art/Drive/Monster1/move_01.png",
+            _ => "Assets/DebugRush/Art/Placeholder/wall_single.png",
+        };
+        t = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        thumbs[key] = t;
+        return t;
+    }
+
+    void Styles()
+    {
+        if (big != null) return;
+        big = new GUIStyle(EditorStyles.textField) { fontSize = 14, wordWrap = true };
+        bigBold = new GUIStyle(EditorStyles.boldLabel) { fontSize = 14 };
+        title = new GUIStyle(EditorStyles.boldLabel) { fontSize = 12, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+        warn = new GUIStyle(EditorStyles.label) { fontSize = 13, normal = { textColor = new Color(1f, 0.4f, 0.4f) } };
+        ok = new GUIStyle(EditorStyles.label) { fontSize = 13, normal = { textColor = new Color(0.4f, 0.9f, 0.5f) } };
+        cardOn = new GUIStyle(GUI.skin.button) { fontSize = 14, alignment = TextAnchor.MiddleLeft, richText = true, normal = { textColor = new Color(0.6f, 1f, 0.7f) } };
+        cardOff = new GUIStyle(GUI.skin.button) { fontSize = 14, alignment = TextAnchor.MiddleLeft, richText = true, normal = { textColor = new Color(0.6f, 0.6f, 0.65f) } };
+        cardSel = new GUIStyle(GUI.skin.button) { fontSize = 14, alignment = TextAnchor.MiddleLeft, richText = true, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.4f, 0.9f, 1f) } };
+    }
+
+    // ---------------- 시연용: 툴 기능으로 1-6 만들기 + 창 캡처 ----------------
+    /// <summary>툴 버튼과 같은 함수로 1-6 작성: 비어 있으면 새로 만들기 → 자동 생성 → 벽 몇 줄 칠하기 → 정보 입력 → 저장</summary>
+    public static void MakeDemo16()
+    {
+        var w = CreateInstance<StageMakerWindow>();
+        w.chapterTab = 0;
+        var s = LoadAll().FirstOrDefault(x => x.chapter == 1 && x.stage == 6);
+        if (s == null) w.CreateAt(1, 6, null); else w.Select(s);
+        s = w.selected;
+        w.EnsureLayout(s);
+        w.autoSeed = 3;
+        s.layout.terminals = new[] { Vector2.zero, Vector2.zero, Vector2.zero };   // 단말기 3대
+        w.AutoGenerate();                                   // [자동 생성]
+        var boxes = w.Objects().Select(w.Box).ToList();
+        for (int x = -3; x <= 2; x++) { var c = new Vector2Int(x, 2); if (!boxes.Any(b => b.Overlaps(new Rect(x - 0.5f, 1.5f, 2f, 2f)))) s.layout.walls.Add(c); }   // [벽] 칠하기 (물체 피해서)
+        s.displayName = "마감 전날 밤";
+        s.summary = "단말기 3대가 동시에 터진다. 벌은 전 패턴 사용.";
+        s.timeLimit = 100;
+        s.terminalGoal = new[] { 4, 5, 6 };
+        s.monsters[0].patternMask = 31; s.monsters[0].patternCount = 5;
+        s.intro = new[] { new DialogueLine { speaker = "나", text = "내일이 발표인데… 단말기가 셋 다 빨갛다." }, new DialogueLine { speaker = "나", text = "벌이 또 나타났다. 빨리 고치자!" } };
+        s.outro = new[] { new DialogueLine { speaker = "나", text = "겨우 살렸다. 이제 진짜 자자." } };
+        foreach (var (msg, bad) in w.Checks()) Debug.Log($"[StageMaker] check: {(bad ? "BAD " : "OK ")}{msg}");
+        Save(s);
+        DestroyImmediate(w);
+        Debug.Log("[StageMaker] 1-6 made");
+    }
+
+    /// <summary>에디터(GUI)로 실행: 창을 띄워 1-6을 고른 뒤 화면을 PNG로 저장하고 종료. 인자 -smshot 경로</summary>
+    public static void CaptureWindow()
+    {
+        var args = System.Environment.GetCommandLineArgs();
+        int i = System.Array.IndexOf(args, "-smshot");
+        string outPath = i >= 0 && i + 1 < args.Length ? args[i + 1] : "StageMaker.png";
+        var w = GetWindow<StageMakerWindow>("Stage Maker");
+        w.position = new Rect(40, 40, 1600, 900);
+        var s = LoadAll().FirstOrDefault(x => x.chapter == 1 && x.stage == 6) ?? LoadAll().FirstOrDefault();
+        w.Select(s);
+        w.tool = Tool.Wall;
+        double until = EditorApplication.timeSinceStartup + 6;
+        EditorApplication.update += Tick;
+        void Tick()
+        {
+            w.Repaint();
+            if (EditorApplication.timeSinceStartup < until) return;
+            EditorApplication.update -= Tick;
+            var p = w.position;
+            var px = UnityEditorInternal.InternalEditorUtility.ReadScreenPixel(new Vector2(p.x, p.y), (int)p.width, (int)p.height);
+            var tex = new Texture2D((int)p.width, (int)p.height, TextureFormat.RGBA32, false);
+            tex.SetPixels(px); tex.Apply();
+            System.IO.File.WriteAllBytes(outPath, tex.EncodeToPNG());
+            Debug.Log("[StageMaker] captured " + outPath);
+            EditorApplication.Exit(0);
+        }
+    }
+
+    // ---------------- 배치(batch) 검증·변환용 ----------------
+    /// <summary>1-1~1-5를 맵 데이터(벽 포함) 방식으로 변환</summary>
+    public static void ConvertExisting()
+    {
+        foreach (var s in LoadAll())
+        {
+            if (s.layout == null || !s.layout.use || s.layout.walls == null || s.layout.walls.Count == 0)
+            {
+                s.layout = StageLayoutDefaults.Default();
+                EditorUtility.SetDirty(s);
+            }
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log("[StageMaker] converted");
     }
 }

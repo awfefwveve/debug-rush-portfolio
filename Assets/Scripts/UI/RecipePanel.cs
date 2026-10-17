@@ -101,7 +101,7 @@ public class RecipePanel : MonoBehaviour
     void Update()
     {
         if (panel == null) return;
-        if (Input.GetKeyDown(KeyCode.Tab)) { open = !open; Apply(); }
+        if (Input.GetKeyDown(KeyCode.Tab)) Toggle();
 
         // 지금 단말기가 요구하는 결과 줄 강조
         var needed = new HashSet<ItemType>();
@@ -116,22 +116,33 @@ public class RecipePanel : MonoBehaviour
         }
     }
 
+    // 맵 크기는 고정 (카메라는 처음부터 패널 자리를 비워 둠). 패널만 오른쪽 밖으로 0.2초 슬라이드.
+    float slide;            // 0 = 펼침, 1 = 접힘
+    TMP_Text tab;
+
+    public void Toggle() { open = !open; Apply(); }
+
     void Apply()
     {
-        body.SetActive(open);
-        if (open)
+        header.text = "조합표 <size=18><color=#8FA3C7>(Tab 접기)</color></size>";
+        if (tab == null)
         {
-            panel.anchorMin = new Vector2(1f, 0f); panel.anchorMax = new Vector2(1f, 1f); panel.pivot = new Vector2(1f, 0.5f);
-            panel.offsetMin = new Vector2(-Width, 146f); panel.offsetMax = new Vector2(0f, -146f);
+            var tabBg = new GameObject("RecipeTab", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            tabBg.transform.SetParent(panel.parent, false);
+            var r = tabBg.rectTransform; r.anchorMin = r.anchorMax = new Vector2(1f, 1f); r.pivot = new Vector2(1f, 1f);
+            r.anchoredPosition = new Vector2(0f, -150f); r.sizeDelta = new Vector2(150f, 56f);
+            tabBg.color = Bg; tabBg.raycastTarget = false;
+            tab = StageHUD.Label(r, "조합표 <size=18>(Tab)</size>", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140f, 50f), 24f, TextAlignmentOptions.Center, Accent, true);
         }
-        else
-        {
-            // 접힘: 오른쪽 위 작은 탭
-            panel.anchorMin = panel.anchorMax = new Vector2(1f, 1f); panel.pivot = new Vector2(1f, 1f);
-            panel.anchoredPosition = new Vector2(0f, -146f); panel.sizeDelta = new Vector2(160f, 60f);
-        }
-        header.text = open ? "조합표 <size=18><color=#8FA3C7>(Tab 접기)</color></size>" : "조합표 <size=18>(Tab)</size>";
-        header.rectTransform.sizeDelta = new Vector2(open ? Width - 20f : 140f, 44f);
-        if (CameraFit.I != null) CameraFit.I.sidebar = open ? Width + 10f : 0f;
+        if (CameraFit.I != null) CameraFit.I.sidebar = Width + 10f;      // 항상 같은 자리 비워 둠
+    }
+
+    void LateUpdate()
+    {
+        if (panel == null) return;
+        slide = Mathf.MoveTowards(slide, open ? 0f : 1f, Time.unscaledDeltaTime / 0.2f);
+        float k = slide * slide * (3f - 2f * slide);                       // 부드럽게
+        panel.anchoredPosition = new Vector2(k * (Width + 12f), panel.anchoredPosition.y);
+        if (tab != null) tab.transform.parent.gameObject.SetActive(slide > 0.95f);
     }
 }

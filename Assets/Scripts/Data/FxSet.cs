@@ -18,6 +18,9 @@ public class FxSet : ScriptableObject
     public Sprite warnCircleBorder;  // 원형 예고 128×128 테두리
     public Sprite warnLine;          // 직선 예고 32×128 아래 중앙 기준
 
+    [Header("벽 연결 조각 (32×32, 기본 방향: 끝=아래, 직선=좌우, 코너=오른쪽+아래, T=좌·우·아래)")]
+    public Sprite wallSingle, wallEnd, wallStraight, wallCorner, wallT, wallCross;
+
     static FxSet cached;
     public static FxSet Get()
     {

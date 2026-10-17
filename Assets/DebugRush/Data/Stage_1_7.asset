@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40bd741bfbcabbe43b19f4467502735b, type: 3}
+  m_Name: Stage_1_7
+  m_EditorClassIdentifier: Assembly-CSharp::StageData
+  chapter: 1
+  stage: 7
+  displayName: 1-7
+  summary: 
+  sceneName: Stage
+  timeLimit: 95
+  timeMultiplier:
+  - 1.3
+  - 1
+  - 0.8
+  terminalGoal: 040000000500000006000000
+  requestTime:
+  - 40
+  - 30
+  - 22
+  monsters:
+  - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
+    patternCount: 5
+    patternMask: 31
+    spawnPos: {x: 3, y: 3}
+  intro: []
+  outro: []
+  layout:
+    use: 1
+    walls:
+    - {x: -14, y: -6}
+    - {x: -14, y: 5}
+    - {x: -13, y: -6}
+    - {x: -13, y: 5}
+    - {x: -12, y: -6}
+    - {x: -12, y: 5}
+    - {x: -11, y: -6}
+    - {x: -11, y: 5}
+    - {x: -10, y: -6}
+    - {x: -10, y: 5}
+    - {x: -9, y: -6}
+    - {x: -9, y: 5}
+    - {x: -8, y: -6}
+    - {x: -8, y: 5}
+    - {x: -7, y: -6}
+    - {x: -7, y: 5}
+    - {x: -6, y: -6}
+    - {x: -6, y: 5}
+    - {x: -5, y: -6}
+    - {x: -5, y: 5}
+    - {x: -4, y: -6}
+    - {x: -4, y: 5}
+    - {x: -3, y: -6}
+    - {x: -3, y: 5}
+    - {x: -2, y: -6}
+    - {x: -2, y: 5}
+    - {x: -1, y: -6}
+    - {x: -1, y: 5}
+    - {x: 0, y: -6}
+    - {x: 0, y: 5}
+    - {x: 1, y: -6}
+    - {x: 1, y: 5}
+    - {x: 2, y: -6}
+    - {x: 2, y: 5}
+    - {x: 3, y: -6}
+    - {x: 3, y: 5}
+    - {x: 4, y: -6}
+    - {x: 4, y: 5}
+    - {x: 5, y: -6}
+    - {x: 5, y: 5}
+    - {x: 6, y: -6}
+    - {x: 6, y: 5}
+    - {x: 7, y: -6}
+    - {x: 7, y: 5}
+    - {x: 8, y: -6}
+    - {x: 8, y: 5}
+    - {x: 9, y: -6}
+    - {x: 9, y: 5}
+    - {x: 10, y: -6}
+    - {x: 10, y: 5}
+    - {x: 11, y: -6}
+    - {x: 11, y: 5}
+    - {x: 12, y: -6}
+    - {x: 12, y: 5}
+    - {x: 13, y: -6}
+    - {x: 13, y: 5}
+    - {x: -14, y: -5}
+    - {x: 13, y: -5}
+    - {x: -14, y: -4}
+    - {x: 13, y: -4}
+    - {x: -14, y: -3}
+    - {x: 13, y: -3}
+    - {x: -14, y: -2}
+    - {x: 13, y: -2}
+    - {x: -14, y: -1}
+    - {x: 13, y: -1}
+    - {x: -14, y: 0}
+    - {x: 13, y: 0}
+    - {x: -14, y: 1}
+    - {x: 13, y: 1}
+    - {x: -14, y: 2}
+    - {x: 13, y: 2}
+    - {x: -14, y: 3}
+    - {x: 13, y: 3}
+    - {x: -14, y: 4}
+    - {x: 13, y: 4}
+    - {x: -7, y: 0}
+    - {x: -6, y: 0}
+    - {x: -5, y: 0}
+    - {x: -4, y: 0}
+    - {x: -3, y: 0}
+    - {x: 2, y: 0}
+    - {x: 3, y: 0}
+    - {x: 4, y: 0}
+    - {x: 5, y: 0}
+    - {x: 6, y: 0}
+    - {x: -13, y: 4}
+    - {x: -12, y: 4}
+    - {x: -13, y: 3}
+    - {x: -12, y: 3}
+    - {x: 11, y: -4}
+    - {x: 12, y: -4}
+    - {x: 11, y: -5}
+    - {x: 12, y: -5}
+    playerStart: {x: 0, y: -3.4}
+    planning: {x: 5, y: -3.2}
+    programming: {x: 9, y: -3.2}
+    graphic: {x: -9, y: 3.2}
+    qa: {x: -5, y: 3.2}
+    craftingTable: {x: 0, y: 0}
+    terminals:
+    - {x: 10.5, y: 2}
+    - {x: -10.5, y: -2.4}

@@ -34,3 +34,9 @@ MonoBehaviour:
   warnCircleFill: {fileID: 21300000, guid: 14748db6b357c314eaba8c1dc319fd56, type: 3}
   warnCircleBorder: {fileID: 21300000, guid: d5a39a4f9eeb76a4bb4286cb6c6d4a78, type: 3}
   warnLine: {fileID: 21300000, guid: fe0bd841e6277b443b781f947b0e0062, type: 3}
+  wallSingle: {fileID: 21300000, guid: 105fc9a9bcec6aa44bdbbfc9f561da19, type: 3}
+  wallEnd: {fileID: 21300000, guid: 1dab1fc7fbdc6ff47b45df4824c2d237, type: 3}
+  wallStraight: {fileID: 21300000, guid: 823fd336bba42b44aa5202855ca3dc0d, type: 3}
+  wallCorner: {fileID: 21300000, guid: d307bbb18b662414787c5c323051ccd6, type: 3}
+  wallT: {fileID: 21300000, guid: 8a4a01284ce52ed4b8e372f2c51607b8, type: 3}
+  wallCross: {fileID: 21300000, guid: c01e1a9b0dbb08546b1a2982b004fc79, type: 3}

@@ -9,6 +9,16 @@ public static class StageLayoutApplier
     {
         if (l == null || sm == null) return;
 
+        // 벽: 스테이지 데이터의 칸 목록 하나로 그림+충돌을 같이 만듦 (보이는 벽 = 막히는 벽)
+        if (allowClone && l.walls != null && l.walls.Count > 0)
+        {
+            int layer = 0;
+            foreach (var col in Object.FindObjectsByType<Collider2D>(FindObjectsSortMode.None))
+                if (col.gameObject.name.StartsWith("Wall_") || (col.CompareTag("Wall") && !col.isTrigger))
+                { layer = col.gameObject.layer; col.gameObject.SetActive(false); }
+            WallBuilder.Build(l.walls, layer);
+        }
+
         if (sm.player != null) sm.player.transform.position = l.playerStart;
 
         foreach (var s in Object.FindObjectsByType<ResourceStation>(FindObjectsSortMode.None))

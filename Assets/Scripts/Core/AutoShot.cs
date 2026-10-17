@@ -13,6 +13,7 @@ public class AutoShot : MonoBehaviour
     string dir;
     float playSeconds = 40f;
     bool quick;
+    string stageName = "";
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -24,6 +25,7 @@ public class AutoShot : MonoBehaviour
         DontDestroyOnLoad(go);
         var a = go.AddComponent<AutoShot>(); a.dir = args[i + 1];
         a.quick = System.Array.IndexOf(args, "-autoshot-quick") >= 0;   // 해상도 확인용: 타이틀 + 스테이지만
+        int s = System.Array.IndexOf(args, "-autoshot-stage"); if (s >= 0 && s + 1 < args.Length) a.stageName = args[s + 1];   // 예: 1-6
     }
 
     IEnumerator Start()
@@ -50,7 +52,8 @@ public class AutoShot : MonoBehaviour
         var gm = GameManager.I;
         if (gm != null && gm.allStages != null && gm.allStages.Length > 0)
         {
-            gm.StartStage(gm.allStages[0], Difficulty.Easy);   // 1학년 = Easy
+            var pick = gm.allStages.FirstOrDefault(x => x != null && $"{x.chapter}-{x.stage}" == stageName) ?? gm.allStages[0];
+            gm.StartStage(pick, Difficulty.Easy);   // 1학년 = Easy
             yield return new WaitForSecondsRealtime(1.5f);
             yield return Shot("05_stage_intro");
             var dlg = FindAnyObjectByType<DialogueUI>();
@@ -72,6 +75,8 @@ public class AutoShot : MonoBehaviour
         if (player == null) yield break;
         StartCoroutine(Brain());
         StartCoroutine(Watcher());
+        WallCheck();
+        StartCoroutine(RecipeSlide());
 
         // 달리기 프레임 연속 캡처 (0.09초 간격 12장)
         yield return new WaitForSeconds(0.4f);
@@ -179,6 +184,43 @@ public class AutoShot : MonoBehaviour
         var mats = new[] { ItemType.Planning, ItemType.Programming, ItemType.Graphic, ItemType.QA };
         foreach (var a in mats) foreach (var b in mats) if (ItemRules.Combine(a, b) == result) return (a, b);
         return (ItemType.Planning, ItemType.QA);
+    }
+
+    /// <summary>"보이는 벽 = 막히는 벽" 검사: 막히는 콜라이더 칸마다 그 자리에 보이는 그림이 있는지</summary>
+    void WallCheck()
+    {
+        var renderers = FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None).Where(r => r.enabled && r.gameObject.activeInHierarchy && r.sprite != null && r.color.a > 0.1f).ToArray();
+        int cells = 0, bad = 0;
+        foreach (var c in FindObjectsByType<Collider2D>(FindObjectsSortMode.None))
+        {
+            if (c.isTrigger || !c.enabled || c.attachedRigidbody != null && c.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) continue;
+            var b = c.bounds;
+            for (float x = b.min.x + 0.5f; x < b.max.x; x += 1f)
+                for (float y = b.min.y + 0.5f; y < b.max.y; y += 1f)
+                {
+                    var p = new Vector3(x, y, 0f);
+                    if (!c.OverlapPoint(p)) continue;
+                    cells++;
+                    if (!renderers.Any(r => { var rb = r.bounds; rb.extents += new Vector3(0.05f, 0.05f, 10f); return rb.Contains(p); }))
+                    { bad++; Debug.Log($"[WallCheck] invisible blocker {c.name} at {p}"); }
+                }
+        }
+        Debug.Log($"[WallCheck] stage={StageManager.I?.Data?.displayName} blockingCells={cells} invisible={bad}");
+    }
+
+    IEnumerator RecipeSlide()
+    {
+        var panel = FindAnyObjectByType<RecipePanel>();
+        if (panel == null) yield break;
+        yield return new WaitForSecondsRealtime(6f);
+        var cam = Camera.main;
+        float size0 = cam.orthographicSize; Vector3 pos0 = cam.transform.position;
+        panel.Toggle();
+        yield return new WaitForSecondsRealtime(0.1f); yield return Shot("40_recipe_closing");
+        yield return new WaitForSecondsRealtime(0.4f); yield return Shot("41_recipe_closed");
+        Debug.Log($"[RecipeCheck] camera size {size0}->{cam.orthographicSize} pos {pos0}->{cam.transform.position}");
+        panel.Toggle();
+        yield return new WaitForSecondsRealtime(0.5f); yield return Shot("42_recipe_open");
     }
 
     IEnumerator Shot(string name)
