@@ -21,6 +21,15 @@ public class FxSet : ScriptableObject
     [Header("벽 연결 조각 (32×32, 기본 방향: 끝=아래, 직선=좌우, 코너=오른쪽+아래, T=좌·우·아래)")]
     public Sprite wallSingle, wallEnd, wallStraight, wallCorner, wallT, wallCross;
 
+    [Header("입체(3/4 시점) 타일 — 있으면 위 6조각 대신 사용. 모서리 순서: 좌상·우상·좌하·우하")]
+    public Sprite[] tileFloor;          // tile_floor_01~03 (칸마다 고정 무작위)
+    public Sprite tileWorkFloor;        // 제작대 주변 바닥
+    public Sprite wallTopTile;          // tile_wall_top
+    public Sprite[] wallFront;          // tile_wall_front_01~02 (아래가 바닥인 벽)
+    public Sprite[] cornerOut = new Sprite[4], cornerIn = new Sprite[4];
+
+    public bool Has3Q => wallTopTile != null;
+
     static FxSet cached;
     public static FxSet Get()
     {

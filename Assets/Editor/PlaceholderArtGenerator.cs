@@ -38,6 +38,21 @@ public static class PlaceholderArtGenerator
     const string Fac = "Assets/DebugRush/Art/Facilities/";
     static Sprite F(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Fac + n + ".png");
     static Sprite Pick(string team, string placeholder) => F(team) != null ? F(team) : S(placeholder);
+    const string Tiles = "Assets/DebugRush/Art/Tiles/";
+    static Sprite T(string n) { var s = AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + n + ".png"); return s != null ? s : S(n); }
+
+    /// <summary>그래픽 팀 타일(Art/Tiles): 128px = 1칸, 칸 중심 기준, 픽셀아트라 Point 필터</summary>
+    static void ConfigureTileArt()
+    {
+        if (!Directory.Exists(Tiles)) return;
+        foreach (var path in Directory.GetFiles(Tiles, "*.png"))
+        {
+            var p = path.Replace('\\', '/');
+            Import(p, PPU, new Vector2(0.5f, 0.5f), Vector4.zero, true);
+            var imp = AssetImporter.GetAtPath(p) as TextureImporter;
+            if (imp != null && imp.filterMode != FilterMode.Point) { imp.filterMode = FilterMode.Point; imp.SaveAndReimport(); }
+        }
+    }
 
     static readonly Dictionary<ItemType, string> MaterialName = new Dictionary<ItemType, string>
     {
@@ -67,6 +82,7 @@ public static class PlaceholderArtGenerator
         AssetDatabase.Refresh();
         ConfigureImports();
         ConfigureDriveArt();
+        ConfigureTileArt();
         AssetDatabase.Refresh();
         BuildFxSet();
         Apply();
@@ -97,6 +113,14 @@ public static class PlaceholderArtGenerator
         WallTile("wall_t", true, true, true, false);
         WallTile("wall_cross", true, true, true, true);
         WallTile("wall_fill", true, true, true, true, true);     // 반복 채움용
+        // 입체(3/4 시점) 타일 임시 그림 — 그래픽 팀 파일 이름 그대로. 진짜 그림은 Art/Tiles 에 같은 이름으로 넣으면 그쪽을 씀
+        for (int i = 1; i <= 3; i++) FloorTile3Q($"tile_floor_0{i}", i, false);
+        FloorTile3Q("tile_floor_work", 0, true);
+        TopTile("tile_wall_top", false, false, false, false);
+        FrontTile("tile_wall_front_01", 0); FrontTile("tile_wall_front_02", 1);
+        TopTile("tile_corner_out_tl", true, false, true, false); TopTile("tile_corner_out_tr", false, true, true, false);
+        TopTile("tile_corner_out_bl", true, false, false, true); TopTile("tile_corner_out_br", false, true, false, true);
+        InnerCorner("tile_corner_in_tl", 0); InnerCorner("tile_corner_in_tr", 1); InnerCorner("tile_corner_in_bl", 2); InnerCorner("tile_corner_in_br", 3);
 
         // 아이템 생성기 96×80 (기준점 48,40): 공통 몸체 + 재료 색상·표식
         foreach (var kv in MaterialColor) Generator(kv.Key, kv.Value);
@@ -168,6 +192,50 @@ public static class PlaceholderArtGenerator
     }
 
     // ---------- 개별 그림 ----------
+    static void FloorTile3Q(string name, int variant, bool work)
+    {
+        var t = New(128, 128, work ? Hex("1E2638") : FloorA);
+        Rect(t, 0, 0, 128, 4, FloorLine); Rect(t, 0, 0, 4, 128, FloorLine);
+        if (variant == 2) Rect(t, 60, 60, 8, 8, FloorLine);
+        if (variant == 3) { Rect(t, 20, 90, 24, 4, FloorLine); Rect(t, 84, 30, 24, 4, FloorLine); }
+        if (work) { Rect(t, 0, 0, 128, 6, Hex("3A3220")); Rect(t, 0, 122, 128, 6, Hex("3A3220")); }
+        Save(t, name);
+    }
+
+    // 윗면 (모서리면 바깥쪽 두 변에 외곽선)
+    static void TopTile(string name, bool left, bool right, bool top, bool bottom)
+    {
+        var t = New(128, 128, WallTop);
+        Rect(t, 16, 16, 96, 96, Hex("62759A"));
+        if (left) Rect(t, 0, 0, 8, 128, Outline);
+        if (right) Rect(t, 120, 0, 8, 128, Outline);
+        if (top) Rect(t, 0, 120, 128, 8, Outline);
+        if (bottom) Rect(t, 0, 0, 128, 8, Outline);
+        Save(t, name);
+    }
+
+    // 앞면: 위쪽 띠는 윗면 색, 아래는 벽 옆면
+    static void FrontTile(string name, int variant)
+    {
+        var t = New(128, 128, WallFace);
+        Rect(t, 0, 96, 128, 32, WallTop);
+        Rect(t, 0, 88, 128, 8, Outline);
+        Rect(t, 0, 0, 128, 10, WallDark);
+        for (int y = 30; y < 88; y += 28) Rect(t, variant == 0 ? 0 : 20, y, variant == 0 ? 128 : 88, 4, WallDark);
+        Save(t, name);
+    }
+
+    // 안쪽 모서리: 윗면 + 꺾이는 쪽 귀퉁이에 앞면 조각 (0 좌상 · 1 우상 · 2 좌하 · 3 우하)
+    static void InnerCorner(string name, int corner)
+    {
+        var t = New(128, 128, WallTop);
+        Rect(t, 16, 16, 96, 96, Hex("62759A"));
+        int x = corner % 2 == 0 ? 0 : 64, y = corner < 2 ? 64 : 0;
+        Rect(t, x, y, 64, 64, WallFace);
+        Rect(t, x, y + (corner < 2 ? 0 : 56), 64, 8, Outline);
+        Save(t, name);
+    }
+
     static void WallTile(string name, bool l, bool r, bool d, bool u, bool fill = false)
     {
         var t = New(128, 128, Clear);
@@ -297,7 +365,7 @@ public static class PlaceholderArtGenerator
             Vector4 border = Vector4.zero;
             if (n == "warn_line") { pivot = new Vector2(0.5f, 0f); border = new Vector4(32, 40, 32, 40); }
             if (n == "ui_round") border = new Vector4(16, 16, 16, 16);
-            bool tile = n.StartsWith("floor") || n.StartsWith("wall");
+            bool tile = n.StartsWith("floor") || n.StartsWith("wall") || n.StartsWith("tile_");
             Import(p, PPU, pivot, border, tile);
         }
     }
@@ -374,6 +442,13 @@ public static class PlaceholderArtGenerator
         fx.warnCircleFill = S("warn_circle_fill"); fx.warnCircleBorder = S("warn_circle_border"); fx.warnLine = S("warn_line");
         fx.wallSingle = S("wall_single"); fx.wallEnd = S("wall_end"); fx.wallStraight = S("wall_straight");
         fx.wallCorner = S("wall_corner"); fx.wallT = S("wall_t"); fx.wallCross = S("wall_cross");
+        // 입체 타일: 그래픽 팀 그림(Art/Tiles)이 있으면 그걸, 없으면 임시 그림
+        fx.tileFloor = new[] { "tile_floor_01", "tile_floor_02", "tile_floor_03" }.Select(T).Where(s => s != null).ToArray();
+        fx.tileWorkFloor = T("tile_floor_work");
+        fx.wallTopTile = T("tile_wall_top");
+        fx.wallFront = new[] { "tile_wall_front_01", "tile_wall_front_02" }.Select(T).Where(s => s != null).ToArray();
+        fx.cornerOut = new[] { "tl", "tr", "bl", "br" }.Select(k => T("tile_corner_out_" + k)).ToArray();
+        fx.cornerIn = new[] { "tl", "tr", "bl", "br" }.Select(k => T("tile_corner_in_" + k)).ToArray();
         EditorUtility.SetDirty(fx);
     }
 

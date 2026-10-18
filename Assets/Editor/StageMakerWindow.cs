@@ -170,10 +170,15 @@ public class StageMakerWindow : EditorWindow
         EditorGUI.DrawRect(grid, new Color(0.03f, 0.04f, 0.07f));
         var L = selected.layout;
         var floorTex = Thumb("floor");
-        foreach (var c in L.FloorSet())
+        var fx0 = FxSet.Get();
+        var floorAll = L.FloorSet();
+        var work = L.crafters.Select(p => new Rect(p - StageLayoutDefaults.CrafterSize / 2f - Vector2.one, StageLayoutDefaults.CrafterSize + Vector2.one * 2f)).ToList();
+        foreach (var c in floorAll)
         {
             var fr = CellRect(grid, cs, c);
-            if (floorTex != null) GUI.DrawTexture(fr, floorTex); else EditorGUI.DrawRect(fr, new Color(0.09f, 0.11f, 0.17f));
+            var fs = WallBuilder.FloorSprite(c, fx0, work);   // 게임과 같은 바닥 타일
+            if (fs != null) DrawSprite(fr, fs, 0f);
+            else if (floorTex != null) GUI.DrawTexture(fr, floorTex); else EditorGUI.DrawRect(fr, new Color(0.09f, 0.11f, 0.17f));
         }
         for (int x = 0; x <= GW; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
         for (int y = 0; y <= GH; y++) EditorGUI.DrawRect(new Rect(grid.x, grid.y + y * cs, grid.width, 1), new Color(1, 1, 1, 0.05f));
@@ -182,7 +187,7 @@ public class StageMakerWindow : EditorWindow
         var fx = FxSet.Get();
         foreach (var c in wallSet)
         {
-            WallBuilder.Piece(wallSet, c, out var spr, out float ang, fx);
+            WallBuilder.Piece(wallSet, c, out var spr, out float ang, fx, floorAll);
             var cell = CellRect(grid, cs, c);
             if (spr != null) DrawSprite(cell, spr, ang); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
         }

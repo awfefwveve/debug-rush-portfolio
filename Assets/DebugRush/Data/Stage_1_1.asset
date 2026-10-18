@@ -170,6 +170,8 @@ MonoBehaviour:
     - {x: 13, y: -7}
     - {x: 12, y: -6}
     - {x: 13, y: -6}
+    customFloor: 0
+    floor: []
     playerStart: {x: 0, y: -4.5}
     stations:
     - material: 0

@@ -17,14 +17,17 @@ public static class StageLayoutApplier
             foreach (var col in Object.FindObjectsByType<Collider2D>(FindObjectsSortMode.None))
                 if (col.gameObject.name.StartsWith("Wall_") || (col.CompareTag("Wall") && !col.isTrigger))
                 { layer = col.gameObject.layer; col.gameObject.SetActive(false); }
-            WallBuilder.Build(l.walls, layer);
+            var floorSet = l.FloorSet();
+            WallBuilder.Build(l.walls, layer, floorSet);
 
             // 바닥: 칠한 칸에만 깔고, 빈칸은 그림 없이 막음 (씬의 통짜 바닥은 끔)
             var floor = GameObject.Find("Floor");
             var fsr = floor != null ? floor.GetComponent<SpriteRenderer>() : null;
             if (fsr != null)
             {
-                WallBuilder.BuildFloor(l.FloorSet(), l.walls, l.width, l.height, fsr.sprite, fsr.sortingOrder, layer);
+                l.Migrate();
+                var work = l.crafters.Select(p => new Rect(p - StageLayoutDefaults.CrafterSize / 2f - Vector2.one, StageLayoutDefaults.CrafterSize + Vector2.one * 2f)).ToList();   // 제작대 둘레 한 칸 = 작업대 바닥
+                WallBuilder.BuildFloor(floorSet, l.walls, l.width, l.height, fsr.sprite, fsr.sortingOrder, layer, work);
                 floor.SetActive(false);
             }
         }

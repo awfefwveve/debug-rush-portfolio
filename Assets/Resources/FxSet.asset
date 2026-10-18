@@ -40,3 +40,22 @@ MonoBehaviour:
   wallCorner: {fileID: 21300000, guid: d307bbb18b662414787c5c323051ccd6, type: 3}
   wallT: {fileID: 21300000, guid: 8a4a01284ce52ed4b8e372f2c51607b8, type: 3}
   wallCross: {fileID: 21300000, guid: c01e1a9b0dbb08546b1a2982b004fc79, type: 3}
+  tileFloor:
+  - {fileID: 21300000, guid: ed105536a7f3ff345a7a92de77c6c56c, type: 3}
+  - {fileID: 21300000, guid: a24e3852055387042a8e12ea70443360, type: 3}
+  - {fileID: 21300000, guid: d7a4d003076cfee4bab8c7cf9f5366a7, type: 3}
+  tileWorkFloor: {fileID: 21300000, guid: 62b6a99366e7964409ecd564ce4a4852, type: 3}
+  wallTopTile: {fileID: 21300000, guid: 748edbf9965328f4fa8eadba40452a23, type: 3}
+  wallFront:
+  - {fileID: 21300000, guid: fb05b5f2e08a1894885fe135eb899901, type: 3}
+  - {fileID: 21300000, guid: 76e79e3610fa5f94d9a270086f146bfb, type: 3}
+  cornerOut:
+  - {fileID: 21300000, guid: 802c37a803462ee43b8da0244ff4ca41, type: 3}
+  - {fileID: 21300000, guid: e1b0063fecbc8dc459aec9caa84723f0, type: 3}
+  - {fileID: 21300000, guid: ff8c308008224d0449d983bbf462608d, type: 3}
+  - {fileID: 21300000, guid: b3d7f0cc59c9d684b9c2be93146dfe00, type: 3}
+  cornerIn:
+  - {fileID: 21300000, guid: 73e936d09af268b45b50be4e302ec929, type: 3}
+  - {fileID: 21300000, guid: 80d796d9ed755a3498493fc2755111aa, type: 3}
+  - {fileID: 21300000, guid: d175d9a19b25d404dbc9813d88f5d714, type: 3}
+  - {fileID: 21300000, guid: d95b632c38ff43645b2c7daa5abb86ca, type: 3}
