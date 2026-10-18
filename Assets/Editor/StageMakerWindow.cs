@@ -187,9 +187,9 @@ public class StageMakerWindow : EditorWindow
         var fx = FxSet.Get();
         foreach (var c in wallSet)
         {
-            WallBuilder.Piece(wallSet, c, out var spr, out float ang, fx, floorAll);
+            WallBuilder.Piece(wallSet, c, out var spr, out float ang, out bool flipX, fx, floorAll);
             var cell = CellRect(grid, cs, c);
-            if (spr != null) DrawSprite(cell, spr, ang); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
+            if (spr != null) DrawSprite(cell, spr, ang, flipX); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
             if (fx != null && fx.Has3Q)
             {
                 // 게임과 같은 벽·바닥 경계선
@@ -855,10 +855,11 @@ public class StageMakerWindow : EditorWindow
     static Rect WorldRect(Rect grid, float cs, Vector2 center, Vector2 size)
         => new Rect(grid.x + (center.x - size.x / 2f - WallBuilder.MinX(GW)) * cs, grid.y + (WallBuilder.MaxY(GH) + 1 - center.y - size.y / 2f) * cs, size.x * cs, size.y * cs);
 
-    static void DrawSprite(Rect r, Sprite s, float angle)
+    static void DrawSprite(Rect r, Sprite s, float angle, bool flipX = false)
     {
         var tex = s.texture;
         var uv = new Rect(s.textureRect.x / tex.width, s.textureRect.y / tex.height, s.textureRect.width / tex.width, s.textureRect.height / tex.height);
+        if (flipX) uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);   // 좌우 반전
         if (Mathf.Approximately(angle, 0f)) { GUI.DrawTextureWithTexCoords(r, tex, uv); return; }
         var m = GUI.matrix;
         GUIUtility.RotateAroundPivot(-angle, r.center);

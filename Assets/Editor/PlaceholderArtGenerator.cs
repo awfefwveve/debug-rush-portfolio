@@ -431,6 +431,23 @@ public static class PlaceholderArtGenerator
     static Sprite[] DriveSeq(string folder, string prefix) =>
         Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
 
+    /// <summary>좌상·우상·좌하·우하. 팀 그림 우선 → 오른쪽 팀 그림이 없고 왼쪽이 있으면 왼쪽 반전 → 임시 그림</summary>
+    static void Corners(string prefix, out Sprite[] sprites, out bool[] flip)
+    {
+        string[] keys = { "tl", "tr", "bl", "br" };
+        sprites = new Sprite[4]; flip = new bool[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var team = AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + prefix + keys[i] + ".png");
+            if (team == null && (i == 1 || i == 3))
+            {
+                var left = AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + prefix + keys[i - 1] + ".png");
+                if (left != null) { sprites[i] = left; flip[i] = true; continue; }
+            }
+            sprites[i] = team != null ? team : S(prefix + keys[i]);
+        }
+    }
+
     static void BuildFxSet()
     {
         Directory.CreateDirectory("Assets/Resources");
@@ -447,8 +464,9 @@ public static class PlaceholderArtGenerator
         fx.tileWorkFloor = T("tile_floor_work");
         fx.wallTopTile = T("tile_wall_top");
         fx.wallFront = new[] { "tile_wall_front_01", "tile_wall_front_02" }.Select(T).Where(s => s != null).ToArray();
-        fx.cornerOut = new[] { "tl", "tr", "bl", "br" }.Select(k => T("tile_corner_out_" + k)).ToArray();
-        fx.cornerIn = new[] { "tl", "tr", "bl", "br" }.Select(k => T("tile_corner_in_" + k)).ToArray();
+        // 모서리: 그래픽 팀은 왼쪽(tl·bl)만 그려도 됨 → 오른쪽 그림이 없으면 왼쪽 그림을 좌우 반전
+        Corners("tile_corner_out_", out fx.cornerOut, out fx.cornerOutFlip);
+        Corners("tile_corner_in_", out fx.cornerIn, out fx.cornerInFlip);
         EditorUtility.SetDirty(fx);
     }
 

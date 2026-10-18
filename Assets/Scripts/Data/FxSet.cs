@@ -27,6 +27,7 @@ public class FxSet : ScriptableObject
     public Sprite wallTopTile;          // tile_wall_top
     public Sprite[] wallFront;          // tile_wall_front_01~02 (아래가 바닥인 벽)
     public Sprite[] cornerOut = new Sprite[4], cornerIn = new Sprite[4];
+    [Tooltip("오른쪽 모서리 그림이 없어서 왼쪽 그림을 좌우 반전해 쓰는지")] public bool[] cornerOutFlip = new bool[4], cornerInFlip = new bool[4];
 
     public bool Has3Q => wallTopTile != null;
 

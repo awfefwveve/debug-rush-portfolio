@@ -24,7 +24,7 @@ public static class WallBuilder
         var fx = FxSet.Get();
         foreach (var c in set)
         {
-            Piece(set, c, out var sprite, out float angle, fx, floor);
+            Piece(set, c, out var sprite, out float angle, out bool flip, fx, floor);
             var t = new GameObject("Wall");
             t.transform.SetParent(root.transform, false);
             t.transform.position = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
@@ -32,7 +32,7 @@ public static class WallBuilder
             t.layer = layer;
             t.tag = "Wall";
             var sr = t.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite; sr.sortingOrder = 0;
+            sr.sprite = sprite; sr.sortingOrder = 0; sr.flipX = flip;
             var box = t.AddComponent<BoxCollider2D>();
             box.size = Vector2.one;
             if (fx != null && fx.Has3Q && floor != null) AddEdgeLines(t.transform, set, floor, c);
@@ -94,10 +94,11 @@ public static class WallBuilder
         return root;
     }
 
-    public static void Piece(HashSet<Vector2Int> cells, Vector2Int c, out Sprite sprite, out float angle, FxSet fx, HashSet<Vector2Int> floor = null)
+    public static void Piece(HashSet<Vector2Int> cells, Vector2Int c, out Sprite sprite, out float angle, out bool flipX, FxSet fx, HashSet<Vector2Int> floor = null)
     {
         // 입체 타일이 있으면 윗면·앞면·모서리 방식 (회전 없음)
-        if (fx != null && fx.Has3Q && floor != null) { angle = 0f; sprite = Piece3Q(cells, floor, c, fx); return; }
+        flipX = false;
+        if (fx != null && fx.Has3Q && floor != null) { angle = 0f; sprite = Piece3Q(cells, floor, c, fx, out flipX); return; }
         bool l = cells.Contains(c + Vector2Int.left), r = cells.Contains(c + Vector2Int.right),
              d = cells.Contains(c + Vector2Int.down), u = cells.Contains(c + Vector2Int.up);
         int n = (l ? 1 : 0) + (r ? 1 : 0) + (d ? 1 : 0) + (u ? 1 : 0);
@@ -114,19 +115,20 @@ public static class WallBuilder
     /// 입체(3/4 시점) 벽: 방 귀퉁이처럼 ㄱ자 안쪽이 바닥이면 바깥 모서리, 벽 덩어리가 바닥 쪽으로 꺾이는 곳은 안쪽 모서리,
     /// 바로 아래 칸이 바닥이면 앞면(바닥에서 보이는 벽 옆면), 나머지는 윗면. 모서리 순서: 좌상·우상·좌하·우하
     /// </summary>
-    static Sprite Piece3Q(HashSet<Vector2Int> w, HashSet<Vector2Int> floor, Vector2Int c, FxSet fx)
+    static Sprite Piece3Q(HashSet<Vector2Int> w, HashSet<Vector2Int> floor, Vector2Int c, FxSet fx, out bool flip)
     {
+        flip = false;
         bool L = w.Contains(c + new Vector2Int(-1, 0)), R = w.Contains(c + new Vector2Int(1, 0)), U = w.Contains(c + new Vector2Int(0, 1)), D = w.Contains(c + new Vector2Int(0, -1));
         bool UL = w.Contains(c + new Vector2Int(-1, 1)), UR = w.Contains(c + new Vector2Int(1, 1)), DL = w.Contains(c + new Vector2Int(-1, -1)), DR = w.Contains(c + new Vector2Int(1, -1));
         Sprite Or(Sprite s) => s != null ? s : fx.wallTopTile;
-        if (R && D && !L && !U && !DR) return Or(fx.cornerOut[0]);
-        if (L && D && !R && !U && !DL) return Or(fx.cornerOut[1]);
-        if (R && U && !L && !D && !UR) return Or(fx.cornerOut[2]);
-        if (L && U && !R && !D && !UL) return Or(fx.cornerOut[3]);
-        if (D && R && DR && !U && !L) return Or(fx.cornerIn[0]);
-        if (D && L && DL && !U && !R) return Or(fx.cornerIn[1]);
-        if (U && R && UR && !L && !D) return Or(fx.cornerIn[2]);
-        if (U && L && UL && !R && !D) return Or(fx.cornerIn[3]);
+        if (R && D && !L && !U && !DR) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[0]; return Or(fx.cornerOut[0]); }
+        if (L && D && !R && !U && !DL) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[1]; return Or(fx.cornerOut[1]); }
+        if (R && U && !L && !D && !UR) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[2]; return Or(fx.cornerOut[2]); }
+        if (L && U && !R && !D && !UL) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[3]; return Or(fx.cornerOut[3]); }
+        if (D && R && DR && !U && !L) { flip = fx.cornerInFlip != null && fx.cornerInFlip[0]; return Or(fx.cornerIn[0]); }
+        if (D && L && DL && !U && !R) { flip = fx.cornerInFlip != null && fx.cornerInFlip[1]; return Or(fx.cornerIn[1]); }
+        if (U && R && UR && !L && !D) { flip = fx.cornerInFlip != null && fx.cornerInFlip[2]; return Or(fx.cornerIn[2]); }
+        if (U && L && UL && !R && !D) { flip = fx.cornerInFlip != null && fx.cornerInFlip[3]; return Or(fx.cornerIn[3]); }
         if (floor.Contains(c + new Vector2Int(0, -1)) && fx.wallFront != null && fx.wallFront.Length > 0)
             return Or(fx.wallFront[Hash(c) % fx.wallFront.Length]);
         return fx.wallTopTile;
