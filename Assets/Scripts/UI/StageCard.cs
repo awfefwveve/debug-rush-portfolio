@@ -84,8 +84,14 @@ public class StageCard : MonoBehaviour
     {
         if (difficultyButtons == null || difficultyButtons.Length == 0 || difficultyButtons[0] == null) return null;
         var b = difficultyButtons[0];
-        Place((RectTransform)b.transform, new Vector2(0f, -180f), new Vector2(260f, 76f));
-        if (b.image != null) b.image.color = PlayRed;     // 기획서 p.17: 빨간 플레이 버튼
+        // 아트 팀 버튼 바탕(320×96, 글자 없음)이 Resources/UI/play_button.png 에 있으면 그걸 사용
+        var art = Resources.Load<Sprite>("UI/play_button");
+        Place((RectTransform)b.transform, new Vector2(0f, -180f), art != null ? new Vector2(260f, 78f) : new Vector2(260f, 76f));
+        if (b.image != null)
+        {
+            if (art != null) { b.image.sprite = art; b.image.type = Image.Type.Simple; b.image.preserveAspect = true; b.image.color = Color.white; }
+            else b.image.color = PlayRed;                 // 기획서 p.17: 빨간 플레이 버튼
+        }
         var label = b.GetComponentInChildren<TMP_Text>();
         if (label != null) { label.text = "플레이"; label.fontSize = 34f; label.fontStyle = FontStyles.Bold; label.color = Color.white; }
         b.interactable = true;

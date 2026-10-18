@@ -6,10 +6,25 @@ public static class SettingsWindow
     public const float Width = 400f, Height = 340f;
     static bool languageOpen;
 
-    /// <summary>화면 중앙에 그림. 돌아가기를 누르면 true.</summary>
+    static float dimFrom, dimLast = -1f;
+
+    /// <summary>뒤 화면 전체를 반투명 검정으로 (0.15초 페이드). 설정창·일시정지·확인창 공용</summary>
+    public static void Dim()
+    {
+        float now = Time.unscaledTime;
+        if (now - dimLast > 0.1f) dimFrom = now;          // 막 열렸으면 페이드 시작
+        dimLast = now;
+        var prev = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.5f * Mathf.Clamp01((now - dimFrom) / 0.15f));
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = prev;
+    }
+
+    /// <summary>화면 중앙에 그림 (뒤는 어둡게). 돌아가기를 누르면 true.</summary>
     public static bool Draw()
     {
         KoreanIMGUIFont.Apply();
+        Dim();
         var r = new Rect((Screen.width - Width) * 0.5f, (Screen.height - Height) * 0.5f, Width, Height);
         GUI.Box(r, "설정");
         GUILayout.BeginArea(new Rect(r.x + 28, r.y + 38, Width - 56, Height - 50));

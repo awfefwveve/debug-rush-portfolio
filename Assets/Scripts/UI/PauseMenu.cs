@@ -27,6 +27,7 @@ public class PauseMenu : MonoBehaviour
             if (SettingsWindow.Draw()) settings = false;
             return;
         }
+        SettingsWindow.Dim();
         float w = 360, h = 250;
         var r = new Rect((Screen.width-w)*.5f, (Screen.height-h)*.5f, w, h);
         GUI.Box(r, "일시정지");

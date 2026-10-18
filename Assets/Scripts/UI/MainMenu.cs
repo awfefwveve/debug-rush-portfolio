@@ -25,7 +25,7 @@ public class MainMenu : MonoBehaviour
             var r = (RectTransform)settingsPanel.transform;
             r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
             var img = settingsPanel.GetComponent<Image>();
-            if (img != null) img.color = new Color(0f, 0f, 0f, 0.6f);
+            if (img != null) { img.color = new Color(0f, 0f, 0f, 0f); img.raycastTarget = true; }   // 어둡게는 SettingsWindow.Dim, 이 판은 뒤 버튼 클릭만 막음
             settingsPanel.transform.SetAsLastSibling();
         }
         BuildIllustration();
@@ -113,9 +113,7 @@ public class MainMenu : MonoBehaviour
             GUI.Label(new Rect(btn.xMax + 16f * s, btn.y, 400f * s, btn.height), "초기화했어요. 처음부터 플레이할 수 있어요.", new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(20 * s), alignment = TextAnchor.MiddleLeft, normal = { textColor = new Color(0.4f, 0.95f, 0.6f) } });
 
         if (!confirmReset) return;
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        SettingsWindow.Dim();
         float w = 460f * s, h = 220f * s;
         var r = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
         GUI.Box(r, "");
