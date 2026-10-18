@@ -35,8 +35,31 @@ public static class WallBuilder
             sr.sprite = sprite; sr.sortingOrder = 0;
             var box = t.AddComponent<BoxCollider2D>();
             box.size = Vector2.one;
+            if (fx != null && fx.Has3Q && floor != null) AddEdgeLines(t.transform, set, floor, c);
         }
         return root;
+    }
+
+    /// <summary>입체 타일: 벽이 바닥과 맞닿은 왼쪽·오른쪽·위 변에 진한 경계선 (2px). 아래 변은 앞면 그림이 맡음</summary>
+    public const float EdgeWidth = 1f / 16f;
+    public static readonly Color EdgeColor = new Color(0.04f, 0.06f, 0.11f, 0.9f);
+    static Sprite edgeSprite;
+
+    static void AddEdgeLines(Transform cell, HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, Vector2Int c)
+    {
+        if (edgeSprite == null) edgeSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+        void Line(Vector2 offset, Vector2 size)
+        {
+            var g = new GameObject("Edge");
+            g.transform.SetParent(cell, false);
+            g.transform.localPosition = offset; g.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var sr = g.AddComponent<SpriteRenderer>();
+            sr.sprite = edgeSprite; sr.color = EdgeColor; sr.sortingOrder = 1;
+        }
+        float h = 0.5f - EdgeWidth / 2f;
+        if (floor.Contains(c + Vector2Int.left)) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
+        if (floor.Contains(c + Vector2Int.right)) Line(new Vector2(h, 0f), new Vector2(EdgeWidth, 1f));
+        if (floor.Contains(c + Vector2Int.up)) Line(new Vector2(0f, h), new Vector2(1f, EdgeWidth));
     }
 
     /// <summary>

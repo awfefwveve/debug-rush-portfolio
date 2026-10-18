@@ -190,6 +190,14 @@ public class StageMakerWindow : EditorWindow
             WallBuilder.Piece(wallSet, c, out var spr, out float ang, fx, floorAll);
             var cell = CellRect(grid, cs, c);
             if (spr != null) DrawSprite(cell, spr, ang); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
+            if (fx != null && fx.Has3Q)
+            {
+                // 게임과 같은 벽·바닥 경계선
+                float e = Mathf.Max(1f, cs * WallBuilder.EdgeWidth);
+                if (floorAll.Contains(c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (floorAll.Contains(c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (floorAll.Contains(c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
+            }
         }
 
         // 보유 자료 칸에 가려지는 구역 (물체 금지)
