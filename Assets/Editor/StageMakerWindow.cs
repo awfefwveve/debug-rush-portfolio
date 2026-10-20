@@ -1010,6 +1010,53 @@ public class StageMakerWindow : EditorWindow
     /// 챕터1 다시 짜기 (기획 수정: 챕터당 5스테이지). 1-1 벌 쉽게 · 1-2 벌 어렵게 · 1-3 로봇 쉽게 · 1-4 로봇 어렵게 · 1-5 벌+로봇 마무리.
     /// 1학년은 쉬움 고정이라 난이도는 시간·고칠 칸 수·요구 시간·몬스터 패턴으로 올림. 1-6 이후는 삭제.
     /// </summary>
+    /// <summary>스토리 기획서 대사 넣기 (괄호 지문은 대사가 아니라서 뺌). 1-1 = 첫 번째 예외 발생, 1-3 = 과부하된 네트워크, 1-5 = 보스. 1-2·1-4는 대사 없음</summary>
+    public static void ApplyStory()
+    {
+        DialogueLine L(string t) => new DialogueLine { speaker = "주인공", text = t };
+        void Set(int n, string summary, DialogueLine[] intro, DialogueLine[] outro)
+        {
+            var s = LoadAll().FirstOrDefault(x => x.chapter == 1 && x.stage == n);
+            if (s == null) return;
+            s.summary = summary; s.intro = intro; s.outro = outro;
+            Save(s);
+        }
+        Set(1, "첫 번째 예외 발생",
+            new[] {
+                L("으… 머리야. 나… 과방에서 졸고 있었나? 분명 프로젝트 마무리를 하고있었는데…"),
+                L("잠깐만, 저건… 내가 만들고 있는 게임에서 나오는 몬스터?! 어떻게 된거야?"),
+                L("저 NPC 버그에 물들여져 실제로 게임에서 나온건가? 그런거 가능할리가…!"),
+                L("금방 공격해올거야, 이럴 시간 없어 빨리 버그를 막고 고쳐야해!"),
+                L("좋아, 당황하지말고…"),
+                L("버그 단말기만 제대로 수리해서 데이터만 복구하면 탈출할 수 있을 거야. 조합 재료부터 빠르게 찾아서 단말기에 꽂자!") },
+            new[] {
+                L("후우… 일단, 복구를 끝냈는데… 아직 게임이 고쳐지지 않은걸보니 아마 더 남아있는 것 같네."),
+                L("얼른 버그들을 다 고쳐야지!") });
+        Set(2, "", new DialogueLine[0], new DialogueLine[0]);
+        Set(3, "과부하된 네트워크",
+            new[] {
+                L("다른 버그들은 어디로간거지…"),
+                L("도대체 나가는 길이… 아! 저건 도움 NPC!"),
+                L("이쪽이야! 너도 다시 게임에 들어가야지!"),
+                L("어…?"),
+                L("잠깐 잠깐!!") },
+            new[] {
+                L("도움 NPC까지 버그에 당했다니…"),
+                L("플레이어한테 도움주라고 만든건데! 공격이나 하고 말이야!"),
+                L("그래도 어두워진게 많이 없어진걸 보니 거의 다 고쳐진거같아. 얼마 안남았어.") });
+        Set(4, "", new DialogueLine[0], new DialogueLine[0]);
+        Set(5, "보스",
+            new[] {
+                L("저건… 보스 몬스터인데…"),
+                L("하지만 나갈려면… 부딪힐 수 밖에 없어!") },
+            new[] {
+                L("성공했다… 드디어…"),
+                L("게임이 안정화되고있어."),
+                L("좋아 좋아, 다시 돌아가자!") });
+        AssetDatabase.SaveAssets();
+        Debug.Log("[StageMaker] story applied");
+    }
+
     public static void RebuildChapter1()
     {
         var w = CreateInstance<StageMakerWindow>();

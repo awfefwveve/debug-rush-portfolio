@@ -58,8 +58,8 @@ public class DialogueUI : MonoBehaviour
         {
             if (skipAll) break;
             speakerText.text = line.speaker; bodyText.text = line.text;
-            // 초상화: 대사에 지정된 게 없으면 "나"(주인공)는 기본 초상화 (Resources/Portraits/player)
-            var face = line.portrait != null ? line.portrait : (line.speaker == "나" ? Resources.Load<Sprite>("Portraits/player") : null);
+            // 초상화: 대사에 지정된 게 없으면 "주인공"(나)은 기본 초상화 (Resources/Portraits/player)
+            var face = line.portrait != null ? line.portrait : (line.speaker == "나" || line.speaker == "주인공" ? Resources.Load<Sprite>("Portraits/player") : null);
             portrait.enabled = face != null; portrait.sprite = face;
             yield return null;
             while (!skipAll && !Input.GetMouseButtonDown(0) && !Input.GetKeyDown(KeyCode.Return)) yield return null;
