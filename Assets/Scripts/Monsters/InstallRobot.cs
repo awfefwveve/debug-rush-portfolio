@@ -32,6 +32,17 @@ public class InstallRobot : MonoBehaviour
         g.transform.localScale = new Vector3(s / transform.lossyScale.x, s / transform.lossyScale.y, 1f);
         ring.color = new Color(1f, 0.3f, 0.35f, 0.6f);
         ring.sortingOrder = 21;
+        // 기획서 그림처럼 감지 범위를 빨간 원으로 채움
+        if (fx != null && fx.warnCircleFill != null)
+        {
+            var fill = new GameObject("DetectFill").AddComponent<SpriteRenderer>();
+            fill.transform.SetParent(transform, false);
+            fill.sprite = fx.warnCircleFill;
+            float fs = detect * 2f / Mathf.Max(0.01f, fx.warnCircleFill.bounds.size.x);
+            fill.transform.localScale = new Vector3(fs / transform.lossyScale.x, fs / transform.lossyScale.y, 1f);
+            fill.color = new Color(0.85f, 0.2f, 0.15f, 0.35f);
+            fill.sortingOrder = -1;
+        }
     }
 
     void Update()
