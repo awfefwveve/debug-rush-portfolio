@@ -175,7 +175,7 @@ MonoBehaviour:
   parryStunTime: 3
   useSharedBullet: 0
   normalSprite: {fileID: 21300000, guid: 6dec904cbdf881b489d03f6d3b0e3320, type: 3}
-  parrySprite: {fileID: 21300000, guid: 6dec904cbdf881b489d03f6d3b0e3320, type: 3}
+  parrySprite: {fileID: 21300000, guid: 2e83d2ce574b16943b9ef04d7d8e032e, type: 3}
   rotateToDirection: 1
   splitPrefab: {fileID: 0}
   splitCount: 0

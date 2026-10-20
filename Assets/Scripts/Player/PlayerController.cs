@@ -113,7 +113,6 @@ public class PlayerController : MonoBehaviour
         int index = Inventory.items.Count - 1;
         ItemType item = Inventory.items[index];
         Inventory.RemoveAt(index);           // 버리기 = 바닥에 두지 않고 바로 삭제
-        if (StageFX.I != null) StageFX.I.Popup(transform.position + Vector3.up * 1.6f, ItemNames.Get(item) + " 버림", new Color(0.7f, 0.75f, 0.85f), 0.8f);
     }
 
     // ---------- 점프(패링) ----------

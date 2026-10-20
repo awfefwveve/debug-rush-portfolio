@@ -45,7 +45,6 @@ public class StageFX : MonoBehaviour
                 var term = t;
                 completed[term] = term.Completed;
                 term.Changed += () => OnTerminal(term);
-                term.Expired += () => Popup(term.transform.position + Vector3.up * 1.6f, "시간 초과!", new Color(1f, 0.35f, 0.35f));
             }
         foreach (var table in FindObjectsByType<CraftingTable>(FindObjectsSortMode.None))
         {
@@ -57,57 +56,25 @@ public class StageFX : MonoBehaviour
     void OnDestroy() { if (I == this) I = null; }
 
     // ---------- 이벤트 ----------
+    // 기획서에 없는 연출(화면 흔들림·번쩍임·히트스톱·팝업 글자·링·튀어오름)은 뺌. 효과음만 냄
     void OnHp(int hp, int max)
     {
-        if (hp < lastHp)
-        {
-            Sfx.Hit();
-            Shake(0.3f, 0.22f);
-            Flash(new Color(1f, 0.1f, 0.15f, 0.38f));
-            Popup(player.transform.position + Vector3.up * 1.1f, "-1", new Color(1f, 0.3f, 0.35f));
-        }
+        if (hp < lastHp) Sfx.Hit();
         lastHp = hp;
     }
 
-    void OnParry()
-    {
-        StartCoroutine(HitStop(0.09f));
-        Shake(0.15f, 0.1f);
-        Flash(new Color(0.8f, 0.6f, 1f, 0.25f));
-        Ring(player.transform.position, new Color(0.75f, 0.5f, 1f), 2.4f);
-        Popup(player.transform.position + Vector3.up * 1.3f, "패링!", new Color(0.8f, 0.6f, 1f), 1.3f);
-    }
+    void OnParry() { }
 
     void OnInventory()
     {
         var items = player.Inventory.items;
         if (items.Count > lastItemCount) Sfx.Pickup(); else if (items.Count < lastItemCount) Sfx.ItemOut();
-        if (items.Count > lastItemCount && items.Count > 0)
-            Popup(player.transform.position + Vector3.up * 1.0f, "+" + ItemNames.Get(items[items.Count - 1]), Color.white, 0.8f);
         lastItemCount = items.Count;
     }
 
-    void OnTerminal(BugTerminal t)
-    {
-        int before = completed.TryGetValue(t, out var c) ? c : 0;
-        if (t.Completed > before)
-        {
-            Popup(t.transform.position + Vector3.up * 1.7f, t.IsDone ? "수리 완료!" : "오류 수정 +1", new Color(1f, 0.85f, 0.25f), t.IsDone ? 1.4f : 1.1f);
-            Ring(t.transform.position, new Color(1f, 0.85f, 0.25f), 3f);
-            StartCoroutine(Punch(t.transform, 0.15f));
-        }
-        completed[t] = t.Completed;
-    }
+    void OnTerminal(BugTerminal t) => completed[t] = t.Completed;
 
-    void OnCrafted(CraftingTable table)
-    {
-        Sfx.Craft();
-        var view = table.GetComponent<CraftingTableView>();
-        var target = view != null && view.outputIcon != null ? view.outputIcon.transform : table.transform;
-        StartCoroutine(Punch(target, 0.35f));
-        Ring(target.position, new Color(1f, 0.75f, 0.3f), 1.8f);
-        Popup(target.position + Vector3.up * 0.6f, "완성!", new Color(1f, 0.8f, 0.35f));
-    }
+    void OnCrafted(CraftingTable table) => Sfx.Craft();
 
     // ---------- 효과 ----------
     public bool Shaking => shakeTime > 0f;

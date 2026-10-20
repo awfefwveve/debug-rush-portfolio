@@ -144,6 +144,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MagneticField
   lifetime: 3
   pullDuration: 0.4
+  contactRadius: 0.7
   center: {fileID: 0}
 --- !u!114 &1289399870572620460
 MonoBehaviour:

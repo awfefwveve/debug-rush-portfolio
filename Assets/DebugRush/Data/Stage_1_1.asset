@@ -32,6 +32,20 @@ MonoBehaviour:
     patternCount: 2
     patternMask: 3
     spawnPos: {x: 3, y: 3}
+    tuning:
+      speedGap: 3.5
+      cooldown:
+      - 3.5
+      - 14
+      parryChance: 0.5
+      fanAngle: 18
+      fieldDuration: 2.5
+      fieldRadius: 2
+      mineDetect: 1.8
+      mineDelay: 1
+      mineRadius: 1.6
+      maxMines: 3
+  playerInvincibleTime: 1.5
   newMonsterPatternMask: 1
   intro:
   - speaker: "\uB098"

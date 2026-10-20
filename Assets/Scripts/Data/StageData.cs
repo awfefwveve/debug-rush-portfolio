@@ -1,15 +1,34 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>기획서의 n값 (몬스터별·스테이지별로 Stage Maker에서 조절)</summary>
+[System.Serializable]
+public class MonsterTuning
+{
+    [Tooltip("플레이어보다 이만큼 느리게 쫓아감 (칸/초)")] public float speedGap = 3f;
+    [Tooltip("패턴별 쿨타임(초). [0] = A 패턴, [1] = B 패턴")] public float[] cooldown = { 3f, 9f };
+    [Tooltip("동시에 나온 투사체 중 1개가 패링 가능할 확률 (0~1)")] [Range(0f, 1f)] public float parryChance = 0.5f;
+    [Header("벌 1-A 부채꼴 · 1-B 자기장")]
+    [Tooltip("3발 부채꼴 좌우 각도(도)")] public float fanAngle = 20f;
+    [Tooltip("자기장 유지 시간(초)")] public float fieldDuration = 3f;
+    [Tooltip("자기장 반지름(칸)")] public float fieldRadius = 2.2f;
+    [Header("몬스터2 2-B 설치 로봇")]
+    [Tooltip("감지 범위(칸)")] public float mineDetect = 1.8f;
+    [Tooltip("감지 후 폭발까지(초)")] public float mineDelay = 1f;
+    [Tooltip("폭발 범위(칸)")] public float mineRadius = 1.6f;
+    [Tooltip("동시에 깔려 있을 수 있는 최대 개수")] public int maxMines = 3;
+}
+
 [System.Serializable]
 public class MonsterSpawn
 {
     public GameObject prefab;
-    [Tooltip("사용할 패턴 수 (1-1: 1, 1-2: 2 ... 기획서 p.10 표 참고)")]
+    [Tooltip("사용할 패턴 수")]
     [Range(1, 5)] public int patternCount = 1;
-    [Tooltip("사용할 패턴 체크 (비트: A-1=1, A-2=2, A-3=4, A-4=8, A-5=16). 0이면 앞에서부터 patternCount개")]
+    [Tooltip("사용할 패턴 체크 (비트: A=1, B=2). 0이면 앞에서부터 patternCount개")]
     public int patternMask = 0;
     public Vector2 spawnPos;
+    public MonsterTuning tuning = new MonsterTuning();
 }
 
 [System.Serializable]
@@ -115,6 +134,7 @@ public class StageData : ScriptableObject
     [Tooltip("난이도별 단말기 요구사항 하나당 남은 시간(초). 0 = 무제한")] public float[] requestTime = { 40f, 30f, 22f };
 
     public MonsterSpawn[] monsters;      // 개수 제한 없음 (기획서 기준 1~2마리)
+    [Tooltip("피격 후 무적 시간(초)")] public float playerInvincibleTime = 1.5f;
     [Tooltip("Stage Maker에서 새로 놓는 몬스터의 기본 패턴 (비트)")] public int newMonsterPatternMask = 1;
     public DialogueLine[] intro;         // 스테이지 시작 스토리
     public DialogueLine[] outro;         // 스테이지 종료 스토리

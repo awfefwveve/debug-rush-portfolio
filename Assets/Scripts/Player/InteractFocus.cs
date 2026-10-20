@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-/// <summary>E로 상호작용할 대상 강조: 대상 뒤 빛나는 테두리 + 위에 [E] 표시 (가시성).</summary>
+/// <summary>E로 상호작용할 대상 위에 [E] 표시 (조작 안내).</summary>
 public class InteractFocus : MonoBehaviour
 {
     public Color glowColor = new Color(0.3f, 0.95f, 1f, 0.55f);
@@ -40,12 +40,12 @@ public class InteractFocus : MonoBehaviour
     {
         var target = player != null ? player.FocusTarget : null;
         bool on = target != null && !player.InputLocked;
-        glow.enabled = on; prompt.enabled = on;
+        glow.enabled = false; prompt.enabled = on;   // 빛나는 테두리 연출은 뺌(기획서에 없음), [E] 안내만
         if (!on) return;
 
         var sr = target.GetComponent<SpriteRenderer>();
         Bounds b = sr != null && sr.sprite != null ? sr.bounds : new Bounds(target.transform.position, Vector3.one * 2f);
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 6f);
+        float pulse = 0f;
         glow.transform.position = new Vector3(b.center.x, b.center.y, 0f);
         glow.size = new Vector2(b.size.x + 0.35f + pulse * 0.1f, b.size.y + 0.35f + pulse * 0.1f);
         glow.color = new Color(glowColor.r, glowColor.g, glowColor.b, glowColor.a * (0.7f + 0.3f * pulse));

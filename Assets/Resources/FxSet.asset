@@ -52,15 +52,16 @@ MonoBehaviour:
   wallTopTile: {fileID: 21300000, guid: fb7ca24f138fc22478009544563dfc26, type: 3}
   wallFront:
   - {fileID: 21300000, guid: 167422fd6905de14d9ce040271c7e723, type: 3}
+  - {fileID: 21300000, guid: a62a810ded4bb6e4d9b67e33fb49acfd, type: 3}
   cornerOut:
   - {fileID: 21300000, guid: 3b56f52a545276a478895490c69b60eb, type: 3}
   - {fileID: 21300000, guid: 3b56f52a545276a478895490c69b60eb, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 21300000, guid: 555321f35815fa445bd40953bf1b484b, type: 3}
+  - {fileID: 21300000, guid: 555321f35815fa445bd40953bf1b484b, type: 3}
   cornerIn:
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 21300000, guid: 417b147d94fbf9e47af3919fc196bafd, type: 3}
+  - {fileID: 21300000, guid: 417b147d94fbf9e47af3919fc196bafd, type: 3}
   - {fileID: 21300000, guid: be73a2a48797457428469cb41aa5246b, type: 3}
   - {fileID: 21300000, guid: be73a2a48797457428469cb41aa5246b, type: 3}
-  cornerOutFlip: 00010000
-  cornerInFlip: 00000100
+  cornerOutFlip: 00010001
+  cornerInFlip: 00010100

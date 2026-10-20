@@ -70,6 +70,8 @@ public class Projectile : MonoBehaviour
             Hit();
         }
         else if (c.CompareTag("Wall")) Hit();
+        // 기계(재료대·제작대·단말기)에 닿아도 사라짐 (수정 기획서)
+        else if (c.GetComponentInParent<ResourceStation>() != null || c.GetComponentInParent<CraftingTable>() != null || c.GetComponentInParent<BugTerminal>() != null) Hit();
     }
 
     void Vanish()

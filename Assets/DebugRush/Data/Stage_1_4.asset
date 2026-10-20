@@ -15,7 +15,7 @@ MonoBehaviour:
   chapter: 1
   stage: 4
   displayName: 1-4
-  summary: "\uB85C\uBD07\uC774 \uBC14\uB2E5\uC5D0 \uC804\uC120\uAE4C\uC9C0 \uAE50\uB2E4"
+  summary: "\uC124\uCE58 \uB85C\uBD07\uAE4C\uC9C0 \uAE54\uAE30 \uC2DC\uC791\uD55C\uB2E4"
   sceneName: Stage
   timeLimit: 100
   timeMultiplier:
@@ -28,24 +28,27 @@ MonoBehaviour:
   - 24
   - 19.5
   monsters:
-  - prefab: {fileID: 8697744848771933877, guid: 4b612beb0bcb47d40889d483b1587396, type: 3}
+  - prefab: {fileID: 6141458271797316770, guid: 0bf5b4b0655fc6e46bd239776d7ca796, type: 3}
     patternCount: 2
     patternMask: 3
     spawnPos: {x: 3, y: 3}
+    tuning:
+      speedGap: 2.5
+      cooldown:
+      - 1.8
+      - 6
+      parryChance: 0.4
+      fanAngle: 20
+      fieldDuration: 3
+      fieldRadius: 2.2
+      mineDetect: 1.8
+      mineDelay: 1
+      mineRadius: 1.6
+      maxMines: 3
+  playerInvincibleTime: 1.5
   newMonsterPatternMask: 1
-  intro:
-  - speaker: "\uB098"
-    text: "\uB85C\uBD07\uC774 \uBC14\uB2E5\uC5D0 \uC2ED\uC790 \uC804\uC120\uC744
-      \uAE50\uB2E4."
-    portrait: {fileID: 0}
-  - speaker: "\uB098"
-    text: "\uC804\uC120\uC740 \uC810\uD504\uB85C \uB118\uACE0, \uD0C4\uC740 \uD53C\uD558\uC790."
-    portrait: {fileID: 0}
-  outro:
-  - speaker: "\uB098"
-    text: "\uBE4C\uB4DC \uC624\uB958\uAC00 \uB208\uC5D0 \uB744\uAC8C \uC904\uC5C8\uC5B4.
-      \uAC70\uC758 \uB2E4 \uC654\uB2E4."
-    portrait: {fileID: 0}
+  intro: []
+  outro: []
   layout:
     use: 1
     width: 30

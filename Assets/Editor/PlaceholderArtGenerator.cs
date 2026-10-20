@@ -150,8 +150,9 @@ public static class PlaceholderArtGenerator
 
         // 탄환: 일반 16×16 빨강 / 패링 가능 24×24 분홍 마름모 (외곽선 2px)
         t = New(64, 64, Clear); Circle(t, 32, 32, 28, Outline); Circle(t, 32, 32, 21, Red); Circle(t, 28, 36, 8, Hex("FFB3BB")); Save(t, "bullet_normal");
-        t = New(96, 96, Clear); Diamond(t, 48, 48, 46, 46, Outline); Diamond(t, 48, 48, 37, 37, Pink); Diamond(t, 44, 52, 12, 12, Hex("FFD6EA")); Save(t, "bullet_parry");
+        t = New(96, 96, Clear); Diamond(t, 48, 48, 46, 46, Outline); Diamond(t, 48, 48, 37, 37, Purple); Diamond(t, 44, 52, 12, 12, Hex("EBD6FF")); Save(t, "bullet_parry");   // 기획서 그림: 패링 가능 탄 = 보라색
         t = New(128, 64, Clear); Diamond(t, 64, 32, 60, 26, Outline); Diamond(t, 64, 32, 52, 18, Hex("DDEBFF")); Save(t, "blade");
+        t = New(128, 64, Clear); Diamond(t, 64, 32, 60, 26, Outline); Diamond(t, 64, 32, 52, 18, Purple); Save(t, "blade_parry");   // 패링 가능 날 = 보라색
         t = New(128, 128, Clear); Circle(t, 64, 64, 46, Outline); Circle(t, 64, 64, 38, Hex("2B2B35")); Circle(t, 64, 64, 14, Red); Save(t, "mine");
         // 전선(직선 공격 몸체): 1칸 텍스처를 스크립트가 길이 방향으로 늘림
         t = New(128, 128, Clear);
@@ -400,10 +401,8 @@ public static class PlaceholderArtGenerator
     {
         foreach (var f in Directory.GetFiles(Drive + "Player", "*.png"))
         {
-            string n = Path.GetFileNameWithoutExtension(f);
-            // 피벗 = 측정한 몸 중심·발바닥 (L·R 그림 위치가 달라서 피벗으로 맞춤)
-            float px = n.StartsWith("run_R") ? 0.434f : n.StartsWith("run_L") ? 0.5625f : n.StartsWith("dash_R") ? 0.44f : 0.56f;
-            Import(f.Replace('\\', '/'), 400f, new Vector2(px, 0.02f), Vector4.zero);
+            // 그림 파일을 몸 가운데·발바닥(786/800)에 맞춰 정리해 둠 → 기준점은 모두 같음
+            Import(f.Replace('\\', '/'), 400f, new Vector2(0.5f, 0.0175f), Vector4.zero);
         }
         foreach (var f in Directory.GetFiles(Drive + "Monster1", "*.png"))
         {
@@ -536,7 +535,7 @@ public static class PlaceholderArtGenerator
             msa.pattern1 = shotAnim; msa.pattern2 = fieldAnim; msa.pattern3 = shotAnim; msa.pattern4 = fieldAnim; msa.pattern5 = shotAnim;   // A-1~A-5
             AddShadow(go, 0.9f, -1.0f);
         });
-        // 두 번째 몬스터 (챕터2): 버그에 지배당한 로봇. 그림은 Art/Drive/Monster2 에 move_01.png… (왼쪽 보는 그림)을 넣으면 교체, 없으면 임시 로봇
+        // (보존) 버그에 지배당한 로봇 — 수정 기획서에서 몬스터2가 바뀌어 지금은 안 씀
         EditPrefab("MonsterRobot", go =>
         {
             Monster(go, 2.2f, true);
@@ -551,7 +550,22 @@ public static class PlaceholderArtGenerator
             msa.pattern1 = Monster2Seq("pattern1"); msa.pattern2 = Monster2Seq("pattern2");
             AddShadow(go, 1.0f, -0.85f);
         });
-        EditPrefab("Monster1B", go => { Monster(go, 0f, false); SetSprite(go, S("robot_factory"), 10); AddShadow(go, 1.0f, -0.85f); });
+        // 몬스터2 (수정 기획서, 스토리상 "도움 NPC"): 2-A 절단기 날 · 2-B 설치 로봇. 그림은 Art/Drive/Monster2 에 move_01.png… (왼쪽 보는 그림)을 넣으면 교체
+        EditPrefab("Monster1B", go =>
+        {
+            Monster(go, 2.2f, true);
+            var b = go.GetComponent<Monster1B>();
+            b.bladePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Blade.prefab");
+            b.minePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(P + "Mine.prefab");
+            var move = Monster2Seq("move");
+            SetSprite(go, move.Length > 0 ? move[0] : S("robot_factory"), 10);
+            var vis = go.GetComponentsInChildren<SpriteRenderer>().First(s => s.gameObject.name != "Shadow");
+            var sfa = Get<SpriteFrameAnimator>(vis.gameObject); sfa.target = vis;
+            var msa = Get<MonsterSpriteAnimator>(go); msa.anim = sfa; msa.fps = 8f;
+            msa.move = move.Length > 0 ? move : new[] { S("robot_factory") };
+            msa.pattern1 = Monster2Seq("pattern1"); msa.pattern2 = Monster2Seq("pattern2");
+            AddShadow(go, 1.0f, -0.85f);
+        });
         EditPrefab("Monster1C", go => { Monster(go, 0f, false); SetSprite(go, S("robot_scrap"), 10); AddShadow(go, 1.0f, -0.85f);
             var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f; });
 
@@ -567,7 +581,7 @@ public static class PlaceholderArtGenerator
         {
             Bullet(go, 14f, 0.3f);
             var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = true;
-            p.normalSprite = S("blade"); p.parrySprite = S("blade");
+            p.normalSprite = S("blade"); p.parrySprite = S("blade_parry");
             SetSprite(go, S("blade"), 30);
         });
         EditPrefab("Mine", go => SetSprite(go, S("mine"), -5));
@@ -698,7 +712,7 @@ public static class PlaceholderArtGenerator
         var m = go.GetComponent<MonsterBase>();
         m.moveSpeed = speed; m.wander = wander;
         m.patternInterval = 2.6f; m.windupTime = 0.6f; m.recoverTime = 0.5f;
-        m.moveArea = new Rect(-11f, -4f, 22f, 8f); m.firstAttackDelay = 3f;
+        m.moveArea = new Rect(-11f, -4f, 22f, 8f); m.firstAttackDelay = 0f;   // 첫 공격 유예 없음 (기획서에 없음)
         m.intervalStepMultiplier = 0.92f; m.minPatternInterval = 1.4f; m.maxAggression = 6;
         m.speedStepBonus = 0.06f; m.maxMoveSpeed = 4.5f;
         foreach (var sr in go.GetComponentsInChildren<SpriteRenderer>()) if (sr.gameObject.name != "Shadow") sr.sortingOrder = 10;

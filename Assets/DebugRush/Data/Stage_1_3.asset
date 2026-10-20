@@ -15,7 +15,7 @@ MonoBehaviour:
   chapter: 1
   stage: 3
   displayName: 1-3
-  summary: "\uBC84\uADF8\uC5D0 \uC9C0\uBC30\uB2F9\uD55C \uB85C\uBD07\uC774 \uB098\uD0C0\uB0AC\uB2E4"
+  summary: "\uC0C8\uB85C\uC6B4 \uBC84\uADF8\uAC00 \uB098\uD0C0\uB0AC\uB2E4"
   sceneName: Stage
   timeLimit: 115
   timeMultiplier:
@@ -28,10 +28,24 @@ MonoBehaviour:
   - 32
   - 26
   monsters:
-  - prefab: {fileID: 8697744848771933877, guid: 4b612beb0bcb47d40889d483b1587396, type: 3}
+  - prefab: {fileID: 6141458271797316770, guid: 0bf5b4b0655fc6e46bd239776d7ca796, type: 3}
     patternCount: 1
     patternMask: 1
     spawnPos: {x: 3, y: 3}
+    tuning:
+      speedGap: 3.5
+      cooldown:
+      - 2.5
+      - 12
+      parryChance: 0.5
+      fanAngle: 20
+      fieldDuration: 3
+      fieldRadius: 2.2
+      mineDetect: 1.8
+      mineDelay: 1
+      mineRadius: 1.6
+      maxMines: 3
+  playerInvincibleTime: 1.5
   newMonsterPatternMask: 1
   intro:
   - speaker: "\uB098"

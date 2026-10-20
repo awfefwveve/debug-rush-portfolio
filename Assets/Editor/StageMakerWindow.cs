@@ -16,7 +16,7 @@ public class StageMakerWindow : EditorWindow
     const string TitleScenePath = "Assets/Scenes/Title.unity";
     const string StageScenePath = "Assets/Scenes/Stage.unity";
     const string BeePrefab = "Assets/DebugRush/Prefabs/Monster1A.prefab";
-    const string RobotPrefab = "Assets/DebugRush/Prefabs/MonsterRobot.prefab";   // 두 번째 몬스터 (챕터2)
+    const string RobotPrefab = "Assets/DebugRush/Prefabs/Monster1B.prefab";   // 몬스터2 (수정 기획서, 스토리상 "도움 NPC")
     const int Chapters = 3, PerChapter = StageManager.StagesPerChapter;   // 챕터당 5스테이지
 
     enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee, Robot }
@@ -34,8 +34,8 @@ public class StageMakerWindow : EditorWindow
         (Tool.Crafter, "제작대", "제작대 추가 (클릭마다 하나)"),
         (Tool.Terminal, "단말기", "단말기 추가 (클릭마다 하나)"),
         (Tool.Player, "시작점", "플레이어 시작 위치"),
-        (Tool.Bee, "벌", "벌 추가. 놓인 벌을 클릭하면 그 벌의 공격 패턴을 오른쪽에서 편집"),
-        (Tool.Robot, "로봇", "로봇(두 번째 몬스터) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 공격 패턴을 오른쪽에서 편집"),
+        (Tool.Bee, "벌", "몬스터1(벌) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 패턴·수치를 오른쪽에서 편집"),
+        (Tool.Robot, "몬스터2", "몬스터2(도움 NPC) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 패턴·수치를 오른쪽에서 편집"),
     };
 
     StageData selected;
@@ -308,7 +308,7 @@ public class StageMakerWindow : EditorWindow
                     Record("벌"); SetBee(count, snap); dragging = "bee:" + count; selBee = count; GUI.FocusControl(null); break;
                 case Tool.Robot:
                     int rc = selected.monsters?.Length ?? 0;
-                    Record("로봇"); SetBee(rc, snap, RobotPrefab); dragging = "bee:" + rc; selBee = rc; GUI.FocusControl(null); break;
+                    Record("몬스터2"); SetBee(rc, snap, RobotPrefab); dragging = "bee:" + rc; selBee = rc; GUI.FocusControl(null); break;
             }
             e.Use();
         }
@@ -492,8 +492,6 @@ public class StageMakerWindow : EditorWindow
         if (L.crafters.Count == 0) { any = true; yield return ("제작대가 없어요 (조합 불가)", true); }
         foreach (var m in Materials)
             if (!L.stations.Any(x => x.material == m)) { any = true; yield return ($"{MatName(m)} 재료대가 없어요 (조합표에 필요)", true); }
-        if (s.intro == null || s.intro.Length == 0) yield return ("시작 대사가 비어 있어요 (기획서 p.13: 스테이지 시작·끝 스토리)", true);
-        if (s.outro == null || s.outro.Length == 0) yield return ("끝 대사가 비어 있어요", true);
         if (!any) yield return ("배치 문제 없음", false);
     }
 
@@ -539,6 +537,10 @@ public class StageMakerWindow : EditorWindow
         var goals = (s.terminalGoal != null && s.terminalGoal.Length == 3) ? (int[])s.terminalGoal.Clone() : new[] { 2, 3, 4 };
         for (int i = 0; i < 3; i++) goals[i] = EditorGUILayout.IntSlider(new[] { "쉬움 (1학년)", "보통 (2학년)", "어려움 (3학년)" }[i], goals[i], 2, 8);
 
+        Head("플레이어 피격 후 무적 시간 (초)");
+        float inv = EditorGUILayout.Slider(s.playerInvincibleTime, 0.2f, 5f);
+        if (!Mathf.Approximately(inv, s.playerInvincibleTime)) { Record("무적 시간"); s.playerInvincibleTime = inv; }
+
         Head("요구사항 하나당 남은 시간 (초)");
         var req = (s.requestTime != null && s.requestTime.Length == 3) ? (float[])s.requestTime.Clone() : new[] { 40f, 30f, 22f };
         for (int i = 0; i < 3; i++) req[i] = EditorGUILayout.IntSlider(new[] { "쉬움", "보통", "어려움" }[i], Mathf.RoundToInt(req[i]), 10, 90);
@@ -551,7 +553,7 @@ public class StageMakerWindow : EditorWindow
             s.terminalGoal = goals; s.requestTime = req;
         }
 
-        // 몬스터별 공격 패턴: 맵이나 아래 버튼에서 몬스터를 고르면 그 몬스터만 편집 (벌 A-1~A-5, 로봇 B-1~B-2)
+        // 몬스터별 공격 패턴·n값: 맵이나 아래 버튼에서 몬스터를 고르면 그 몬스터만 편집 (벌 1-A·1-B, 몬스터2 2-A·2-B)
         int beeCount = s.monsters?.Length ?? 0;
         if (selBee >= beeCount) selBee = -1;
         Head("몬스터 공격 패턴 (켠 것만 순서대로 반복)");
@@ -570,10 +572,11 @@ public class StageMakerWindow : EditorWindow
             int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
             int nm = PatternToggles(mask, Names(IsRobot(sp)));
             if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
+            DrawTuning(sp, IsRobot(sp));
         }
         else
         {
-            GUILayout.Label("새로 놓는 몬스터의 기본 패턴 (로봇은 앞 2개만 해당). 맵에서 몬스터를 클릭하면 그 몬스터만 따로 편집", EditorStyles.miniLabel);
+            GUILayout.Label("새로 놓는 몬스터의 기본 패턴 (A·B). 맵에서 몬스터를 클릭하면 그 몬스터만 따로 편집", EditorStyles.miniLabel);
             int mask = s.newMonsterPatternMask != 0 ? s.newMonsterPatternMask : 1;
             int nm = PatternToggles(mask);
             if (nm != mask) { Record("기본 패턴"); s.newMonsterPatternMask = nm; }
@@ -586,9 +589,45 @@ public class StageMakerWindow : EditorWindow
         GUILayout.EndArea();
     }
 
-    static bool IsRobot(MonsterSpawn m) => m != null && m.prefab != null && m.prefab.GetComponent<MonsterRobot>() != null;
-    static string MonsterName(MonsterSpawn m) => IsRobot(m) ? "로봇" : "벌";
-    static string[] Names(bool robot) => robot ? MonsterRobot.PatternNames : Monster1A.PatternNames;
+    static bool IsRobot(MonsterSpawn m) => m != null && m.prefab != null && m.prefab.GetComponent<Monster1B>() != null;   // 몬스터2
+    static string MonsterName(MonsterSpawn m) => IsRobot(m) ? "몬스터2" : "벌";
+    static string[] Names(bool robot) => robot ? Monster1B.PatternNames : Monster1A.PatternNames;
+
+    /// <summary>기획서의 n값을 몬스터별로 입력</summary>
+    void DrawTuning(MonsterSpawn sp, bool monster2)
+    {
+        if (sp.tuning == null) sp.tuning = new MonsterTuning();
+        var t = sp.tuning;
+        if (t.cooldown == null || t.cooldown.Length < 2) t.cooldown = new[] { 3f, 9f };
+        EditorGUI.BeginChangeCheck();
+        GUILayout.Label("수치 (기획서의 n값)", EditorStyles.miniBoldLabel);
+        float gap = EditorGUILayout.Slider("플레이어보다 느리게 (칸/초)", t.speedGap, 0.5f, 6f);
+        float cdA = EditorGUILayout.Slider(monster2 ? "2-A 쿨타임 (초)" : "1-A 쿨타임 (초)", t.cooldown[0], 0.5f, 20f);
+        float cdB = EditorGUILayout.Slider(monster2 ? "2-B 쿨타임 (초)" : "1-B 쿨타임 (초)", t.cooldown[1], 0.5f, 30f);
+        float parry = EditorGUILayout.Slider("패링 가능 탄 나올 확률", t.parryChance, 0f, 1f);
+        float fan = t.fanAngle, fdur = t.fieldDuration, frad = t.fieldRadius, mdet = t.mineDetect, mdel = t.mineDelay, mrad = t.mineRadius;
+        int mmax = t.maxMines;
+        if (!monster2)
+        {
+            fan = EditorGUILayout.Slider("1-A 부채꼴 좌우 각도 (도)", t.fanAngle, 5f, 60f);
+            fdur = EditorGUILayout.Slider("1-B 자기장 시간 (초)", t.fieldDuration, 0.5f, 8f);
+            frad = EditorGUILayout.Slider("1-B 자기장 반지름 (칸)", t.fieldRadius, 1f, 6f);
+        }
+        else
+        {
+            mdet = EditorGUILayout.Slider("2-B 감지 범위 (칸)", t.mineDetect, 0.5f, 5f);
+            mdel = EditorGUILayout.Slider("2-B 감지 후 폭발까지 (초)", t.mineDelay, 0.2f, 5f);
+            mrad = EditorGUILayout.Slider("2-B 폭발 범위 (칸)", t.mineRadius, 0.5f, 5f);
+            mmax = EditorGUILayout.IntSlider("2-B 최대 개수", t.maxMines, 1, 8);
+        }
+        if (EditorGUI.EndChangeCheck())
+        {
+            Record("몬스터 수치");
+            t.speedGap = gap; t.cooldown = new[] { cdA, cdB }; t.parryChance = parry;
+            t.fanAngle = fan; t.fieldDuration = fdur; t.fieldRadius = frad;
+            t.mineDetect = mdet; t.mineDelay = mdel; t.mineRadius = mrad; t.maxMines = mmax;
+        }
+    }
 
     static int PatternToggles(int mask) => PatternToggles(mask, Monster1A.PatternNames);
 
@@ -915,7 +954,7 @@ public class StageMakerWindow : EditorWindow
             "terminal" => "Assets/DebugRush/Art/Facilities/terminal_error.png",
             "player" => "Assets/DebugRush/Art/Drive/Player/run_R_01.png",
             "bee" => "Assets/DebugRush/Art/Drive/Monster1/move_01.png",
-            "robot" => System.IO.File.Exists("Assets/DebugRush/Art/Drive/Monster2/move_01.png") ? "Assets/DebugRush/Art/Drive/Monster2/move_01.png" : "Assets/DebugRush/Art/Placeholder/robot.png",
+            "robot" => System.IO.File.Exists("Assets/DebugRush/Art/Drive/Monster2/move_01.png") ? "Assets/DebugRush/Art/Drive/Monster2/move_01.png" : "Assets/DebugRush/Art/Placeholder/robot_factory.png",
             "floor" => "Assets/DebugRush/Art/Placeholder/floor_32.png",
             _ => "Assets/DebugRush/Art/Placeholder/wall_single.png",
         };
@@ -974,23 +1013,26 @@ public class StageMakerWindow : EditorWindow
     public static void RebuildChapter1()
     {
         var w = CreateInstance<StageMakerWindow>();
-        GameObject bee = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), robot = AssetDatabase.LoadAssetAtPath<GameObject>(RobotPrefab);
-        MonsterSpawn M(GameObject p, int mask, Vector2 pos) => new MonsterSpawn { prefab = p, patternMask = mask, patternCount = Bits(mask), spawnPos = pos };
+        GameObject bee = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), m2 = AssetDatabase.LoadAssetAtPath<GameObject>(RobotPrefab);
+        MonsterTuning T(float gap, float cdA, float cdB, float parry) => new MonsterTuning { speedGap = gap, cooldown = new[] { cdA, cdB }, parryChance = parry };
+        MonsterSpawn M(GameObject p, int mask, Vector2 pos, MonsterTuning t) => new MonsterSpawn { prefab = p, patternMask = mask, patternCount = Bits(mask), spawnPos = pos, tuning = t };
         DialogueLine L(string t) => new DialogueLine { speaker = "나", text = t };
 
-        // (번호, 제한시간, 단말기당 칸 [쉬움·보통·어려움], 요구 시간, 몬스터, 요약, 시작 대사(null = 기존 유지), 끝 대사(null = 기존 유지))
+        // 1-1 벌 쉽게(1-A 위주, 1-B 드물게) · 1-2 벌 어렵게 · 1-3 몬스터2 쉽게(2-A 위주) · 1-4 몬스터2 어렵게 · 1-5 벌+몬스터2 (가장 어렵게)
+        var t11 = T(3.5f, 3.5f, 14f, 0.5f); t11.fanAngle = 18f; t11.fieldDuration = 2.5f; t11.fieldRadius = 2.0f;
+        var t12 = T(2.5f, 2.0f, 7f, 0.4f); t12.fanAngle = 22f; t12.fieldDuration = 3f; t12.fieldRadius = 2.4f;
+        var t13 = T(3.5f, 2.5f, 12f, 0.5f);
+        var t14 = T(2.5f, 1.8f, 6f, 0.4f); t14.mineDetect = 1.8f; t14.mineDelay = 1.0f; t14.mineRadius = 1.6f; t14.maxMines = 3;
+        var t15a = T(2.5f, 2.2f, 8f, 0.4f); t15a.fanAngle = 22f; t15a.fieldDuration = 3f; t15a.fieldRadius = 2.4f;
+        var t15b = T(2.5f, 2.0f, 7f, 0.4f); t15b.mineDetect = 1.8f; t15b.mineDelay = 0.9f; t15b.mineRadius = 1.6f; t15b.maxMines = 3;
+        var none = new DialogueLine[0];
         var plan = new (int n, float time, int[] goal, float req, MonsterSpawn[] mons, string summary, DialogueLine[] intro, DialogueLine[] outro)[]
         {
-            (1, 120f, new[] { 2, 3, 4 }, 45f, new[] { M(bee, 0b00011, new Vector2(3f, 3f)) }, null, null, null),
-            (2, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(bee, 0b11111, new Vector2(3f, 3f)) }, "벌이 모든 패턴을 쓴다. 시간도 빠듯하다",
-                new[] { L("벌이 화났다. 탄, 자기장, 부채꼴, 전선, 낙하까지 전부 쓴다."), L("분홍 탄은 점프로 받아쳐서 잠깐 멈추게 하자.") }, null),
-            (3, 115f, new[] { 3, 4, 5 }, 40f, new[] { M(robot, 0b01, new Vector2(3f, 3f)) }, "버그에 지배당한 로봇이 나타났다",
-                new[] { L("이번엔 버그에 지배당한 로봇이다."), L("세 발씩 쏜다. 보라색 탄은 점프로 받아칠 수 있어.") }, null),
-            (4, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(robot, 0b11, new Vector2(3f, 3f)) }, "로봇이 바닥에 전선까지 깐다",
-                new[] { L("로봇이 바닥에 십자 전선을 깐다."), L("전선은 점프로 넘고, 탄은 피하자.") }, null),
-            (5, 100f, new[] { 5, 6, 7 }, 28f, new[] { M(bee, 0b11111, new Vector2(3f, 3f)), M(robot, 0b11, new Vector2(8f, -1.5f)) }, "벌과 로봇이 함께 몰려온다. 1학년 마지막 과제",
-                new[] { L("마감 직전, 벌이랑 로봇이 한꺼번에 몰려왔다."), L("버티면 1학년 과제 제출이다!") },
-                new[] { L("…제출 완료. 1학년 과제, 끝!") }),
+            (1, 120f, new[] { 2, 3, 4 }, 45f, new[] { M(bee, 0b11, new Vector2(3f, 3f), t11) }, null, null, null),
+            (2, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(bee, 0b11, new Vector2(3f, 3f), t12) }, "벌이 더 자주, 더 빠르게 공격한다", none, none),
+            (3, 115f, new[] { 3, 4, 5 }, 40f, new[] { M(m2, 0b01, new Vector2(3f, 3f), t13) }, "새로운 버그가 나타났다", null, null),
+            (4, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(m2, 0b11, new Vector2(3f, 3f), t14) }, "설치 로봇까지 깔기 시작한다", none, none),
+            (5, 100f, new[] { 5, 6, 7 }, 28f, new[] { M(bee, 0b11, new Vector2(3f, 3f), t15a), M(m2, 0b11, new Vector2(8f, -1.5f), t15b) }, "1학년 마지막 과제", null, null),
         };
         foreach (var p in plan)
         {
@@ -1000,6 +1042,7 @@ public class StageMakerWindow : EditorWindow
             s.layout = StageLayoutDefaults.Default();
             s.timeLimit = p.time; s.terminalGoal = p.goal;
             s.requestTime = new[] { p.req, p.req * 0.8f, p.req * 0.65f };
+            s.playerInvincibleTime = 1.5f;
             s.monsters = p.mons;
             if (p.summary != null) s.summary = p.summary;
             if (p.intro != null) s.intro = p.intro;
@@ -1008,12 +1051,10 @@ public class StageMakerWindow : EditorWindow
             foreach (var (msg, bad) in w.Checks()) Debug.Log($"[StageMaker] 1-{p.n} check: {(bad ? "BAD " : "OK ")}{msg}");
             Save(s);
         }
-        // 챕터당 5스테이지: 1-6 이후 삭제
         foreach (var s in LoadAll().Where(x => x.chapter == 1 && x.stage > StageManager.StagesPerChapter).ToList())
         {
             Register(s, false);
             AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(s));
-            Debug.Log($"[StageMaker] deleted 1-{s.stage}");
         }
         AssetDatabase.SaveAssets();
         DestroyImmediate(w);

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 몬스터 공통. 공격 주기: 이동(patternInterval) → 예고(windup, 공격 범위 표시) → 공격 → 회복.
-/// 패턴은 순서대로 돌아감(무작위 X). 패링 시 정지(Stun). 플레이어는 몬스터를 공격할 수 없음.
+/// 몬스터 공통 (수정 기획서): 플레이어 쪽으로 쫓아감(플레이어보다 n 느리게, 대각선도 같은 속도), 몸에 닿아도 데미지 없음.
+/// 패턴마다 쿨타임 n초 — 쿨이 찬 패턴을 예고(windup) → 공격 → 회복 순서로 씀. 패링 시 정지(Stun).
 /// 단위: 1칸 = 1유닛 (팀 규격 32px 격자).
 /// </summary>
 public abstract class MonsterBase : MonoBehaviour
@@ -12,19 +12,20 @@ public abstract class MonsterBase : MonoBehaviour
     public enum Phase { Move, Windup, Attack, Recover }
 
     public float moveSpeed = 2.5f;
-    [Tooltip("공격 사이 이동 시간(초)")] public float patternInterval = 2.6f;
+    [Tooltip("(예전 방식) 공격 사이 간격. 지금은 패턴별 쿨타임 사용")] public float patternInterval = 2.6f;
     [Tooltip("공격 예고 시간(초)")] public float windupTime = 0.6f;
     [Tooltip("공격 후 회복 시간(초)")] public float recoverTime = 0.5f;
     public bool wander = true;
     public Rect moveArea = new Rect(-11, -4, 22, 8);
-    [Tooltip("스테이지 시작 후 첫 공격까지 대기(초)")] public float firstAttackDelay = 3f;
+    [Tooltip("스테이지 시작 후 첫 공격까지 대기(초)")] public float firstAttackDelay = 0f;
+    [Tooltip("플레이어와 이 거리 안이면 더 다가가지 않음(칸)")] public float stopDistance = 1.2f;
 
-    [Header("공격 강도 (단말기 완료 1칸마다 1단계, 최대 maxAggression)")]
-    [Tooltip("단계마다 patternInterval에 곱함")] [Range(0.5f, 1f)] public float intervalStepMultiplier = 0.92f;
+    [Header("(사용 안 함) 예전 공격 강도 설정")]
+    [Range(0.5f, 1f)] public float intervalStepMultiplier = 0.92f;
     public float minPatternInterval = 1.4f;
     public int maxAggression = 6;
-    [Tooltip("단계마다 기본 이동속도 대비 증가 비율")] public float speedStepBonus = 0.06f;
-    [Tooltip("플레이어 moveSpeed보다 낮게 유지")] public float maxMoveSpeed = 4.5f;
+    public float speedStepBonus = 0.06f;
+    public float maxMoveSpeed = 4.5f;
 
     public int Aggression { get; private set; }
     /// <summary>실행 중인 패턴 (0 = 패턴1, -1 = 없음). 애니메이션 전환용</summary>
@@ -37,25 +38,36 @@ public abstract class MonsterBase : MonoBehaviour
     /// <summary>예고 시작 순간 플레이어 방향 (예고와 실제 발사 방향을 일치시킴)</summary>
     protected Vector2 AimDir { get; private set; } = Vector2.down;
     protected Vector2 AimTarget { get; private set; }
+    /// <summary>스테이지에서 정한 n값</summary>
+    protected MonsterTuning Tuning { get; private set; } = new MonsterTuning();
 
     float stunUntil;
     bool halted;
-    Vector2 wanderPoint;
-    float baseInterval, baseSpeed;
-    float currentInterval;
-    int nextPattern;
     readonly List<GameObject> telegraphs = new List<GameObject>();
     readonly List<int> patterns = new List<int>();
+    float[] readyAt = new float[0];
 
     protected abstract int PatternMax { get; }
     /// <summary>index: 0 = 패턴1</summary>
     protected abstract IEnumerator RunPattern(int index);
     /// <summary>예고 표시: 패턴별로 원형/직선 예고를 추가</summary>
     protected virtual void Telegraph(int index) { }
+    /// <summary>지금 이 패턴을 쓸 수 있는 상황인지 (예: 2-A는 플레이어가 같은 행·열일 때만)</summary>
+    protected virtual bool CanUse(int index) => true;
 
     public bool IsStunned => Time.time < stunUntil;
 
-    /// <summary>mask: 사용할 패턴 비트 (0이면 앞에서부터 count개). 패턴은 목록 순서대로 반복</summary>
+    /// <summary>스테이지 n값 적용. playerSpeed - speedGap 으로 쫓아감</summary>
+    public virtual void ApplyTuning(MonsterTuning t, float playerSpeed)
+    {
+        if (t == null) return;
+        Tuning = t;
+        moveSpeed = Mathf.Max(0.5f, playerSpeed - t.speedGap);
+    }
+
+    float Cooldown(int p) => Tuning.cooldown != null && p < Tuning.cooldown.Length ? Mathf.Max(0.3f, Tuning.cooldown[p]) : 4f;
+
+    /// <summary>mask: 사용할 패턴 비트 (0이면 앞에서부터 count개)</summary>
     public void Init(Transform playerTarget, int count, int mask = 0)
     {
         target = playerTarget;
@@ -64,32 +76,27 @@ public abstract class MonsterBase : MonoBehaviour
             if (mask != 0 ? (mask & (1 << i)) != 0 : i < Mathf.Max(1, count)) patterns.Add(i);
         if (patterns.Count == 0) patterns.Add(0);
         patternCount = patterns.Count;
-        nextPattern = 0;
-        wanderPoint = transform.position;
-        baseInterval = patternInterval;
-        baseSpeed = moveSpeed;
-        SetAggression(0);
+        // 처음엔 각 패턴의 쿨타임만큼 기다렸다가 사용 (A 패턴은 바로 1번 쿨)
+        readyAt = new float[PatternMax];
+        for (int i = 0; i < PatternMax; i++) readyAt[i] = Time.time + firstAttackDelay + Cooldown(i);
         StartCoroutine(Loop());
     }
 
-    /// <summary>공격 강도 단계 설정: 패턴 간격 감소, 이동속도 소폭 증가 (상한 있음)</summary>
-    public void SetAggression(int level)
-    {
-        Aggression = Mathf.Clamp(level, 0, maxAggression);
-        currentInterval = Mathf.Max(minPatternInterval, baseInterval * Mathf.Pow(intervalStepMultiplier, Aggression));
-        moveSpeed = Mathf.Min(Mathf.Max(maxMoveSpeed, baseSpeed), baseSpeed * (1f + speedStepBonus * Aggression));
-    }
+    /// <summary>(사용 안 함) 예전 공격 강도 단계</summary>
+    public void SetAggression(int level) => Aggression = level;
 
     public void Stun(float seconds) => stunUntil = Mathf.Max(stunUntil, Time.time + seconds);
     public void Halt() { halted = true; StopAllCoroutines(); ClearTelegraphs(); }
 
     IEnumerator Loop()
     {
-        yield return Wait(firstAttackDelay);
         while (!halted)
         {
-            int p = patterns[nextPattern];
-            nextPattern = (nextPattern + 1) % patterns.Count;
+            // 쿨이 찼고 지금 쓸 수 있는 패턴 중 가장 오래 기다린 것
+            int p = -1;
+            foreach (var i in patterns)
+                if (!IsStunned && Time.time >= readyAt[i] && CanUse(i) && (p < 0 || readyAt[i] < readyAt[p])) p = i;
+            if (p < 0) { yield return null; continue; }
 
             // 예고
             CurrentPattern = p;
@@ -109,7 +116,7 @@ public abstract class MonsterBase : MonoBehaviour
 
             CurrentPattern = -1;
             CurrentPhase = Phase.Move;
-            yield return Wait(currentInterval);
+            readyAt[p] = Time.time + Cooldown(p);
         }
     }
 
@@ -127,12 +134,14 @@ public abstract class MonsterBase : MonoBehaviour
     void Update()
     {
         UpdateTelegraphs();
-        // 예고·공격 중에는 제자리 (읽기 쉽게)
-        if (halted || IsStunned || !wander || CurrentPhase != Phase.Move) return;
-        if (((Vector2)transform.position - wanderPoint).sqrMagnitude < 0.05f)
-            wanderPoint = new Vector2(Random.Range(moveArea.xMin, moveArea.xMax),
-                                      Random.Range(moveArea.yMin, moveArea.yMax));
-        transform.position = Vector2.MoveTowards(transform.position, wanderPoint, moveSpeed * Time.deltaTime);
+        // 예고·공격 중에는 제자리 (읽기 쉽게). 이동 = 플레이어 쪽으로 (대각선도 같은 속도)
+        if (halted || IsStunned || !wander || CurrentPhase != Phase.Move || target == null) return;
+        Vector2 to = (Vector2)target.position - (Vector2)transform.position;
+        if (to.magnitude <= stopDistance) return;
+        Vector2 next = (Vector2)transform.position + to.normalized * moveSpeed * Time.deltaTime;
+        next.x = Mathf.Clamp(next.x, moveArea.xMin, moveArea.xMax);
+        next.y = Mathf.Clamp(next.y, moveArea.yMin, moveArea.yMax);
+        transform.position = next;
     }
 
     // ---------- 예고 (팀 규격: 원형 예고 128 채움·테두리 분리, 직선 예고 32×128 아래 중앙 기준) ----------

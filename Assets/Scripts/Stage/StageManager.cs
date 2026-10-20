@@ -51,6 +51,8 @@ public class StageManager : MonoBehaviour
         if (Data.layout != null && Data.layout.use) StageLayoutApplier.Apply(Data.layout, this, true);
 
         TimeLeft = Data.TimeFor(Diff);
+        var ph = player != null ? player.GetComponent<PlayerHealth>() : null;
+        if (ph != null) ph.invincibleTime = Data.playerInvincibleTime;   // 피격 후 무적 n초
         foreach (var t in terminals)
         {
             t.requestTime = Data.RequestTimeFor(Diff);
@@ -106,8 +108,8 @@ public class StageManager : MonoBehaviour
             if (m == null || m.prefab == null) continue;
             var go = Instantiate(m.prefab, m.spawnPos, Quaternion.identity);
             var mon = go.GetComponent<MonsterBase>();
-            // 난이도별 공격 템포: Easy 느리게 · Hard 빠르게 (기획서 p.12 챕터별 난이도)
-            mon.patternInterval *= Diff == Difficulty.Easy ? 1.3f : Diff == Difficulty.Hard ? 0.8f : 1f;
+            // 기획서 n값(쫓아가는 속도 = 플레이어 - n, 패턴 쿨타임 등)은 스테이지 데이터에서
+            mon.ApplyTuning(m.tuning, player.moveSpeed);
             // 돌아다니는 범위 = 그린 맵 안쪽 (맵 크기가 스테이지마다 다름)
             if (Data.layout != null && Data.layout.use && Data.layout.walls != null && Data.layout.walls.Count > 0)
             {
@@ -115,17 +117,12 @@ public class StageManager : MonoBehaviour
                 mon.moveArea = new Rect(b.x + 2f, b.y + 2f, Mathf.Max(1f, b.width - 4f), Mathf.Max(1f, b.height - 4f));
             }
             mon.Init(player.transform, m.patternCount, m.patternMask);
-            mon.SetAggression(CompletedCount());
             monsters.Add(mon);
         }
     }
 
-    // Awaria처럼 단말기 게이지가 찰 때마다 몬스터가 더 공격적으로
-    void OnTerminalChanged()
-    {
-        int level = CompletedCount();
-        foreach (var m in monsters) if (m && m.Aggression != level) m.SetAggression(level);
-    }
+    // (단말기 완료마다 몬스터 공격 강도 상승은 기획서에 없어서 뺌. 난이도는 스테이지별 시간·칸 수·패턴으로)
+    void OnTerminalChanged() { }
 
     int CompletedCount()
     {
