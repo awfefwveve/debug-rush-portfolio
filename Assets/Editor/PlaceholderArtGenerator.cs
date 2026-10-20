@@ -85,6 +85,7 @@ public static class PlaceholderArtGenerator
         ConfigureTileArt();
         AssetDatabase.Refresh();
         BuildFxSet();
+        BuildTileAtlas();
         Apply();
         StageMakerWindow.ConvertExisting();
         AssetDatabase.SaveAssets();
@@ -436,6 +437,33 @@ public static class PlaceholderArtGenerator
     static Sprite[] Monster2Seq(string prefix) => Directory.Exists(Drive + "Monster2") ? DriveSeq("Monster2", prefix) : new Sprite[0];
     static Sprite[] DriveSeq(string folder, string prefix) =>
         Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
+
+    /// <summary>
+    /// 바닥·벽 타일을 한 장(스프라이트 아틀라스)에 모음 → 칸마다 깔린 수백 장이 한 번에 그려져서 렉이 줄어듦.
+    /// 팀 타일(Art/Tiles) + 임시 타일·벽 조각.
+    /// </summary>
+    static void BuildTileAtlas()
+    {
+        const string atlasPath = "Assets/DebugRush/Art/Tiles.spriteatlasv2";
+        var objs = new List<Object>();
+        if (Directory.Exists(Tiles)) objs.Add(AssetDatabase.LoadAssetAtPath<DefaultAsset>(Tiles.TrimEnd('/')));
+        foreach (var f in Directory.GetFiles(Dir, "*.png"))
+        {
+            string n = Path.GetFileNameWithoutExtension(f);
+            if (n.StartsWith("tile_") || n.StartsWith("wall_") || n.StartsWith("floor"))
+                objs.Add(AssetDatabase.LoadAssetAtPath<Texture2D>(f.Replace('\\', '/')));
+        }
+        var atlas = new UnityEditor.U2D.SpriteAtlasAsset();
+        atlas.Add(objs.Where(o => o != null).ToArray());
+        UnityEditor.U2D.SpriteAtlasAsset.Save(atlas, atlasPath);
+        AssetDatabase.Refresh();
+        var imp = AssetImporter.GetAtPath(atlasPath) as UnityEditor.U2D.SpriteAtlasImporter;
+        if (imp == null) { Debug.LogWarning("[Placeholder] atlas importer 없음"); return; }
+        imp.packingSettings = new UnityEditor.U2D.SpriteAtlasPackingSettings { enableRotation = false, enableTightPacking = false, padding = 4, enableAlphaDilation = true };
+        imp.textureSettings = new UnityEditor.U2D.SpriteAtlasTextureSettings { filterMode = FilterMode.Bilinear, generateMipMaps = false, sRGB = true, readable = false };
+        imp.includeInBuild = true;
+        imp.SaveAndReimport();
+    }
 
     /// <summary>그래픽 팀 타일이 하나라도 들어왔는지 (그러면 빠진 조각은 회색 임시 그림 대신 팀 그림으로 채움)</summary>
     static bool TeamTiles => File.Exists(Tiles + "tile_wall_top.png");

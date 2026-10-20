@@ -45,9 +45,7 @@ public class CraftingTableView : MonoBehaviour
         if (body == null) return;
         Sprite s = table.HasOutput ? doneSprite : table.IsCrafting ? workingSprite : idleSprite;
         if (s != null) body.sprite = s;
-        // 제작 중에는 살짝 들썩임
-        float k = table.IsCrafting ? 1f + Mathf.Sin(Time.time * 14f) * 0.025f : 1f;
-        body.transform.localScale = new Vector3(k, 2f - k, 1f);
+        body.transform.localScale = Vector3.one;   // (제작 중 들썩임 연출은 기획서에 없어 뺌)
     }
 
     void Start()

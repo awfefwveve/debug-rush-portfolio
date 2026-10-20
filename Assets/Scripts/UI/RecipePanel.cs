@@ -18,6 +18,7 @@ public class RecipePanel : MonoBehaviour
     struct Row { public ItemType a, b, result; public Image bg; public TMP_Text name; }
 
     readonly List<Row> rows = new List<Row>();
+    readonly HashSet<ItemType> neededCache = new HashSet<ItemType>();
     RectTransform panel;
     GameObject body;
     TMP_Text header;
@@ -111,7 +112,7 @@ public class RecipePanel : MonoBehaviour
         if (autoCloseAt > 0f && Time.time >= autoCloseAt) { autoCloseAt = -1f; if (open) Toggle(); }
 
         // 지금 단말기가 요구하는 결과 줄 강조
-        var needed = new HashSet<ItemType>();
+        var needed = neededCache; needed.Clear();
         if (stage != null && stage.terminals != null)
             foreach (var t in stage.terminals) if (t != null) foreach (var it in t.Remaining) needed.Add(it);
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 5f);

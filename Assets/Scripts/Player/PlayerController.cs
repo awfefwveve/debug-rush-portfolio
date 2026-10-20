@@ -79,14 +79,19 @@ public class PlayerController : MonoBehaviour
     // ---------- 상호작용 ----------
     Vector2 BodyCenter => (Vector2)transform.position + Vector2.up * interactHeight;
 
+    readonly Collider2D[] hitBuffer = new Collider2D[16];
+
     Component FindTarget(out IInteractable best)
     {
-        var hits = Physics2D.OverlapCircleAll(BodyCenter, interactRadius, interactMask);
+        // 매 프레임 배열을 새로 만들지 않게 버퍼 재사용 (렉 원인)
+        var filter = new ContactFilter2D { useLayerMask = true, layerMask = interactMask, useTriggers = true };
+        int n = Physics2D.OverlapCircle(BodyCenter, interactRadius, filter, hitBuffer);
         best = null;
         Component bestComp = null;
         float bestDist = float.MaxValue;
-        foreach (var h in hits)
+        for (int i = 0; i < n; i++)
         {
+            var h = hitBuffer[i];
             if (!h.TryGetComponent(out IInteractable it)) continue;
             float d = (h.ClosestPoint(BodyCenter) - BodyCenter).sqrMagnitude;
             if (d < bestDist) { bestDist = d; best = it; bestComp = h; }

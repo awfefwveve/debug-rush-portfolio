@@ -4,11 +4,16 @@ using UnityEngine;
 public static class KoreanIMGUIFont
 {
     static Font cached;
+    static float nextSearch;
     public static void Apply()
     {
-        if (cached == null)
+        // 메모리 전체를 뒤지는 검색은 2초에 한 번만 (OnGUI는 매 프레임 여러 번 불려서, 못 찾으면 매번 검색하던 게 렉 원인)
+        if (cached == null && Time.realtimeSinceStartup >= nextSearch)
+        {
+            nextSearch = Time.realtimeSinceStartup + 2f;
             foreach (var font in Resources.FindObjectsOfTypeAll<Font>())
                 if (font != null && font.name.Contains("Nanum")) { cached = font; break; }
+        }
         if (cached == null) return;
         GUI.skin.box.font = cached; GUI.skin.label.font = cached; GUI.skin.button.font = cached;
         GUI.skin.window.font = cached; GUI.skin.toggle.font = cached;

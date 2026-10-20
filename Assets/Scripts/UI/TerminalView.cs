@@ -80,6 +80,8 @@ public class TerminalView : MonoBehaviour
         RefreshTimer();
     }
 
+    int shownSec = -1;
+
     void RefreshTimer()
     {
         if (cells == null) CreateTimer();
@@ -93,7 +95,12 @@ public class TerminalView : MonoBehaviour
             cells[i].color = i < lit ? c : new Color(0.15f, 0.18f, 0.28f, 0.9f);
         }
         timerText.enabled = on;
-        if (on) { timerText.text = Mathf.CeilToInt(terminal.TimeLeft) + "초"; timerText.color = c; }
+        if (on)
+        {
+            int sec = Mathf.CeilToInt(terminal.TimeLeft);
+            if (sec != shownSec) { shownSec = sec; timerText.SetText("{0}초", sec); }   // 바뀔 때만 (매 프레임 글자 새로 만들면 렉)
+            timerText.color = c;
+        }
 
         // 요구사항 박스 바로 위
         Vector3 anchor = requestBox != null && requestBox.enabled

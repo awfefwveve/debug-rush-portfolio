@@ -33,6 +33,7 @@ public class AutoShot : MonoBehaviour
         Directory.CreateDirectory(dir);
         yield return new WaitForSecondsRealtime(2f);
         yield return Shot("01_title");
+        yield return FrameStatsFor("title", 3f);
 
         if (quick) playSeconds = 4f;
         var menu = quick ? null : FindAnyObjectByType<MainMenu>();
@@ -74,6 +75,7 @@ public class AutoShot : MonoBehaviour
         player = FindAnyObjectByType<PlayerController>();
         if (player == null) yield break;
         StartCoroutine(Brain());
+        StartCoroutine(FrameStats("play"));
         StartCoroutine(Watcher());
         WallCheck();
         StartCoroutine(RecipeSlide());
@@ -91,6 +93,18 @@ public class AutoShot : MonoBehaviour
         }
         yield return new WaitForSeconds(1.5f);
         yield return Shot("29_end");
+        // 결과 화면 확인: 바로 클리어 → 엔딩 대사 넘기기 → 결과 화면 캡처
+        if (StageManager.I != null && StageManager.I.Running)
+        {
+            StageManager.I.DebugClear();
+            for (int i = 0; i < 40; i++)
+            {
+                var dlg = FindAnyObjectByType<DialogueUI>();
+                if (dlg != null && dlg.skipButton != null && dlg.skipButton.gameObject.activeInHierarchy) dlg.skipButton.onClick.Invoke();
+                yield return new WaitForSecondsRealtime(0.1f);
+            }
+            yield return Shot("50_result");
+        }
         player.BotInput = null;
     }
 
@@ -221,6 +235,26 @@ public class AutoShot : MonoBehaviour
         Debug.Log($"[RecipeCheck] camera size {size0}->{cam.orthographicSize} pos {pos0}->{cam.transform.position}");
         panel.Toggle();
         yield return new WaitForSecondsRealtime(0.5f); yield return Shot("42_recipe_back");
+    }
+
+    /// <summary>프레임 시간 기록: 평균·상위 1%·최대 (렉 확인용)</summary>
+    IEnumerator FrameStatsFor(string label, float seconds)
+    {
+        var list = new System.Collections.Generic.List<float>();
+        float end = Time.realtimeSinceStartup + seconds;
+        while (Time.realtimeSinceStartup < end) { list.Add(Time.unscaledDeltaTime * 1000f); yield return null; }
+        list.Sort(); float avg = 0f; foreach (var v in list) avg += v; avg /= Mathf.Max(1, list.Count);
+        Debug.Log($"[Frame:{label}] n={list.Count} avg={avg:F1}ms p99={list[(int)(list.Count * 0.99f)]:F1}ms max={list[list.Count - 1]:F1}ms q={QualitySettings.GetQualityLevel()} {QualitySettings.names[QualitySettings.GetQualityLevel()]} hz={Screen.currentResolution.refreshRateRatio.value:F0}");
+    }
+
+    IEnumerator FrameStats(string label = "play")
+    {
+        var list = new System.Collections.Generic.List<float>();
+        float end = Time.realtimeSinceStartup + 12f;
+        while (Time.realtimeSinceStartup < end) { list.Add(Time.unscaledDeltaTime * 1000f); yield return null; }
+        list.Sort();
+        float avg = 0f; foreach (var v in list) avg += v; avg /= Mathf.Max(1, list.Count);
+        Debug.Log($"[Frame:{label}] n={list.Count} avg={avg:F1}ms p99={list[(int)(list.Count * 0.99f)]:F1}ms max={list[list.Count - 1]:F1}ms gc={System.GC.CollectionCount(0)} vsync={QualitySettings.vSyncCount} target={Application.targetFrameRate}");
     }
 
     IEnumerator Shot(string name)

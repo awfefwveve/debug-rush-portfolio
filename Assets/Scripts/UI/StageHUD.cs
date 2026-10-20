@@ -20,6 +20,7 @@ public class StageHUD : MonoBehaviour
     public GameObject resultPanel;
     public TMP_Text resultText;
     public Button retryButton, mapButton;
+    Button nextButton;
 
     static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.78f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
@@ -53,21 +54,26 @@ public class StageHUD : MonoBehaviour
     void OnTime(float t)
     {
         int s = Mathf.CeilToInt(t);
+        if (s == shownTime) return;
+        shownTime = s;
         timerText.text = $"{s / 60:00}:{s % 60:00}";       // 기획서 p.18: 10:00 형식
         timerText.color = t <= 30f ? new Color(1f, 0.35f, 0.35f) : Color.white;
     }
 
+    int shownStage = -1, shownDone = -1, shownTotal = -1, shownTime = -1;
+
     void Update()
     {
         if (stage == null || stage.Data == null) return;
-        if (stageLabel != null) stageLabel.text = $"STAGE {stage.Data.stage:00}";            // 기획서 p.7 "STAGE 02" 형식
+        // 글자는 값이 바뀔 때만 다시 만듦 (매 프레임 새로 만들면 메모리 정리로 끊김)
+        if (stageLabel != null && shownStage != stage.Data.stage) { shownStage = stage.Data.stage; stageLabel.text = $"STAGE {stage.Data.stage:00}"; }   // 기획서 p.7 "STAGE 02" 형식
         if (fixLabel != null)
         {
             int done = 0, total = 0;
             if (stage.terminals != null)
                 foreach (var t in stage.terminals)
                     if (t != null && t.gameObject.activeInHierarchy) { done += Mathf.Min(t.Completed, t.goal); total += t.goal; }
-            fixLabel.text = $"오류 수정 <color=#FFD23F>{done}</color>/{total}";
+            if (done != shownDone || total != shownTotal) { shownDone = done; shownTotal = total; fixLabel.text = $"오류 수정 <color=#FFD23F>{done}</color>/{total}"; }
         }
     }
 
@@ -135,10 +141,33 @@ public class StageHUD : MonoBehaviour
 
     void StyleResult()
     {
+        // [다음 스테이지] 버튼: 다시하기 버튼을 복제해서 맨 위에. 아래로 다시하기, 스테이지 선택
+        if (nextButton == null && retryButton != null)
+        {
+            nextButton = Instantiate(retryButton, retryButton.transform.parent);
+            nextButton.name = "Next";
+            nextButton.onClick.RemoveAllListeners();
+            nextButton.onClick.AddListener(() =>
+            {
+                var n = NextStage();
+                if (n != null && GameManager.I != null) GameManager.I.StartStage(n, (Difficulty)Mathf.Clamp(n.chapter - 1, 0, 2));
+            });
+            var label = nextButton.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = "다음 스테이지";
+            else { var ut = nextButton.GetComponentInChildren<Text>(); if (ut != null) ut.text = "다음 스테이지"; }
+            nextButton.gameObject.SetActive(false);
+            var rr = (RectTransform)retryButton.transform; var nr = (RectTransform)nextButton.transform;
+            // 결과 창 배치: 위에 글자, 아래로 다음 스테이지 · 다시 하기 · 맵으로
+            var tr = resultText.rectTransform; tr.anchoredPosition = new Vector2(0f, 140f);
+            nr.anchoredPosition = new Vector2(0f, 30f);
+            rr.anchoredPosition = new Vector2(0f, -50f);
+            ((RectTransform)mapButton.transform).anchoredPosition = new Vector2(0f, -130f);
+            var ni = nextButton.GetComponent<Image>(); if (ni != null) ni.color = new Color(0.95f, 0.75f, 0.2f);
+        }
         var img = resultPanel.GetComponent<Image>();
         if (img != null) img.color = new Color(0.04f, 0.06f, 0.12f, 0.94f);
         resultText.fontSize = 72f; resultText.fontStyle = FontStyles.Bold;
-        foreach (var b in new[] { retryButton, mapButton })
+        foreach (var b in new[] { retryButton, mapButton })   // (다음 스테이지는 노란색)
         {
             var bi = b.GetComponent<Image>(); if (bi != null) bi.color = new Color(0.13f, 0.45f, 0.8f);
         }
@@ -171,6 +200,19 @@ public class StageHUD : MonoBehaviour
         resultPanel.SetActive(true);
         resultPanel.transform.SetAsLastSibling();
         resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" : "<color=#FF4757>FAILED...</color>";
+        // 클리어했고 같은 학년에 다음 스테이지가 있으면 [다음 스테이지] (마지막 스테이지면 숨김 → 스테이지 선택으로)
+        var next = cleared ? NextStage() : null;
+        if (nextButton != null) nextButton.gameObject.SetActive(next != null);
+    }
+
+    StageData NextStage()
+    {
+        var gm = GameManager.I;
+        if (gm == null || gm.allStages == null || stage.Data == null) return null;
+        StageData best = null;
+        foreach (var s in gm.allStages)
+            if (s != null && s.chapter == stage.Data.chapter && s.stage > stage.Data.stage && (best == null || s.stage < best.stage)) best = s;
+        return best != null && gm.IsUnlocked(best) ? best : null;
     }
 
     // ---------- 헬퍼 ----------

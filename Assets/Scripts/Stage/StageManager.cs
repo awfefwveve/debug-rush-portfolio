@@ -150,6 +150,9 @@ public class StageManager : MonoBehaviour
 
     void OnPlayerDied() { if (Running) End(false); }
 
+    /// <summary>QA 자동 테스트용: 바로 클리어 처리</summary>
+    public void DebugClear() { if (Running) End(true); }
+
     void End(bool cleared)
     {
         Running = false;
