@@ -16,9 +16,10 @@ public class StageMakerWindow : EditorWindow
     const string TitleScenePath = "Assets/Scenes/Title.unity";
     const string StageScenePath = "Assets/Scenes/Stage.unity";
     const string BeePrefab = "Assets/DebugRush/Prefabs/Monster1A.prefab";
-    const int Chapters = 3, PerChapter = 10;
+    const string RobotPrefab = "Assets/DebugRush/Prefabs/MonsterRobot.prefab";   // 두 번째 몬스터 (챕터2)
+    const int Chapters = 3, PerChapter = StageManager.StagesPerChapter;   // 챕터당 5스테이지
 
-    enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee }
+    enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee, Robot }
 
     static readonly (Tool tool, string label, string tip)[] Palette =
     {
@@ -34,6 +35,7 @@ public class StageMakerWindow : EditorWindow
         (Tool.Terminal, "단말기", "단말기 추가 (클릭마다 하나)"),
         (Tool.Player, "시작점", "플레이어 시작 위치"),
         (Tool.Bee, "벌", "벌 추가. 놓인 벌을 클릭하면 그 벌의 공격 패턴을 오른쪽에서 편집"),
+        (Tool.Robot, "로봇", "로봇(두 번째 몬스터) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 공격 패턴을 오른쪽에서 편집"),
     };
 
     StageData selected;
@@ -173,11 +175,10 @@ public class StageMakerWindow : EditorWindow
         var fx0 = FxSet.Get();
         var floorAll = L.FloorSet();
         var work = L.crafters.Select(p => new Rect(p - StageLayoutDefaults.CrafterSize / 2f - Vector2.one, StageLayoutDefaults.CrafterSize + Vector2.one * 2f)).ToList();
-        foreach (var c in floorAll)
+        foreach (var p in WallBuilder.FloorLayout(floorAll, fx0, work))   // 게임과 같은 바닥 타일 (큰 바닥 포함)
         {
-            var fr = CellRect(grid, cs, c);
-            var fs = WallBuilder.FloorSprite(c, fx0, work);   // 게임과 같은 바닥 타일
-            if (fs != null) DrawSprite(fr, fs, 0f);
+            var fr = WorldRect(grid, cs, p.center, Vector2.one * p.size);
+            if (p.sprite != null) DrawSprite(fr, p.sprite, 0f);
             else if (floorTex != null) GUI.DrawTexture(fr, floorTex); else EditorGUI.DrawRect(fr, new Color(0.09f, 0.11f, 0.17f));
         }
         for (int x = 0; x <= GW; x++) EditorGUI.DrawRect(new Rect(grid.x + x * cs, grid.y, 1, grid.height), new Color(1, 1, 1, 0.05f));
@@ -236,7 +237,8 @@ public class StageMakerWindow : EditorWindow
         for (int i = 0; i < L.terminals.Length; i++) yield return O("terminal:" + i, $"단말기 {i + 1}", L.terminals[i], StageLayoutDefaults.TerminalSize, "terminal");
         var p = O("player", "시작점", L.playerStart + new Vector2(0f, 1f), new Vector2(2f, 2f), "player"); p.feet = true; yield return p;
         if (selected.monsters != null)
-            for (int i = 0; i < selected.monsters.Length; i++) yield return O("bee:" + i, $"벌 {i + 1}", selected.monsters[i].spawnPos, new Vector2(2f, 2f), "bee");
+            for (int i = 0; i < selected.monsters.Length; i++)
+                yield return O("bee:" + i, $"{MonsterName(selected.monsters[i])} {i + 1}", selected.monsters[i].spawnPos, new Vector2(2f, 2f), IsRobot(selected.monsters[i]) ? "robot" : "bee");
     }
 
     static readonly ItemType[] Materials = { ItemType.Planning, ItemType.Programming, ItemType.Graphic, ItemType.QA };
@@ -279,7 +281,7 @@ public class StageMakerWindow : EditorWindow
                 || (mat != null && hit.StartsWith("station:") && L.stations[Index(hit)].material == mat)
                 || (tool == Tool.Crafter && hit.StartsWith("crafter:"))
                 || (tool == Tool.Terminal && hit.StartsWith("terminal:"))
-                || (tool == Tool.Bee && hit.StartsWith("bee:"))
+                || ((tool == Tool.Bee || tool == Tool.Robot) && hit.StartsWith("bee:"))
                 || (tool == Tool.Player && hit == "player"));
             if (sameKind)
             {
@@ -288,7 +290,7 @@ public class StageMakerWindow : EditorWindow
                 e.Use(); return;
             }
             // 물체는 바닥 칸 위에만
-            bool placing = mat != null || tool == Tool.Crafter || tool == Tool.Terminal || tool == Tool.Bee || tool == Tool.Player;
+            bool placing = mat != null || tool == Tool.Crafter || tool == Tool.Terminal || tool == Tool.Bee || tool == Tool.Robot || tool == Tool.Player;
             if (placing && !OnFloor(tool == Tool.Player ? snap - new Vector2(0f, 0.5f) : snap)) { ShowNotification(new GUIContent("바닥 위에만 놓을 수 있어요")); e.Use(); return; }
             switch (tool)
             {
@@ -304,6 +306,9 @@ public class StageMakerWindow : EditorWindow
                 case Tool.Bee:
                     int count = selected.monsters?.Length ?? 0;
                     Record("벌"); SetBee(count, snap); dragging = "bee:" + count; selBee = count; GUI.FocusControl(null); break;
+                case Tool.Robot:
+                    int rc = selected.monsters?.Length ?? 0;
+                    Record("로봇"); SetBee(rc, snap, RobotPrefab); dragging = "bee:" + rc; selBee = rc; GUI.FocusControl(null); break;
             }
             e.Use();
         }
@@ -406,12 +411,14 @@ public class StageMakerWindow : EditorWindow
         else { L.MakeFloorExplicit(); L.floor.Remove(cell); }
     }
 
-    void SetBee(int index, Vector2 pos)
+    void SetBee(int index, Vector2 pos, string prefabPath = BeePrefab)
     {
         var list = (selected.monsters ?? new MonsterSpawn[0]).ToList();
-        int mask = selected.newMonsterPatternMask != 0 ? selected.newMonsterPatternMask : 1;
+        int all = (1 << Names(prefabPath == RobotPrefab).Length) - 1;
+        int mask = (selected.newMonsterPatternMask != 0 ? selected.newMonsterPatternMask : 1) & all;
+        if (mask == 0) mask = all;
         while (list.Count <= index)
-            list.Add(new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = Bits(mask), patternMask = mask });
+            list.Add(new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath), patternCount = Bits(mask), patternMask = mask });
         list[index].spawnPos = pos;
         selected.monsters = list.ToArray();
     }
@@ -544,7 +551,7 @@ public class StageMakerWindow : EditorWindow
             s.terminalGoal = goals; s.requestTime = req;
         }
 
-        // 몬스터별 공격 패턴: 맵이나 아래 버튼에서 벌을 고르면 그 벌만 편집
+        // 몬스터별 공격 패턴: 맵이나 아래 버튼에서 몬스터를 고르면 그 몬스터만 편집 (벌 A-1~A-5, 로봇 B-1~B-2)
         int beeCount = s.monsters?.Length ?? 0;
         if (selBee >= beeCount) selBee = -1;
         Head("몬스터 공격 패턴 (켠 것만 순서대로 반복)");
@@ -553,20 +560,20 @@ public class StageMakerWindow : EditorWindow
             GUILayout.BeginHorizontal();
             if (GUILayout.Toggle(selBee < 0, "새 몬스터 기본값", "Button", GUILayout.Height(24))) selBee = -1;
             for (int m = 0; m < beeCount; m++)
-                if (GUILayout.Toggle(selBee == m, $"벌 {m + 1}", "Button", GUILayout.Height(24))) selBee = m;
+                if (GUILayout.Toggle(selBee == m, $"{MonsterName(s.monsters[m])} {m + 1}", "Button", GUILayout.Height(24))) selBee = m;
             GUILayout.EndHorizontal();
         }
         if (selBee >= 0)
         {
             var sp = s.monsters[selBee];
-            GUILayout.Label($"벌 {selBee + 1} 전용 패턴", EditorStyles.miniBoldLabel);
+            GUILayout.Label($"{MonsterName(sp)} {selBee + 1} 전용 패턴", EditorStyles.miniBoldLabel);
             int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
-            int nm = PatternToggles(mask);
+            int nm = PatternToggles(mask, Names(IsRobot(sp)));
             if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
         }
         else
         {
-            GUILayout.Label("새로 놓는 벌의 기본 패턴 (맵에서 벌을 클릭하면 그 벌만 따로 편집)", EditorStyles.miniLabel);
+            GUILayout.Label("새로 놓는 몬스터의 기본 패턴 (로봇은 앞 2개만 해당). 맵에서 몬스터를 클릭하면 그 몬스터만 따로 편집", EditorStyles.miniLabel);
             int mask = s.newMonsterPatternMask != 0 ? s.newMonsterPatternMask : 1;
             int nm = PatternToggles(mask);
             if (nm != mask) { Record("기본 패턴"); s.newMonsterPatternMask = nm; }
@@ -579,14 +586,20 @@ public class StageMakerWindow : EditorWindow
         GUILayout.EndArea();
     }
 
-    static int PatternToggles(int mask)
+    static bool IsRobot(MonsterSpawn m) => m != null && m.prefab != null && m.prefab.GetComponent<MonsterRobot>() != null;
+    static string MonsterName(MonsterSpawn m) => IsRobot(m) ? "로봇" : "벌";
+    static string[] Names(bool robot) => robot ? MonsterRobot.PatternNames : Monster1A.PatternNames;
+
+    static int PatternToggles(int mask) => PatternToggles(mask, Monster1A.PatternNames);
+
+    static int PatternToggles(int mask, string[] names)
     {
         int nm = 0;
-        for (int b = 0; b < Monster1A.PatternNames.Length; b++)
+        for (int b = 0; b < names.Length; b++)
         {
             bool on = (mask & (1 << b)) != 0;
             var prev = GUI.backgroundColor; GUI.backgroundColor = on ? new Color(1f, 0.8f, 0.3f) : Color.white;
-            if (GUILayout.Toggle(on, Monster1A.PatternNames[b], "Button", GUILayout.Height(26))) nm |= 1 << b;
+            if (GUILayout.Toggle(on, names[b], "Button", GUILayout.Height(26))) nm |= 1 << b;
             GUI.backgroundColor = prev;
         }
         return nm == 0 ? 1 : nm;
@@ -677,7 +690,7 @@ public class StageMakerWindow : EditorWindow
         int c = chapterTab + 1;
         var all = LoadAll();
         int n = Enumerable.Range(1, PerChapter).FirstOrDefault(k => !all.Any(x => x.chapter == c && x.stage == k));
-        if (n == 0) { EditorUtility.DisplayDialog("Stage Maker", $"{c}학년 스테이지 10칸이 모두 찼어요.", "확인"); return; }
+        if (n == 0) { EditorUtility.DisplayDialog("Stage Maker", $"{c}학년 스테이지 {PerChapter}칸이 모두 찼어요.", "확인"); return; }
         CreateAt(c, n, duplicate ? selected : null);
     }
 
@@ -690,7 +703,9 @@ public class StageMakerWindow : EditorWindow
         s.displayName = $"{chapter}-{stage}";
         if (template == null || template != selected) { s.intro = new DialogueLine[0]; s.outro = new DialogueLine[0]; s.summary = ""; }
         if (s.monsters == null || s.monsters.Length == 0)
-            s.monsters = new[] { new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = 1, patternMask = 1, spawnPos = new Vector2(3f, 3f) } };
+            s.monsters = new[] { chapter >= 2   // 챕터2부터는 두 번째 몬스터(로봇)
+                ? new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(RobotPrefab), patternCount = 2, patternMask = 3, spawnPos = new Vector2(3f, 3f) }
+                : new MonsterSpawn { prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), patternCount = 1, patternMask = 1, spawnPos = new Vector2(3f, 3f) } };
         if (s.layout == null || !s.layout.use || s.layout.walls.Count == 0) s.layout = StageLayoutDefaults.Default();
         string path = AssetDatabase.GenerateUniqueAssetPath($"{DataFolder}/Stage_{chapter}_{stage}.asset");
         AssetDatabase.CreateAsset(s, path);
@@ -766,7 +781,7 @@ public class StageMakerWindow : EditorWindow
                     DestroyImmediate(tmp); replaced++; last = existing; continue;
                 }
                 int free = Enumerable.Range(1, PerChapter).FirstOrDefault(k => !LoadAll().Any(x => x.chapter == tmp.chapter && x.stage == k));
-                if (free == 0) { EditorUtility.DisplayDialog("가져오기", $"{tmp.chapter}학년 10칸이 모두 찼어요. 건너뜀.", "확인"); DestroyImmediate(tmp); continue; }
+                if (free == 0) { EditorUtility.DisplayDialog("가져오기", $"{tmp.chapter}학년 {PerChapter}칸이 모두 찼어요. 건너뜀.", "확인"); DestroyImmediate(tmp); continue; }
                 tmp.stage = free;
             }
             string p = AssetDatabase.GenerateUniqueAssetPath($"{DataFolder}/Stage_{tmp.chapter}_{tmp.stage}.asset");
@@ -882,6 +897,7 @@ public class StageMakerWindow : EditorWindow
             case Tool.Crafter: return Thumb("crafter");
             case Tool.Terminal: return Thumb("terminal");
             case Tool.Player: return Thumb("player");
+            case Tool.Robot: return Thumb("robot");
             default: return Thumb("bee");
         }
     }
@@ -899,6 +915,7 @@ public class StageMakerWindow : EditorWindow
             "terminal" => "Assets/DebugRush/Art/Facilities/terminal_error.png",
             "player" => "Assets/DebugRush/Art/Drive/Player/run_R_01.png",
             "bee" => "Assets/DebugRush/Art/Drive/Monster1/move_01.png",
+            "robot" => System.IO.File.Exists("Assets/DebugRush/Art/Drive/Monster2/move_01.png") ? "Assets/DebugRush/Art/Drive/Monster2/move_01.png" : "Assets/DebugRush/Art/Placeholder/robot.png",
             "floor" => "Assets/DebugRush/Art/Placeholder/floor_32.png",
             _ => "Assets/DebugRush/Art/Placeholder/wall_single.png",
         };
@@ -950,7 +967,61 @@ public class StageMakerWindow : EditorWindow
         Debug.Log("[StageMaker] 1-6 made");
     }
 
-    /// <summary>에디터(GUI)로 실행: 창을 띄워 1-6을 고른 뒤 화면을 PNG로 저장하고 종료. 인자 -smshot 경로</summary>
+    /// <summary>
+    /// 챕터1 다시 짜기 (기획 수정: 챕터당 5스테이지). 1-1 벌 쉽게 · 1-2 벌 어렵게 · 1-3 로봇 쉽게 · 1-4 로봇 어렵게 · 1-5 벌+로봇 마무리.
+    /// 1학년은 쉬움 고정이라 난이도는 시간·고칠 칸 수·요구 시간·몬스터 패턴으로 올림. 1-6 이후는 삭제.
+    /// </summary>
+    public static void RebuildChapter1()
+    {
+        var w = CreateInstance<StageMakerWindow>();
+        GameObject bee = AssetDatabase.LoadAssetAtPath<GameObject>(BeePrefab), robot = AssetDatabase.LoadAssetAtPath<GameObject>(RobotPrefab);
+        MonsterSpawn M(GameObject p, int mask, Vector2 pos) => new MonsterSpawn { prefab = p, patternMask = mask, patternCount = Bits(mask), spawnPos = pos };
+        DialogueLine L(string t) => new DialogueLine { speaker = "나", text = t };
+
+        // (번호, 제한시간, 단말기당 칸 [쉬움·보통·어려움], 요구 시간, 몬스터, 요약, 시작 대사(null = 기존 유지), 끝 대사(null = 기존 유지))
+        var plan = new (int n, float time, int[] goal, float req, MonsterSpawn[] mons, string summary, DialogueLine[] intro, DialogueLine[] outro)[]
+        {
+            (1, 120f, new[] { 2, 3, 4 }, 45f, new[] { M(bee, 0b00011, new Vector2(3f, 3f)) }, null, null, null),
+            (2, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(bee, 0b11111, new Vector2(3f, 3f)) }, "벌이 모든 패턴을 쓴다. 시간도 빠듯하다",
+                new[] { L("벌이 화났다. 탄, 자기장, 부채꼴, 전선, 낙하까지 전부 쓴다."), L("분홍 탄은 점프로 받아쳐서 잠깐 멈추게 하자.") }, null),
+            (3, 115f, new[] { 3, 4, 5 }, 40f, new[] { M(robot, 0b01, new Vector2(3f, 3f)) }, "버그에 지배당한 로봇이 나타났다",
+                new[] { L("이번엔 버그에 지배당한 로봇이다."), L("세 발씩 쏜다. 보라색 탄은 점프로 받아칠 수 있어.") }, null),
+            (4, 100f, new[] { 4, 5, 6 }, 30f, new[] { M(robot, 0b11, new Vector2(3f, 3f)) }, "로봇이 바닥에 전선까지 깐다",
+                new[] { L("로봇이 바닥에 십자 전선을 깐다."), L("전선은 점프로 넘고, 탄은 피하자.") }, null),
+            (5, 100f, new[] { 5, 6, 7 }, 28f, new[] { M(bee, 0b11111, new Vector2(3f, 3f)), M(robot, 0b11, new Vector2(8f, -1.5f)) }, "벌과 로봇이 함께 몰려온다. 1학년 마지막 과제",
+                new[] { L("마감 직전, 벌이랑 로봇이 한꺼번에 몰려왔다."), L("버티면 1학년 과제 제출이다!") },
+                new[] { L("…제출 완료. 1학년 과제, 끝!") }),
+        };
+        foreach (var p in plan)
+        {
+            var s = LoadAll().FirstOrDefault(x => x.chapter == 1 && x.stage == p.n);
+            if (s == null) { w.CreateAt(1, p.n, null); s = w.selected; }
+            Undo.RecordObject(s, "챕터1 다시 짜기");
+            s.layout = StageLayoutDefaults.Default();
+            s.timeLimit = p.time; s.terminalGoal = p.goal;
+            s.requestTime = new[] { p.req, p.req * 0.8f, p.req * 0.65f };
+            s.monsters = p.mons;
+            if (p.summary != null) s.summary = p.summary;
+            if (p.intro != null) s.intro = p.intro;
+            if (p.outro != null) s.outro = p.outro;
+            w.selected = s;
+            foreach (var (msg, bad) in w.Checks()) Debug.Log($"[StageMaker] 1-{p.n} check: {(bad ? "BAD " : "OK ")}{msg}");
+            Save(s);
+        }
+        // 챕터당 5스테이지: 1-6 이후 삭제
+        foreach (var s in LoadAll().Where(x => x.chapter == 1 && x.stage > StageManager.StagesPerChapter).ToList())
+        {
+            Register(s, false);
+            AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(s));
+            Debug.Log($"[StageMaker] deleted 1-{s.stage}");
+        }
+        AssetDatabase.SaveAssets();
+        DestroyImmediate(w);
+        Debug.Log("[StageMaker] chapter1 rebuilt");
+    }
+
+
+    /// <summary>에디터(GUI)로 실행: 창을 띄워 1-5를 고른 뒤 화면을 PNG로 저장하고 종료. 인자 -smshot 경로</summary>
     public static void CaptureWindow()
     {
         var args = System.Environment.GetCommandLineArgs();

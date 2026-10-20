@@ -77,7 +77,7 @@ public class MapScreen : MonoBehaviour
         foreach (Transform c in content) Destroy(c.gameObject);
         var stages = GameManager.I.allStages.Where(s => s != null && s.chapter == chapter).ToArray();
         int last = Mathf.Max(StageManager.StagesPerChapter, stages.Length > 0 ? stages.Max(s => s.stage) : 0);
-        // 챕터당 10칸을 모두 보여주고, 등록 안 된 스테이지는 "준비 중"으로 잠금
+        // 챕터당 5칸을 모두 보여주고, 등록 안 된 스테이지는 "준비 중"으로 잠금
         for (int n = 1; n <= last; n++)
         {
             var s = stages.FirstOrDefault(x => x.stage == n);

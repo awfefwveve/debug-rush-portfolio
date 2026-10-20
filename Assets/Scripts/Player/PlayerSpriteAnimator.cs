@@ -9,6 +9,7 @@ public class PlayerSpriteAnimator : MonoBehaviour
 {
     public SpriteFrameAnimator anim;
     public Sprite[] runLeft, runRight, dashLeft, dashRight;
+    [Tooltip("서 있을 때 그림 (없으면 달리기 첫 장)")] public Sprite idle;
     public float runFps = 11f;
 
     PlayerController player;
@@ -39,7 +40,9 @@ public class PlayerSpriteAnimator : MonoBehaviour
 
         var run = facingRight ? runRight : runLeft;
         if (run == null || run.Length == 0) return;
+        if (anim.target != null) anim.target.flipX = false;
         if (moving) anim.Play(run, runFps, true);
+        else if (idle != null) { anim.Hold(new[] { idle }, 0); if (anim.target != null) anim.target.flipX = !facingRight; }
         else anim.Hold(run, 0);
     }
 }

@@ -7,6 +7,9 @@ using UnityEngine;
 /// </summary>
 public class MonsterRobot : MonsterBase
 {
+    /// <summary>Stage Maker 토글 이름 (기획서: 3발 투사체 + 십자 전선)</summary>
+    public static readonly string[] PatternNames = { "B-1 투사체 3발", "B-2 십자 전선" };
+
     [Header("패턴 1")]
     public Projectile projectilePrefab;
     public int shotCount = 3;
@@ -18,7 +21,6 @@ public class MonsterRobot : MonsterBase
 
     protected override int PatternMax => 2;
 
-    void Awake() => wander = false;            // 제자리에서 공격
 
     protected override void Telegraph(int index)
     {

@@ -121,6 +121,9 @@ public class StageHUD : MonoBehaviour
         var help = Label(root, "<color=#39D0FF>WASD</color> 이동  ·  <color=#39D0FF>E</color> 제작·회수·수정  ·  <color=#39D0FF>Space</color> 점프(패링)  ·  <color=#39D0FF>Q</color> 버리기  ·  <color=#39D0FF>Tab</color> 조합표  ·  <color=#39D0FF>ESC</color> 일시정지",
               new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1100f, 30f), 19f, TextAlignmentOptions.Center, new Color(0.85f, 0.9f, 1f, 0.75f), false);
         help.outlineWidth = 0.2f; help.outlineColor = new Color32(5, 8, 16, 255);
+        var helpBg = Panel(root, "HelpBg", new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1140f, 30f), new Color(0.02f, 0.03f, 0.07f, 0.85f));   // 밝은 바닥 위에서도 읽히게
+        helpBg.transform.SetSiblingIndex(help.transform.GetSiblingIndex());
+        help.color = new Color(0.9f, 0.94f, 1f, 0.95f);
 
         // 카메라 자동 맞춤 + 조합표(Tab, 맵 위에 겹침)
         var cam = Camera.main;

@@ -22,7 +22,8 @@ public class FxSet : ScriptableObject
     public Sprite wallSingle, wallEnd, wallStraight, wallCorner, wallT, wallCross;
 
     [Header("입체(3/4 시점) 타일 — 있으면 위 6조각 대신 사용. 모서리 순서: 좌상·우상·좌하·우하")]
-    public Sprite[] tileFloor;          // tile_floor_01~03 (칸마다 고정 무작위)
+    public Sprite[] tileFloor;          // tile_floor_01~ (칸마다 고정 무작위)
+    public Sprite[] tileFloorLarge;     // tile_floor_large_01~ (64×64 = 2×2칸, 넓은 바닥에 가끔)
     public Sprite tileWorkFloor;        // 제작대 주변 바닥
     public Sprite wallTopTile;          // tile_wall_top
     public Sprite[] wallFront;          // tile_wall_front_01~02 (아래가 바닥인 벽)

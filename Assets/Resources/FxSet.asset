@@ -41,23 +41,26 @@ MonoBehaviour:
   wallT: {fileID: 21300000, guid: 8a4a01284ce52ed4b8e372f2c51607b8, type: 3}
   wallCross: {fileID: 21300000, guid: c01e1a9b0dbb08546b1a2982b004fc79, type: 3}
   tileFloor:
-  - {fileID: 21300000, guid: ed105536a7f3ff345a7a92de77c6c56c, type: 3}
-  - {fileID: 21300000, guid: a24e3852055387042a8e12ea70443360, type: 3}
-  - {fileID: 21300000, guid: d7a4d003076cfee4bab8c7cf9f5366a7, type: 3}
-  tileWorkFloor: {fileID: 21300000, guid: 62b6a99366e7964409ecd564ce4a4852, type: 3}
-  wallTopTile: {fileID: 21300000, guid: 748edbf9965328f4fa8eadba40452a23, type: 3}
+  - {fileID: 21300000, guid: becb6fe04cc938641b04509610a12866, type: 3}
+  - {fileID: 21300000, guid: 7c1f68d80238f8f4e9fda1e0356316b3, type: 3}
+  - {fileID: 21300000, guid: 61052fd7c331b1b478837a23aeba959d, type: 3}
+  - {fileID: 21300000, guid: 121cd6c60337d9448830af73edf1353f, type: 3}
+  tileFloorLarge:
+  - {fileID: 21300000, guid: a79e851877aedc4498db6289a75acede, type: 3}
+  - {fileID: 21300000, guid: 7697bb1e81e4fb245b0fd0b06db088b0, type: 3}
+  tileWorkFloor: {fileID: 21300000, guid: 976b1bdd5f7e4a04dafd60639cc72462, type: 3}
+  wallTopTile: {fileID: 21300000, guid: fb7ca24f138fc22478009544563dfc26, type: 3}
   wallFront:
-  - {fileID: 21300000, guid: fb05b5f2e08a1894885fe135eb899901, type: 3}
-  - {fileID: 21300000, guid: 76e79e3610fa5f94d9a270086f146bfb, type: 3}
+  - {fileID: 21300000, guid: 167422fd6905de14d9ce040271c7e723, type: 3}
   cornerOut:
-  - {fileID: 21300000, guid: 802c37a803462ee43b8da0244ff4ca41, type: 3}
-  - {fileID: 21300000, guid: e1b0063fecbc8dc459aec9caa84723f0, type: 3}
-  - {fileID: 21300000, guid: ff8c308008224d0449d983bbf462608d, type: 3}
-  - {fileID: 21300000, guid: b3d7f0cc59c9d684b9c2be93146dfe00, type: 3}
+  - {fileID: 21300000, guid: 3b56f52a545276a478895490c69b60eb, type: 3}
+  - {fileID: 21300000, guid: 3b56f52a545276a478895490c69b60eb, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
   cornerIn:
-  - {fileID: 21300000, guid: 73e936d09af268b45b50be4e302ec929, type: 3}
-  - {fileID: 21300000, guid: 80d796d9ed755a3498493fc2755111aa, type: 3}
-  - {fileID: 21300000, guid: d175d9a19b25d404dbc9813d88f5d714, type: 3}
-  - {fileID: 21300000, guid: d95b632c38ff43645b2c7daa5abb86ca, type: 3}
-  cornerOutFlip: 00000000
-  cornerInFlip: 00000000
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 21300000, guid: be73a2a48797457428469cb41aa5246b, type: 3}
+  - {fileID: 21300000, guid: be73a2a48797457428469cb41aa5246b, type: 3}
+  cornerOutFlip: 00010000
+  cornerInFlip: 00000100

@@ -70,15 +70,15 @@ public static class WallBuilder
         var root = new GameObject("Floor (StageLayout)");
         var wallSet = new HashSet<Vector2Int>(walls);
         var fx = FxSet.Get();
-        foreach (var c in floor)
+        foreach (var p in FloorLayout(floor, fx, workAreas))
         {
-            var sprite = FloorSprite(c, fx, workAreas) ?? fallback;
+            var sprite = p.sprite != null ? p.sprite : fallback;
             var t = new GameObject("FloorTile");
             t.transform.SetParent(root.transform, false);
-            t.transform.position = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
+            t.transform.position = new Vector3(p.center.x, p.center.y, 0f);
             var sr = t.AddComponent<SpriteRenderer>();
             sr.sprite = sprite; sr.sortingOrder = sortingOrder;
-            if (sprite != null) t.transform.localScale = new Vector3(1f / sprite.bounds.size.x, 1f / sprite.bounds.size.y, 1f);
+            if (sprite != null) t.transform.localScale = new Vector3(p.size / sprite.bounds.size.x, p.size / sprite.bounds.size.y, 1f);
         }
         for (int x = MinX(w) - 1; x <= MaxX(w) + 1; x++)
             for (int y = MinY(h) - 1; y <= MaxY(h) + 1; y++)
@@ -132,6 +132,32 @@ public static class WallBuilder
         if (floor.Contains(c + new Vector2Int(0, -1)) && fx.wallFront != null && fx.wallFront.Length > 0)
             return Or(fx.wallFront[Hash(c) % fx.wallFront.Length]);
         return fx.wallTopTile;
+    }
+
+    public struct FloorPiece { public Vector2 center; public float size; public Sprite sprite; }
+
+    /// <summary>바닥 깔기 계획: 2×2가 전부 바닥인 자리 중 일부에 큰 바닥(64×64), 나머지는 칸마다 바닥 타일. 게임과 Stage Maker가 같이 씀</summary>
+    public static List<FloorPiece> FloorLayout(HashSet<Vector2Int> floor, FxSet fx, ICollection<Rect> workAreas)
+    {
+        var list = new List<FloorPiece>();
+        var used = new HashSet<Vector2Int>();
+        bool Work(Vector2Int c) { if (workAreas == null) return false; foreach (var a in workAreas) if (a.Contains(new Vector2(c.x + 0.5f, c.y + 0.5f))) return true; return false; }
+        var ordered = new List<Vector2Int>(floor);
+        ordered.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));   // 게임·툴에서 같은 결과
+        if (fx != null && fx.tileFloorLarge != null && fx.tileFloorLarge.Length > 0)
+            foreach (var c in ordered)
+            {
+                if ((c.x & 1) != 0 || (c.y & 1) != 0 || Hash(c) % 5 != 0) continue;
+                var four = new[] { c, c + Vector2Int.right, c + Vector2Int.up, c + Vector2Int.one };
+                bool ok = true;
+                foreach (var q in four) if (!floor.Contains(q) || used.Contains(q) || Work(q)) { ok = false; break; }
+                if (!ok) continue;
+                foreach (var q in four) used.Add(q);
+                list.Add(new FloorPiece { center = new Vector2(c.x + 1f, c.y + 1f), size = 2f, sprite = fx.tileFloorLarge[Hash(c) % fx.tileFloorLarge.Length] });
+            }
+        foreach (var c in ordered)
+            if (!used.Contains(c)) list.Add(new FloorPiece { center = new Vector2(c.x + 0.5f, c.y + 0.5f), size = 1f, sprite = FloorSprite(c, fx, workAreas) });
+        return list;
     }
 
     /// <summary>바닥 칸 그림: 제작대 주변은 작업대 바닥, 나머지는 변형 중 칸마다 고정 무작위</summary>

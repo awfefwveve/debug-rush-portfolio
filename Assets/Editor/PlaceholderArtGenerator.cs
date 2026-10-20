@@ -401,7 +401,8 @@ public static class PlaceholderArtGenerator
         foreach (var f in Directory.GetFiles(Drive + "Player", "*.png"))
         {
             string n = Path.GetFileNameWithoutExtension(f);
-            float px = n.StartsWith("run_R") ? 0.44f : n.StartsWith("run_L") ? 0.56f : n.StartsWith("dash_R") ? 0.47f : 0.53f;
+            // 피벗 = 측정한 몸 중심·발바닥 (L·R 그림 위치가 달라서 피벗으로 맞춤)
+            float px = n.StartsWith("run_R") ? 0.434f : n.StartsWith("run_L") ? 0.5625f : n.StartsWith("dash_R") ? 0.44f : 0.56f;
             Import(f.Replace('\\', '/'), 400f, new Vector2(px, 0.02f), Vector4.zero);
         }
         foreach (var f in Directory.GetFiles(Drive + "Monster1", "*.png"))
@@ -410,6 +411,8 @@ public static class PlaceholderArtGenerator
             float ppu = n.StartsWith("magnetic") ? 123f : n.StartsWith("shot") ? 128f : 400f;   // 자기장 원(약 540px)=지름 4.4칸
             Import(f.Replace('\\', '/'), ppu, new Vector2(0.5f, 0.5f), Vector4.zero);
         }
+        if (Directory.Exists(Drive + "Monster2"))                         // 두 번째 몬스터 팀 그림 (800×800, 몸 중심)
+            foreach (var f in Directory.GetFiles(Drive + "Monster2", "*.png")) Import(f.Replace('\\', '/'), 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
         foreach (var f in Directory.GetFiles(Drive + "Items", "*.png"))
             Import(f.Replace('\\', '/'), PPU, new Vector2(0.5f, 0.5f), Vector4.zero);
 
@@ -421,30 +424,46 @@ public static class PlaceholderArtGenerator
                 string n = Path.GetFileNameWithoutExtension(f);
                 Import(f.Replace('\\', '/'), n.StartsWith("terminal") ? 384f : 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
             }
+        const string portrait = "Assets/Resources/Portraits/player.png";   // 대사 초상화 (UI)
+        if (File.Exists(portrait)) Import(portrait, 100f, new Vector2(0.5f, 0.5f), Vector4.zero);
         const string logo = "Assets/DebugRush/Art/UI/title_logo.png";      // 1024×512 UI
         if (File.Exists(logo)) Import(logo, 100f, new Vector2(0.5f, 0.5f), Vector4.zero);
     }
 
     static Sprite S(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Dir + n + ".png");
     static Sprite D(string n) => AssetDatabase.LoadAssetAtPath<Sprite>(Drive + n + ".png");
+    static Sprite DI(string n) { var s = D("Items/" + n); return s != null ? s : S(n); }   // 팀 아이템 아이콘, 없으면 임시
     static Sprite[] Seq(string prefix, int count) => Enumerable.Range(0, count).Select(i => S(prefix + i)).ToArray();
+    static Sprite[] Monster2Seq(string prefix) => Directory.Exists(Drive + "Monster2") ? DriveSeq("Monster2", prefix) : new Sprite[0];
     static Sprite[] DriveSeq(string folder, string prefix) =>
         Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
 
-    /// <summary>좌상·우상·좌하·우하. 팀 그림 우선 → 오른쪽 팀 그림이 없고 왼쪽이 있으면 왼쪽 반전 → 임시 그림</summary>
+    /// <summary>그래픽 팀 타일이 하나라도 들어왔는지 (그러면 빠진 조각은 회색 임시 그림 대신 팀 그림으로 채움)</summary>
+    static bool TeamTiles => File.Exists(Tiles + "tile_wall_top.png");
+
+    /// <summary>이름이 prefix로 시작하는 타일 전부 (팀 그림이 있으면 팀 것만, 없으면 임시 그림)</summary>
+    static Sprite[] TileSet(string prefix)
+    {
+        string dir = TeamTiles && Directory.GetFiles(Tiles, prefix + "*.png").Length > 0 ? Tiles : Dir;
+        return Directory.GetFiles(dir, prefix + "*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).Where(s => s != null).ToArray();
+    }
+
+    /// <summary>
+    /// 좌상·우상·좌하·우하. 팀 그림 우선 → 없으면 같은 줄 반대편 팀 그림을 좌우 반전 (tl↔tr, bl↔br)
+    /// → 그래도 없으면 팀 그림이 들어온 상태에선 null(게임이 벽 윗면으로 대신), 아니면 임시 그림
+    /// </summary>
     static void Corners(string prefix, out Sprite[] sprites, out bool[] flip)
     {
         string[] keys = { "tl", "tr", "bl", "br" };
         sprites = new Sprite[4]; flip = new bool[4];
+        Sprite Team(int k) => AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + prefix + keys[k] + ".png");
         for (int i = 0; i < 4; i++)
         {
-            var team = AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + prefix + keys[i] + ".png");
-            if (team == null && (i == 1 || i == 3))
-            {
-                var left = AssetDatabase.LoadAssetAtPath<Sprite>(Tiles + prefix + keys[i - 1] + ".png");
-                if (left != null) { sprites[i] = left; flip[i] = true; continue; }
-            }
-            sprites[i] = team != null ? team : S(prefix + keys[i]);
+            var team = Team(i);
+            if (team != null) { sprites[i] = team; continue; }
+            var mirror = Team(i ^ 1);
+            if (mirror != null) { sprites[i] = mirror; flip[i] = true; continue; }
+            sprites[i] = TeamTiles ? null : S(prefix + keys[i]);
         }
     }
 
@@ -460,10 +479,11 @@ public static class PlaceholderArtGenerator
         fx.wallSingle = S("wall_single"); fx.wallEnd = S("wall_end"); fx.wallStraight = S("wall_straight");
         fx.wallCorner = S("wall_corner"); fx.wallT = S("wall_t"); fx.wallCross = S("wall_cross");
         // 입체 타일: 그래픽 팀 그림(Art/Tiles)이 있으면 그걸, 없으면 임시 그림
-        fx.tileFloor = new[] { "tile_floor_01", "tile_floor_02", "tile_floor_03" }.Select(T).Where(s => s != null).ToArray();
+        fx.tileFloor = TileSet("tile_floor_0");
+        fx.tileFloorLarge = TileSet("tile_floor_large_");
         fx.tileWorkFloor = T("tile_floor_work");
         fx.wallTopTile = T("tile_wall_top");
-        fx.wallFront = new[] { "tile_wall_front_01", "tile_wall_front_02" }.Select(T).Where(s => s != null).ToArray();
+        fx.wallFront = TileSet("tile_wall_front_");
         // 모서리: 그래픽 팀은 왼쪽(tl·bl)만 그려도 됨 → 오른쪽 그림이 없으면 왼쪽 그림을 좌우 반전
         Corners("tile_corner_out_", out fx.cornerOut, out fx.cornerOutFlip);
         Corners("tile_corner_in_", out fx.cornerIn, out fx.cornerInFlip);
@@ -479,9 +499,9 @@ public static class PlaceholderArtGenerator
         var icons = AssetDatabase.LoadAssetAtPath<ItemIconSet>("Assets/DebugRush/Data/ItemIcons.asset");
         icons.icons = new[]
         {
-            D("Items/item_00_plan"), D("Items/item_01_programming"), S("item_02_graphic"), S("item_03_qa"),
+            D("Items/item_00_plan"), D("Items/item_01_programming"), DI("item_02_graphic"), DI("item_03_qa"),
             D("Items/item_04_content_doc"), D("Items/item_05_system_doc"), D("Items/item_06_character_code"), D("Items/item_07_code_fix"),
-            S("item_08_graphic_fix"), S("item_09_game_build"), S("item_10_art_complete"), S("item_11_error"),
+            DI("item_08_graphic_fix"), DI("item_09_game_build"), DI("item_10_art_complete"), DI("item_11_error"),
         };
         EditorUtility.SetDirty(icons);
         foreach (var id in new[] { "first_clear", "no_damage", "chapter1_clear", "chapter2_clear", "chapter3_clear" })
@@ -498,6 +518,8 @@ public static class PlaceholderArtGenerator
             var col = go.GetComponent<CircleCollider2D>(); col.radius = 0.35f; col.offset = new Vector2(0f, 0.3f);
             var vis = pc.visual.GetComponent<SpriteRenderer>(); vis.sortingOrder = 0; vis.sprite = D("Player/run_R_01");
             var psa = go.GetComponent<PlayerSpriteAnimator>(); psa.runFps = 11f;
+            psa.runRight = DriveSeq("Player", "run_R"); psa.runLeft = DriveSeq("Player", "run_L");
+            psa.dashRight = DriveSeq("Player", "dash_R"); psa.dashLeft = DriveSeq("Player", "dash_L");
             AddShadow(go, 0.75f, 0.05f);
         });
         EditPrefab("Monster1A", go =>
@@ -514,9 +536,21 @@ public static class PlaceholderArtGenerator
             msa.pattern1 = shotAnim; msa.pattern2 = fieldAnim; msa.pattern3 = shotAnim; msa.pattern4 = fieldAnim; msa.pattern5 = shotAnim;   // A-1~A-5
             AddShadow(go, 0.9f, -1.0f);
         });
-        EditPrefab("MonsterRobot", go => { Monster(go, 0f, false); SetSprite(go, S("robot"), 10); AddShadow(go, 1.0f, -0.85f);
+        // 두 번째 몬스터 (챕터2): 버그에 지배당한 로봇. 그림은 Art/Drive/Monster2 에 move_01.png… (왼쪽 보는 그림)을 넣으면 교체, 없으면 임시 로봇
+        EditPrefab("MonsterRobot", go =>
+        {
+            Monster(go, 2.2f, true);
             var r = go.GetComponent<MonsterRobot>(); r.lineLength = 30f; r.lineThickness = 1f;
-            r.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Shot.prefab"); r.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab"); });
+            r.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Shot.prefab"); r.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab");
+            var move = Monster2Seq("move");
+            SetSprite(go, move.Length > 0 ? move[0] : S("robot"), 10);
+            var vis = go.GetComponentsInChildren<SpriteRenderer>().First(s => s.gameObject.name != "Shadow");
+            var sfa = Get<SpriteFrameAnimator>(vis.gameObject); sfa.target = vis;
+            var msa = Get<MonsterSpriteAnimator>(go); msa.anim = sfa; msa.fps = 8f;
+            msa.move = move.Length > 0 ? move : new[] { S("robot") };
+            msa.pattern1 = Monster2Seq("pattern1"); msa.pattern2 = Monster2Seq("pattern2");
+            AddShadow(go, 1.0f, -0.85f);
+        });
         EditPrefab("Monster1B", go => { Monster(go, 0f, false); SetSprite(go, S("robot_factory"), 10); AddShadow(go, 1.0f, -0.85f); });
         EditPrefab("Monster1C", go => { Monster(go, 0f, false); SetSprite(go, S("robot_scrap"), 10); AddShadow(go, 1.0f, -0.85f);
             var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f; });
@@ -595,12 +629,12 @@ public static class PlaceholderArtGenerator
         {
             table.transform.position = Vector3.zero; table.transform.localScale = Vector3.one;
             var sr = table.GetComponent<SpriteRenderer>();
-            sr.sprite = S("crafter_idle"); sr.color = Color.white; sr.sortingOrder = 0;
+            sr.sprite = Pick("crafter_idle", "crafter_idle"); sr.color = Color.white; sr.sortingOrder = 0;
             var box = table.GetComponent<BoxCollider2D>(); box.size = new Vector2(3.8f, 2.4f); box.offset = new Vector2(0f, -0.1f);
             RemoveChild(table.transform, "Label"); RemoveChild(table.transform, "Icon");
             Label(table.transform, "제작대", new Vector2(0f, -1.85f), Orange);
             var view = table.GetComponent<CraftingTableView>();
-            view.idleSprite = S("crafter_idle"); view.workingSprite = S("crafter_working"); view.doneSprite = S("crafter_done");
+            view.idleSprite = Pick("crafter_idle", "crafter_idle"); view.workingSprite = Pick("crafter_working", "crafter_working"); view.doneSprite = Pick("crafter_done", "crafter_done");
             if (view.outputIcon != null)
             {
                 view.outputIcon.transform.localPosition = new Vector3(0f, 0.68f, 0f);

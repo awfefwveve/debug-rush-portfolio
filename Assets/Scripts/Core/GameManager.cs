@@ -48,7 +48,7 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// 이전 스테이지를 어떤 난이도로든 클리어하면 다음 스테이지 개방.
-    /// 챕터 첫 스테이지는 이전 챕터 10스테이지를 모두 클리어해야 개방 (기획서 p.12).
+    /// 챕터 첫 스테이지는 이전 챕터 5스테이지를 모두 클리어해야 개방 (기획서 p.12, 챕터당 5스테이지로 수정).
     /// </summary>
     public bool IsUnlocked(StageData s)
     {

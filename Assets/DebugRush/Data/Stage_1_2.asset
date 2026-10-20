@@ -15,32 +15,33 @@ MonoBehaviour:
   chapter: 1
   stage: 2
   displayName: 1-2
-  summary: "\uB354 \uB9CE\uC740 \uD328\uD134\uC5D0 \uB300\uBE44\uD558\uC138\uC694"
+  summary: "\uBC8C\uC774 \uBAA8\uB4E0 \uD328\uD134\uC744 \uC4F4\uB2E4. \uC2DC\uAC04\uB3C4
+    \uBE60\uB4EF\uD558\uB2E4"
   sceneName: Stage
-  timeLimit: 110
+  timeLimit: 100
   timeMultiplier:
   - 1.3
   - 1
   - 0.8
-  terminalGoal: 020000000300000004000000
+  terminalGoal: 040000000500000006000000
   requestTime:
-  - 40
   - 30
-  - 22
+  - 24
+  - 19.5
   monsters:
   - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
-    patternCount: 2
-    patternMask: 3
+    patternCount: 5
+    patternMask: 31
     spawnPos: {x: 3, y: 3}
   newMonsterPatternMask: 1
   intro:
   - speaker: "\uB098"
-    text: "1\uD559\uB144 \uC218\uC5C5 \uD504\uB85C\uC81D\uD2B8... \uC6B0\uB9AC \uAC8C\uC784\uC774
-      \uC774\uB807\uAC8C \uBC84\uADF8\uD22C\uC131\uC774\uC600\uB2E4\uB2C8."
+    text: "\uBC8C\uC774 \uD654\uB0AC\uB2E4. \uD0C4, \uC790\uAE30\uC7A5, \uBD80\uCC44\uAF34,
+      \uC804\uC120, \uB099\uD558\uAE4C\uC9C0 \uC804\uBD80 \uC4F4\uB2E4."
     portrait: {fileID: 0}
-  - speaker: "\uC2DC\uC2A4\uD15C"
-    text: "\uACBD\uACE0: \uBC8C \uBC84\uADF8\uAC00 \uC790\uAE30\uC7A5\uC744 \uC77C\uC73C\uD0B5\uB2C8\uB2E4.
-      \uB2FF\uC73C\uBA74 \uB04C\uB824\uAC00\uBA70 \uD53C\uD574\uB97C \uC785\uC2B5\uB2C8\uB2E4."
+  - speaker: "\uB098"
+    text: "\uBD84\uD64D \uD0C4\uC740 \uC810\uD504\uB85C \uBC1B\uC544\uCCD0\uC11C
+      \uC7A0\uAE50 \uBA48\uCD94\uAC8C \uD558\uC790."
     portrait: {fileID: 0}
   outro:
   - speaker: "\uB098"
@@ -164,22 +165,22 @@ MonoBehaviour:
     floor: []
     playerStart: {x: 0, y: -4.5}
     stations:
-    - material: 0
-      pos: {x: 5, y: -4.5}
-    - material: 1
-      pos: {x: 10, y: -4.5}
     - material: 2
       pos: {x: -10, y: 4.5}
     - material: 3
       pos: {x: -5, y: 4.5}
+    - material: 0
+      pos: {x: 5, y: -4.5}
+    - material: 1
+      pos: {x: 10, y: -4.5}
     crafters:
     - {x: 0, y: 0}
     terminals:
     - {x: 11.5, y: 3}
     - {x: -11.5, y: -3}
     listsReady: 1
-    planning: {x: 5, y: -4.5}
-    programming: {x: 10, y: -4.5}
-    graphic: {x: -10, y: 4.5}
-    qa: {x: -5, y: 4.5}
+    planning: {x: 5, y: -3.2}
+    programming: {x: 9, y: -3.2}
+    graphic: {x: -9, y: 3.2}
+    qa: {x: -5, y: 3.2}
     craftingTable: {x: 0, y: 0}

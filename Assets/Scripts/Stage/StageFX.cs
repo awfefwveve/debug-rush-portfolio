@@ -26,6 +26,7 @@ public class StageFX : MonoBehaviour
     IEnumerator Start()
     {
         yield return null;                                  // StageManager.Start 이후
+        LabelBacking.ApplyAll();                            // 이름표·남은 시간 글자 뒤 검은 판
         cam = Camera.main;
         if (cam != null) camBase = cam.transform.position;
         BuildFlash();
@@ -60,6 +61,7 @@ public class StageFX : MonoBehaviour
     {
         if (hp < lastHp)
         {
+            Sfx.Hit();
             Shake(0.3f, 0.22f);
             Flash(new Color(1f, 0.1f, 0.15f, 0.38f));
             Popup(player.transform.position + Vector3.up * 1.1f, "-1", new Color(1f, 0.3f, 0.35f));
@@ -79,6 +81,7 @@ public class StageFX : MonoBehaviour
     void OnInventory()
     {
         var items = player.Inventory.items;
+        if (items.Count > lastItemCount) Sfx.Pickup(); else if (items.Count < lastItemCount) Sfx.ItemOut();
         if (items.Count > lastItemCount && items.Count > 0)
             Popup(player.transform.position + Vector3.up * 1.0f, "+" + ItemNames.Get(items[items.Count - 1]), Color.white, 0.8f);
         lastItemCount = items.Count;
@@ -98,6 +101,7 @@ public class StageFX : MonoBehaviour
 
     void OnCrafted(CraftingTable table)
     {
+        Sfx.Craft();
         var view = table.GetComponent<CraftingTableView>();
         var target = view != null && view.outputIcon != null ? view.outputIcon.transform : table.transform;
         StartCoroutine(Punch(target, 0.35f));

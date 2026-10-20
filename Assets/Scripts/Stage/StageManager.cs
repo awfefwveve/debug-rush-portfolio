@@ -28,7 +28,7 @@ public class StageManager : MonoBehaviour
     readonly List<MonsterBase> monsters = new List<MonsterBase>();
 
     public const string EditorPlayStageKey = "DebugRush.PlayStagePath";
-    public const int StagesPerChapter = 10;
+    public const int StagesPerChapter = 5;           // 기획 수정: 챕터당 5스테이지 (총 15)
 
     void Awake() { I = this; if (dialogueUI == null) dialogueUI = DialogueUI.CreateRuntime(); }
 
@@ -108,6 +108,12 @@ public class StageManager : MonoBehaviour
             var mon = go.GetComponent<MonsterBase>();
             // 난이도별 공격 템포: Easy 느리게 · Hard 빠르게 (기획서 p.12 챕터별 난이도)
             mon.patternInterval *= Diff == Difficulty.Easy ? 1.3f : Diff == Difficulty.Hard ? 0.8f : 1f;
+            // 돌아다니는 범위 = 그린 맵 안쪽 (맵 크기가 스테이지마다 다름)
+            if (Data.layout != null && Data.layout.use && Data.layout.walls != null && Data.layout.walls.Count > 0)
+            {
+                var b = Data.layout.PaintedBounds();
+                mon.moveArea = new Rect(b.x + 2f, b.y + 2f, Mathf.Max(1f, b.width - 4f), Mathf.Max(1f, b.height - 4f));
+            }
             mon.Init(player.transform, m.patternCount, m.patternMask);
             mon.SetAggression(CompletedCount());
             monsters.Add(mon);
@@ -163,7 +169,7 @@ public class StageManager : MonoBehaviour
         StartCoroutine(EndRoutine(cleared));
     }
 
-    /// <summary>챕터 10스테이지가 모두 등록되어 있고 전부 클리어했는가</summary>
+    /// <summary>챕터 5스테이지가 모두 등록되어 있고 전부 클리어했는가</summary>
     static bool IsChapterCleared(int chapter)
     {
         var gm = GameManager.I;
