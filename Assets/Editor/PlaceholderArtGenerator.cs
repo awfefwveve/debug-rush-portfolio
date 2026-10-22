@@ -574,6 +574,7 @@ public static class PlaceholderArtGenerator
         EditPrefab("Monster1A", go =>
         {
             Monster(go, 2.5f, true);
+            go.transform.localScale = Vector3.one * 1.35f;   // 몬스터 크게 (10/22, 예전 0.9 → 1.5배). 콜라이더·그림자도 같이
             var m = go.GetComponent<Monster1A>();
             m.projectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Monster1A_Shot.prefab");
             m.spreadAngle = 20f;
@@ -604,6 +605,7 @@ public static class PlaceholderArtGenerator
         EditPrefab("Monster1B", go =>
         {
             Monster(go, 2.2f, true);
+            go.transform.localScale = Vector3.one * 1.5f;    // 몬스터 크게 (10/22, 1.5배)
             var b = go.GetComponent<Monster1B>();
             b.bladePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Blade.prefab");
             b.minePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(P + "Mine.prefab");

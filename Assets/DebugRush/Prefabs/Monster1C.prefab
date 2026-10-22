@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8883864348441914688}
+  - {fileID: 387929223522634086}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &2002709911892563399
@@ -135,7 +135,7 @@ MonoBehaviour:
   warnTime: 0.6
   dropGap: 0.3
   dropHeight: 6
---- !u!1 &6908647681420252232
+--- !u!1 &2674022094951471965
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143,8 +143,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8883864348441914688}
-  - component: {fileID: 4435078888539045933}
+  - component: {fileID: 387929223522634086}
+  - component: {fileID: 833565236571054902}
   m_Layer: 0
   m_Name: Shadow
   m_TagString: Untagged
@@ -152,13 +152,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8883864348441914688
+--- !u!4 &387929223522634086
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6908647681420252232}
+  m_GameObject: {fileID: 2674022094951471965}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.85, z: 0}
@@ -167,14 +167,14 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2744373511244432376}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &4435078888539045933
+--- !u!212 &833565236571054902
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6908647681420252232}
+  m_GameObject: {fileID: 2674022094951471965}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
