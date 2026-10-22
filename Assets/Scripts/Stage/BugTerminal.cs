@@ -33,6 +33,9 @@ public class BugTerminal : MonoBehaviour, IInteractable
     // ErrorLump(오류 뭉텅이)는 요구사항에서 제외
     static readonly ItemType[] Pool = (ItemType[])Enum.GetValues(typeof(ItemType));
 
+    /// <summary>첫 요구사항을 재료 하나로 (1-1 첫 단말기: 시작하자마자 성공하는 경험)</summary>
+    [NonSerialized] public bool easyFirst;
+
     public void Init(int goal)
     {
         this.goal = Mathf.Clamp(goal, 2, 8);
@@ -46,6 +49,13 @@ public class BugTerminal : MonoBehaviour, IInteractable
         TimeLeft = requestTime;
         if (!IsDone)
         {
+            if (easyFirst)
+            {
+                easyFirst = false;
+                Remaining.Add((ItemType)Random.Range(0, (int)ItemType.QA + 1));   // 재료 하나 그대로
+                Changed?.Invoke();
+                return;
+            }
             int n = Random.Range(1, 3);                       // 1~2개
             for (int i = 0; i < n; i++)
             {

@@ -53,9 +53,11 @@ public class StageManager : MonoBehaviour
         TimeLeft = Data.TimeFor(Diff);
         var ph = player != null ? player.GetComponent<PlayerHealth>() : null;
         if (ph != null) ph.invincibleTime = Data.playerInvincibleTime;   // 피격 후 무적 n초
+        bool firstEasy = Data.chapter == 1 && Data.stage == 1;   // 1-1 첫 단말기 첫 요구 = 재료 하나
         foreach (var t in terminals)
         {
             t.requestTime = Data.RequestTimeFor(Diff);
+            t.easyFirst = firstEasy; firstEasy = false;
             t.Init(Data.GoalFor(Diff));
             t.Changed += OnTerminalChanged;
         }

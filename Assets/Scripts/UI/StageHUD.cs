@@ -22,6 +22,7 @@ public class StageHUD : MonoBehaviour
     public Button retryButton, mapButton;
     Button nextButton;
     Image failIcon;
+    int parries, hits, lastHp;
 
     static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.78f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
@@ -39,6 +40,9 @@ public class StageHUD : MonoBehaviour
         stage.StageEnded += OnEnded;
         player.Health.HpChanged += OnHp;
         player.Inventory.Changed += RefreshHeld;
+        player.ParrySucceeded += () => parries++;
+        player.Health.HpChanged += (hp, max) => { if (hp < lastHp) hits++; lastHp = hp; };
+        lastHp = player.Health.Hp;
 
         OnHp(player.Health.Hp, player.Health.MaxHp);
         RefreshHeld();
@@ -217,9 +221,23 @@ public class StageHUD : MonoBehaviour
 
     void OnEnded(bool cleared)
     {
+        // 학년 마지막 스테이지(1-5) 클리어: 엔딩 대사 뒤 "다음 학년 준비 중" 한 장 → 결과 창
+        if (cleared && stage.Data != null && stage.Data.stage >= StageManager.StagesPerChapter && NextStage() == null)
+        { StartCoroutine(ChapterEndThenResult()); return; }
+        ShowResult(cleared);
+    }
+
+    System.Collections.IEnumerator ChapterEndThenResult()
+    {
+        yield return ChapterEndCard.Show(stage.Data.chapter);
+        ShowResult(true);
+    }
+
+    void ShowResult(bool cleared)
+    {
         resultPanel.SetActive(true);
         resultPanel.transform.SetAsLastSibling();
-        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" : "<color=#FF4757>FAILED...</color>";
+        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" + ClearRecord() : "<color=#FF4757>FAILED...</color>";
         // 클리어했고 같은 학년에 다음 스테이지가 있으면 [다음 스테이지] (마지막 스테이지면 숨김 → 스테이지 선택으로)
         var next = cleared ? NextStage() : null;
         if (nextButton != null) nextButton.gameObject.SetActive(next != null);
@@ -235,6 +253,26 @@ public class StageHUD : MonoBehaviour
                 if (r != null) r.anchoredPosition = new Vector2(x, r.anchoredPosition.y);
             if (!cleared) resultText.rectTransform.sizeDelta = new Vector2(520f, resultText.rectTransform.sizeDelta.y);
         }
+        if (cleared)   // 제목 + 별 + 기록 세 줄이 버튼 위에 들어가게
+        {
+            var tr = resultText.rectTransform;
+            tr.anchoredPosition = new Vector2(tr.anchoredPosition.x, 175f); tr.sizeDelta = new Vector2(900f, 220f);
+            resultText.enableWordWrapping = false; resultText.alignment = TMPro.TextAlignmentOptions.Center;
+        }
+    }
+
+    /// <summary>클리어 기록: 별 3개(남은 시간 30% 이상 · 무피격 · 패링 1회 이상) + 기록 한 줄</summary>
+    string ClearRecord()
+    {
+        float limit = stage.Data != null ? stage.Data.TimeFor(stage.Diff) : 0f;
+        float left = Mathf.Max(0f, stage.TimeLeft);
+        bool[] stars = { limit > 0f && left >= limit * 0.3f, hits == 0, parries > 0 };
+        var sb = new System.Text.StringBuilder("\n<size=56>");
+        foreach (var s in stars) sb.Append(s ? "<color=#FFD23F>★</color>" : "<color=#4A5068>★</color>");
+        int sec = Mathf.CeilToInt(left);
+        sb.Append("</size>\n<size=26><color=#DDE3F5>남은 시간 ").Append(sec / 60).Append(':').Append((sec % 60).ToString("00"))
+          .Append("  ·  피격 ").Append(hits).Append("회  ·  패링 ").Append(parries).Append("회</color></size>");
+        return sb.ToString();
     }
 
     StageData NextStage()
