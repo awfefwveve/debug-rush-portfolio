@@ -56,13 +56,30 @@ public class MapScreen : MonoBehaviour
         {
             chapterDropdown.image.sprite = cls; chapterDropdown.image.type = Image.Type.Sliced; chapterDropdown.image.color = Color.white;
             if (chapterDropdown.captionText != null) { chapterDropdown.captionText.color = UiArt.Ink; chapterDropdown.captionText.fontStyle = TMPro.FontStyles.Bold; }
-            if (chapterDropdown.template != null)
-                foreach (var img in chapterDropdown.template.GetComponentsInChildren<Image>(true))
+            var tpl = chapterDropdown.template;
+            if (tpl != null)
+            {
+                // 펼친 목록: 드롭다운 폭 그대로 바로 아래, 학년 3칸 높이 (예전엔 폭이 2배로 늘어나 카드 위에 겹쳤음)
+                float itemH = ((RectTransform)chapterDropdown.transform).rect.height;
+                tpl.anchorMin = new Vector2(0f, 0f); tpl.anchorMax = new Vector2(1f, 0f); tpl.pivot = new Vector2(0.5f, 1f);
+                tpl.anchoredPosition = new Vector2(0f, -2f); tpl.sizeDelta = new Vector2(0f, itemH * 3f + 8f);
+                var item = chapterDropdown.itemText != null ? chapterDropdown.itemText.GetComponentInParent<Toggle>(true) : null;
+                if (item != null) { var ir = (RectTransform)item.transform; ir.sizeDelta = new Vector2(ir.sizeDelta.x, itemH); }
+                foreach (var img in tpl.GetComponentsInChildren<Image>(true))
                 {
                     if (img.GetComponent<Scrollbar>() != null || img.transform.parent.GetComponent<Scrollbar>() != null) continue;
                     if (img.GetComponent<Mask>() != null) continue;
-                    if (img.transform == chapterDropdown.template || img.name == "Item Background") { img.sprite = UiArt.Get("class_2"); img.type = Image.Type.Sliced; img.color = Color.white; }
+                    if (img.transform == tpl) { img.sprite = null; img.color = new Color(0.06f, 0.06f, 0.1f, 1f); }   // 불투명 바탕 (뒤 카드 비치지 않게)
+                    else if (img.name == "Item Background") { img.sprite = UiArt.Get("class_2"); img.type = Image.Type.Sliced; img.color = Color.white; }
                 }
+                if (item != null)
+                {
+                    var c = item.colors; c.normalColor = Color.white; c.highlightedColor = new Color(1f, 0.8f, 0.9f); c.selectedColor = new Color(0.85f, 0.85f, 1f); item.colors = c;
+                }
+                var tplCanvas = tpl.GetComponent<Canvas>();   // 맨 위에 그려지게 (TMP_Dropdown이 펼칠 때 위 캔버스·클릭 막는 판을 만듦)
+                if (tplCanvas == null) { tplCanvas = tpl.gameObject.AddComponent<Canvas>(); tpl.gameObject.AddComponent<GraphicRaycaster>(); }
+                tplCanvas.overrideSorting = true; tplCanvas.sortingOrder = 30000;
+            }
             if (chapterDropdown.itemText != null) chapterDropdown.itemText.color = UiArt.Ink;
         }
         var scroll = content != null ? content.GetComponentInParent<ScrollRect>() : null;

@@ -110,6 +110,8 @@ public class TerminalView : MonoBehaviour
             cells[i].color = i < lit ? c : new Color(0.15f, 0.18f, 0.28f, 0.9f);
         }
         timerText.enabled = on;
+        var backing = timerText.transform.Find("Backing");   // 시간 제한 없는 단말기(튜토리얼)에서 글자 뒤 검은 판만 남던 것
+        if (backing != null && backing.gameObject.activeSelf != on) backing.gameObject.SetActive(on);
         if (on)
         {
             int sec = Mathf.CeilToInt(terminal.TimeLeft);

@@ -40,6 +40,9 @@ public class BugTerminal : MonoBehaviour, IInteractable
     /// <summary>잠금: 요구사항은 보이지만 넣을 수 없음 (튜토리얼 중간 단계)</summary>
     [NonSerialized] public bool locked;
 
+    /// <summary>지금 요구사항을 다시 뽑음 (튜토리얼: 잠깐 비워 뒀다가 마지막 단계에서 다시 띄움)</summary>
+    public void Reroll() => NewRequest();
+
     public void Init(int goal)
     {
         this.goal = Mathf.Clamp(goal, 2, 8);

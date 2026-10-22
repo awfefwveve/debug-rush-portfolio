@@ -116,6 +116,7 @@ public class StageHUD : MonoBehaviour
         // 좌하단: 작은 보유 자료 박스 (맵 위에 겹침)
         var box = Panel(root, "HeldBox", BL, new Vector2(98f, 62f), new Vector2(180f, 112f), new Color(0.04f, 0.06f, 0.12f, 0.82f));
         var bol = box.gameObject.AddComponent<Outline>(); bol.effectColor = Accent * 0.6f; bol.effectDistance = new Vector2(2f, -2f);
+        if (UiArt.Get("item_2") != null) { bol.enabled = false; box.sprite = UiArt.Get("item_2"); box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 2.5f; box.color = Color.white; }   // 아트 팀 아이템 창
         box.transform.SetSiblingIndex(2);
         Label(root, "보유 자료", BL, new Vector2(98f, 100f), new Vector2(170f, 28f), 20f, TextAlignmentOptions.Center, Accent, true);
         itemNames = null;
@@ -124,6 +125,7 @@ public class StageHUD : MonoBehaviour
             Vector2 p = new Vector2(60f + i * 76f, 48f);
             var frame = Panel(root, "SlotFrame" + i, BL, p, new Vector2(64f, 64f), new Color(0.09f, 0.13f, 0.24f, 1f));
             var ol = frame.gameObject.AddComponent<Outline>(); ol.effectColor = Accent * 0.7f; ol.effectDistance = new Vector2(2f, -2f);
+            if (UiArt.Get("item") != null) { ol.enabled = false; frame.sprite = UiArt.Get("item"); frame.type = Image.Type.Sliced; frame.pixelsPerUnitMultiplier = 3f; frame.color = Color.white; }   // 아트 팀 아이템 칸
             frame.transform.SetSiblingIndex(heldSlots[i].transform.GetSiblingIndex());
             Place(heldSlots[i].rectTransform, BL, p, new Vector2(54f, 54f));
             heldSlots[i].preserveAspect = true;
@@ -237,7 +239,7 @@ public class StageHUD : MonoBehaviour
     {
         resultPanel.SetActive(true);
         resultPanel.transform.SetAsLastSibling();
-        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" + ClearRecord() : "<color=#FF4757>FAILED...</color>";
+        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" + ClearRecord() : "<color=#FFFFFF>FAILED...</color>";
         // 클리어했고 같은 학년에 다음 스테이지가 있으면 [다음 스테이지] (마지막 스테이지면 숨김 → 스테이지 선택으로)
         var next = cleared ? NextStage() : null;
         if (nextButton != null) nextButton.gameObject.SetActive(next != null);

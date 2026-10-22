@@ -47,6 +47,7 @@ public class AchievementScreen : MonoBehaviour
             detailIcon.enabled = true;
         }
         Refresh();
+        ScrollTo(index);
     }
 
     void Update()
@@ -76,7 +77,8 @@ public class AchievementScreen : MonoBehaviour
         for (int i = 0; i < frames.Length; i++)
         {
             bool has = data != null && i < data.Length && data[i] != null;
-            if (UiArt.Get("item") != null) { frames[i].sprite = has && i == selected ? UiArt.Get("item") : UiArt.Get("item_2"); frames[i].type = Image.Type.Sliced; frames[i].color = Color.white; }
+            // 칸 틀은 모두 item_2 (item.png는 바깥 장식 때문에 칸보다 커 보여 어긋남) → 선택은 밝은 색으로
+            if (UiArt.Get("item_2") != null) { frames[i].sprite = UiArt.Get("item_2"); frames[i].type = Image.Type.Sliced; frames[i].color = has && i == selected ? new Color(1f, 0.9f, 0.55f) : (has ? Color.white : new Color(0.6f, 0.6f, 0.65f)); }
             else frames[i].color = has && i == selected ? selectedColor : frameColor;
             iconImages[i].enabled = has;
             if (!has) continue;
@@ -86,6 +88,10 @@ public class AchievementScreen : MonoBehaviour
         }
     }
 
+    ScrollRect scroll;
+    float cellStep;
+
+    /// <summary>업적 칸: 4열 그리드를 세로 스크롤 (아트 팀 스크롤바: 바탕 back_scroll · 테두리 line_scroll · 손잡이)</summary>
     void BuildGrid()
     {
         if (listText == null) return;
@@ -96,21 +102,63 @@ public class AchievementScreen : MonoBehaviour
             foreach (Transform sibling in area.parent)
                 if (sibling.name.StartsWith("Achievement_")) sibling.gameObject.SetActive(false);
 
-        int count = Mathf.Max(columns * rows, data != null ? data.Length : 0);
-        float cell = Mathf.Min((area.rect.width - spacing * (columns - 1)) / columns,
+        const float barW = 26f, barGap = 16f;
+        int count = Mathf.Max(columns * (rows + 1), data != null ? data.Length : 0);   // 한 줄 더 → 스크롤
+        count = Mathf.CeilToInt(count / (float)columns) * columns;
+        float cell = Mathf.Min((area.rect.width - barW - barGap - spacing * (columns - 1)) / columns,
                                (area.rect.height - spacing * (rows - 1)) / rows);
+        cellStep = cell + spacing;
+
+        // 뷰포트(가림) + 내용
+        var view = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D)).GetComponent<RectTransform>();
+        view.SetParent(area, false);
+        view.anchorMin = Vector2.zero; view.anchorMax = Vector2.one; view.offsetMin = Vector2.zero; view.offsetMax = new Vector2(-(barW + barGap), 0f);
+        var content = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+        content.SetParent(view, false);
+        content.anchorMin = new Vector2(0f, 1f); content.anchorMax = new Vector2(1f, 1f); content.pivot = new Vector2(0.5f, 1f);
+        int rowCount = count / columns;
+        content.sizeDelta = new Vector2(0f, rowCount * cellStep - spacing);
+
+        scroll = area.gameObject.GetComponent<ScrollRect>(); if (scroll == null) scroll = area.gameObject.AddComponent<ScrollRect>();
+        scroll.viewport = view; scroll.content = content; scroll.horizontal = false; scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 40f;
+        // ScrollRect가 드래그 받을 바탕 (투명)
+        var hit = area.GetComponent<Image>(); if (hit == null) hit = area.gameObject.AddComponent<Image>();
+        hit.color = new Color(0f, 0f, 0f, 0f);
+
+        // 세로 스크롤바
+        var barGo = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+        var bar = barGo.GetComponent<RectTransform>();
+        bar.SetParent(area, false);
+        bar.anchorMin = new Vector2(1f, 0f); bar.anchorMax = new Vector2(1f, 1f); bar.pivot = new Vector2(1f, 0.5f);
+        bar.sizeDelta = new Vector2(barW, 0f); bar.anchoredPosition = Vector2.zero;
+        var barImg = barGo.GetComponent<Image>();
+        barImg.sprite = UiArt.Get("back_scroll"); barImg.type = Image.Type.Sliced; barImg.color = barImg.sprite != null ? Color.white : new Color(0.1f, 0.1f, 0.14f);
+        var slide = new GameObject("Sliding Area", typeof(RectTransform)).GetComponent<RectTransform>();
+        slide.SetParent(bar, false); slide.anchorMin = Vector2.zero; slide.anchorMax = Vector2.one; slide.offsetMin = new Vector2(4f, 4f); slide.offsetMax = new Vector2(-4f, -4f);
+        var handle = new GameObject("Handle", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        handle.transform.SetParent(slide, false);
+        handle.rectTransform.offsetMin = handle.rectTransform.offsetMax = Vector2.zero;
+        handle.sprite = UiArt.Get("scroll_handle"); handle.type = Image.Type.Sliced; handle.color = handle.sprite != null ? Color.white : new Color(0.85f, 0.85f, 0.9f);
+        var frame = new GameObject("Frame", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        frame.transform.SetParent(bar, false);
+        frame.rectTransform.anchorMin = Vector2.zero; frame.rectTransform.anchorMax = Vector2.one; frame.rectTransform.offsetMin = frame.rectTransform.offsetMax = Vector2.zero;
+        frame.sprite = UiArt.Get("line_scroll"); frame.type = Image.Type.Sliced; frame.raycastTarget = false; frame.enabled = frame.sprite != null;
+        var sb = barGo.GetComponent<Scrollbar>();
+        sb.handleRect = handle.rectTransform; sb.targetGraphic = handle; sb.direction = Scrollbar.Direction.BottomToTop;
+        scroll.verticalScrollbar = sb; scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+
         frames = new Image[count];
         iconImages = new Image[count];
-
         for (int i = 0; i < count; i++)
         {
             int col = i % columns, row = i / columns;
             var frameGo = new GameObject("Cell" + i, typeof(RectTransform), typeof(Image), typeof(Button));
-            frameGo.transform.SetParent(area, false);
+            frameGo.transform.SetParent(content, false);
             var r = frameGo.GetComponent<RectTransform>();
             r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 1f);
             r.sizeDelta = new Vector2(cell, cell);
-            r.anchoredPosition = new Vector2(col * (cell + spacing), -row * (cell + spacing));
+            r.anchoredPosition = new Vector2(col * cellStep, -row * cellStep);
             frames[i] = frameGo.GetComponent<Image>();
             int idx = i;
             frameGo.GetComponent<Button>().onClick.AddListener(() => Show(idx));
@@ -124,6 +172,16 @@ public class AchievementScreen : MonoBehaviour
             iconImages[i].preserveAspect = true;
             iconImages[i].raycastTarget = false;
         }
+    }
+
+    /// <summary>키보드로 고른 칸이 보이게 스크롤</summary>
+    void ScrollTo(int index)
+    {
+        if (scroll == null || scroll.content == null || scroll.viewport == null) return;
+        float viewH = scroll.viewport.rect.height, top = (index / columns) * cellStep, y = scroll.content.anchoredPosition.y;
+        if (top < y) y = top;
+        else if (top + cellStep > y + viewH) y = top + cellStep - viewH;
+        scroll.content.anchoredPosition = new Vector2(0f, Mathf.Clamp(y, 0f, Mathf.Max(0f, scroll.content.rect.height - viewH)));
     }
 
     // 시안: 왼쪽 위 "◀ 돌아가기" (back_click 삼각형), 상세 칸 오른쪽 아래 마스코트(icon.png)
@@ -146,6 +204,18 @@ public class AchievementScreen : MonoBehaviour
                 label.alignment = TextAlignmentOptions.MidlineLeft;
                 var lr = label.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = new Vector2(60f, 0f); lr.offsetMax = Vector2.zero;
             }
+        }
+        if (detailText != null && detailText.transform.parent != null)
+        {
+            // 설명(아이콘·이름·설명·획득) 뒤 반투명 창 (설정창 틀 계열 어두운 색)
+            var dt = detailText.rectTransform;
+            var panel = new GameObject("DetailBack", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            panel.transform.SetParent(dt.parent, false);
+            panel.transform.SetSiblingIndex(dt.GetSiblingIndex());
+            var br = panel.rectTransform;
+            br.anchorMin = dt.anchorMin; br.anchorMax = dt.anchorMax; br.pivot = dt.pivot;
+            br.anchoredPosition = dt.anchoredPosition; br.sizeDelta = dt.sizeDelta + new Vector2(60f, 60f);
+            panel.color = new Color(0.16f, 0.17f, 0.24f, 0.6f); panel.raycastTarget = false;
         }
         var mascot = UiArt.Get("icon");
         if (mascot != null && detailText != null)

@@ -124,6 +124,16 @@ public class MainMenu : MonoBehaviour
         if (ach != null && ach.TryGetComponent(out Button achBtn)) Diamond(achBtn, "achievements", "업적", 0);
         Diamond(NewButton(holder, "Reset", () => { if (!showCredits) confirmReset = true; }), "reset", "리셋", 1);
         Diamond(NewButton(holder, "Credit", () => { if (!confirmReset) showCredits = true; }), "credit", "크레딧", 2);
+
+        // 시작 일러스트의 팔·손가락 (아트 팀이 따로 줄 예정): Resources/UI/start_arm.png · start_finger.png 를
+        // 시작 그림과 같은 1920×1080 캔버스 위치 그대로 내보내 넣으면 팔은 버튼 뒤, 손가락은 버튼 위에 겹쳐 나옴
+        if (bgArt != null)
+        {
+            var arm = UiArt.Get("start_arm");
+            if (arm != null) { var a = Layer(holder, "Arm", arm); a.transform.SetSiblingIndex(0); }
+            var finger = UiArt.Get("start_finger");
+            if (finger != null) Layer(holder, "Finger", finger).transform.SetAsLastSibling();
+        }
     }
 
     void Diamond(Button b, string art, string label, int slot)
@@ -148,6 +158,16 @@ public class MainMenu : MonoBehaviour
         text.font = KoreanTMPFont.Get(); text.text = label; text.fontSize = 24f; text.fontStyle = FontStyles.Bold;
         text.alignment = TextAlignmentOptions.Center; text.color = UiArt.Ink; text.raycastTarget = false;
         text.outlineWidth = 0.2f; text.outlineColor = new Color32(20, 10, 20, 255);
+    }
+
+    /// <summary>시작 그림과 같은 크기·위치의 겹침 그림 (그림 영역 전체에 맞춤)</summary>
+    static Image Layer(Transform holder, string name, Sprite sprite)
+    {
+        var img = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        img.transform.SetParent(holder, false);
+        var r = img.rectTransform; r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
+        img.sprite = sprite; img.raycastTarget = false;
+        return img;
     }
 
     static Button NewButton(Transform parent, string name, UnityEngine.Events.UnityAction onClick)

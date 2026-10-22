@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// 튜토리얼 스테이지(stage 0) 단계 안내. 화면 위쪽 한 줄 안내 → 그 행동을 하면 다음 단계.
 /// ① 이동 ② 재료 집기 ③ 재료 그대로 단말기에 ④ 조합해서 단말기에 ⑤ Q 버리기 ⑥ Shift 대쉬 ⑦ 벌 등장 → 패링 ⑧ 남은 요구 채우면 클리어.
-/// 단말기 요구사항은 단계에 맞게 정해 줌(① 기획 재료 → ② 시스템 기획서), 중간 단계(⑤~⑦)엔 단말기를 잠가 순서대로 진행.
+/// 단말기 요구사항은 단계에 맞게 정해 줌(③ 기획 재료 → ④ 시스템 기획서), ⑤~⑦ 동안은 요구사항을 비워 두고 ⑧에서 다시 띄움.
 /// </summary>
 public class TutorialDirector : MonoBehaviour
 {
@@ -48,6 +48,7 @@ public class TutorialDirector : MonoBehaviour
         int done = terminal != null ? terminal.Completed : 0;
         if (done == 0) return new List<ItemType> { ItemType.Planning };
         if (done == 1) return new List<ItemType> { ItemType.SystemDoc };      // 기획 + 프로그래밍
+        if (step < StepLast) return new List<ItemType>();   // ⑤~⑦ 동안은 요구사항을 비워 둠 (보이는데 안 들어가는 일 없게)
         return new List<ItemType> { LatePool[Random.Range(0, LatePool.Length)] };
     }
 
@@ -55,8 +56,7 @@ public class TutorialDirector : MonoBehaviour
     {
         if (sm == null || !sm.Running) return;
         if (!started) { started = true; startPos = player.transform.position; Enter(0); }
-        // ⑤~⑦은 잠금, ①~④에서 미리 2개 넘게 채워 바로 클리어되지 않게
-        if (terminal != null) terminal.locked = (step >= 4 && step < StepLast) || (step < 4 && terminal.Completed >= 2);
+        if (terminal != null) terminal.locked = step < StepLast && terminal.Completed >= 2;   // ①~④에서 미리 더 넣어 일찍 클리어되지 않게 (그땐 요구사항도 비어 있음)
         if (doneAt >= 0f)
         {
             if (Time.time - doneAt >= 0.8f && step < StepLast) Enter(step + 1);   // "좋아요!" 잠깐 보여 주고 다음
@@ -69,6 +69,7 @@ public class TutorialDirector : MonoBehaviour
     {
         step = s; stepStart = Time.time; doneAt = -1f; dropped = false; parried = false;
         if (step == StepParry) sm.SpawnMonsters();
+        if (step == StepLast && terminal != null) { terminal.locked = false; terminal.Reroll(); }   // 마지막 단계: 요구사항 다시 띄움
     }
 
     bool Done()
