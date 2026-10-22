@@ -3,16 +3,29 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/// <summary>시작화면 (기획서 p.16): 일러스트 + 우하단 버튼 시작 / 설정 / 업적 / 나가기</summary>
+/// <summary>
+/// 시작화면 (기획서 p.16 + 아트 팀 시안): 전체 일러스트(start_image) + 로고, 우하단 시작 / 설정 / 나가기,
+/// 그 아래 마름모 아이콘 업적 / 리셋(진행도 초기화) / 크레딧.
+/// </summary>
 public class MainMenu : MonoBehaviour
 {
     public GameObject settingsPanel;
-    [Header("일러스트 (아트 팀 그림)")]
+    [Header("일러스트 (아트 팀 그림이 없을 때만 사용)")]
     public Sprite heroSprite;
     public Sprite monsterSprite;
     [Tooltip("타이틀 로고 1024×512 (팀 규격, 사방 32px 여백)")] public Sprite logoSprite;
 
     RectTransform monster;
+    bool showCredits;
+
+    static readonly string[][] Credits =
+    {
+        new[] { "기획 · 레벨 · 사운드", "조은희" },
+        new[] { "메인 프로그래밍", "김보정" },
+        new[] { "보조 프로그래밍", "양예슬비" },
+        new[] { "그래픽", "김태은" },
+        new[] { "그래픽", "강수린" },
+    };
 
     void Awake() => SoundEffectManager.EnsureInstance();
 
@@ -26,9 +39,10 @@ public class MainMenu : MonoBehaviour
             r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
             var img = settingsPanel.GetComponent<Image>();
             if (img != null) { img.color = new Color(0f, 0f, 0f, 0f); img.raycastTarget = true; }   // 어둡게는 SettingsWindow.Dim, 이 판은 뒤 버튼 클릭만 막음
-            settingsPanel.transform.SetAsLastSibling();
         }
         BuildIllustration();
+        BuildButtons();
+        if (settingsPanel != null) settingsPanel.transform.SetAsLastSibling();
     }
 
     void BuildIllustration()
@@ -37,38 +51,113 @@ public class MainMenu : MonoBehaviour
         if (canvas == null) return;
         var root = canvas.transform;
         var bg = root.Find("Background");
-        int index = bg != null ? bg.GetSiblingIndex() + 1 : 0;
-
-        // 바닥 그리드 느낌의 띠
-        var glow = Img(root, "Glow", null, new Vector2(0f, -470f), new Vector2(1920f, 6f), new Color(0.22f, 0.82f, 1f, 0.5f));
-        glow.transform.SetSiblingIndex(index);
-        if (monsterSprite != null)
-        {
-            var m = Img(root, "IllustMonster", monsterSprite, new Vector2(300f, -60f), new Vector2(440f, 440f), Color.white);
-            m.transform.SetSiblingIndex(index + 1);
-            monster = m.rectTransform;
-        }
-        if (heroSprite != null)
-        {
-            var h = Img(root, "IllustHero", heroSprite, new Vector2(-560f, -260f), new Vector2(600f, 600f), Color.white);
-            h.transform.SetSiblingIndex(index + 2);
-        }
-
         var title = root.Find("Title")?.GetComponent<TMP_Text>();
         var subtitle = root.Find("Subtitle")?.GetComponent<TMP_Text>();
-        if (logoSprite != null)
+
+        var art = UiArt.Get("start_image");
+        if (art != null && bg != null && bg.TryGetComponent(out Image bgImg))
         {
-            // 팀 로고가 있으면 글자 제목 대신 로고 (규격 1024×512 그대로, 상단 왼쪽~가운데)
-            Img(root, "Logo", logoSprite, new Vector2(-380f, 290f), new Vector2(880f, 440f), Color.white);
+            // 아트 팀 시작 일러스트 1920×1080: 화면을 꽉 채움 (비율 유지, 넘치는 쪽은 잘림)
+            var r = bgImg.rectTransform;
+            r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f); r.anchoredPosition = Vector2.zero; r.sizeDelta = new Vector2(1920f, 1080f);
+            bgImg.sprite = art; bgImg.color = Color.white; bgImg.type = Image.Type.Simple; bgImg.preserveAspect = false;
+            var fit = bg.GetComponent<AspectRatioFitter>(); if (fit == null) fit = bg.gameObject.AddComponent<AspectRatioFitter>();
+            fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent; fit.aspectRatio = 1920f / 1080f;
+        }
+        else
+        {
+            int index = bg != null ? bg.GetSiblingIndex() + 1 : 0;
+            var glow = Img(root, "Glow", null, new Vector2(0f, -470f), new Vector2(1920f, 6f), new Color(0.22f, 0.82f, 1f, 0.5f));
+            glow.transform.SetSiblingIndex(index);
+            if (monsterSprite != null)
+            {
+                var m = Img(root, "IllustMonster", monsterSprite, new Vector2(300f, -60f), new Vector2(440f, 440f), Color.white);
+                m.transform.SetSiblingIndex(index + 1);
+                monster = m.rectTransform;
+            }
+            if (heroSprite != null)
+            {
+                var h = Img(root, "IllustHero", heroSprite, new Vector2(-560f, -260f), new Vector2(600f, 600f), Color.white);
+                h.transform.SetSiblingIndex(index + 2);
+            }
+        }
+
+        var logo = UiArt.Get("title"); if (logo == null) logo = logoSprite;
+        if (logo != null)
+        {
+            // 시안: 왼쪽 위 로고
+            Img(root, "Logo", logo, new Vector2(-610f, 300f), new Vector2(760f, 380f), Color.white);
             if (title != null) title.gameObject.SetActive(false);
-            if (subtitle != null) { var r = subtitle.rectTransform; r.anchoredPosition = new Vector2(-380f, 55f); subtitle.fontSize = 30f; subtitle.color = new Color(0.85f, 0.9f, 1f); }
+            if (subtitle != null) subtitle.gameObject.SetActive(false);
         }
         else if (title != null) { title.color = new Color(0.22f, 0.82f, 1f); title.fontStyle = FontStyles.Bold; title.outlineWidth = 0.15f; title.outlineColor = new Color32(255, 79, 163, 255); }
+    }
+
+    /// <summary>시안 배치: 오른쪽 아래 버튼 3개 세로, 그 아래 마름모 3개 가로</summary>
+    void BuildButtons()
+    {
+        var canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+        var root = canvas.transform;
+        string[] names = { "Start", "Setting", "Quit" };
+        for (int i = 0; i < names.Length; i++)
+        {
+            var t = root.Find(names[i]);
+            if (t == null || !t.TryGetComponent(out Button b)) continue;
+            var r = (RectTransform)t;
+            r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+            r.anchoredPosition = new Vector2(700f, -110f - i * 96f); r.sizeDelta = new Vector2(440f, 84f);
+            UiArt.StyleButton(b, 34f);
+        }
+
+        // 업적 버튼(씬) → 마름모. 리셋·크레딧은 새로 만듦
+        var ach = root.Find("Achievements");
+        if (ach != null && ach.TryGetComponent(out Button achBtn)) Diamond(achBtn, "achievements", "업적", 0);
+        Diamond(NewButton(root, "Reset", () => { if (!showCredits) confirmReset = true; }), "reset", "리셋", 1);
+        Diamond(NewButton(root, "Credit", () => { if (!confirmReset) showCredits = true; }), "credit", "크레딧", 2);
+    }
+
+    void Diamond(Button b, string art, string label, int slot)
+    {
+        if (b == null) return;
+        var r = (RectTransform)b.transform;
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+        r.anchoredPosition = new Vector2(560f + slot * 140f, -395f); r.sizeDelta = new Vector2(120f, 120f);
+        var sprite = UiArt.Get(art);
+        if (b.image != null && sprite != null) { b.image.sprite = sprite; b.image.type = Image.Type.Simple; b.image.preserveAspect = true; b.image.color = Color.white; }
+        var colors = b.colors; colors.normalColor = Color.white; colors.highlightedColor = new Color(1f, 0.75f, 0.85f); colors.pressedColor = new Color(0.8f, 0.55f, 0.65f); colors.selectedColor = Color.white;
+        b.colors = colors; b.transition = Selectable.Transition.ColorTint;
+        var text = b.GetComponentInChildren<TMP_Text>(true);
+        if (text == null)
+        {
+            text = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            text.transform.SetParent(b.transform, false);
+        }
+        var tr = text.rectTransform;
+        tr.anchorMin = tr.anchorMax = new Vector2(0.5f, 0f); tr.pivot = new Vector2(0.5f, 1f);
+        tr.anchoredPosition = new Vector2(0f, -2f); tr.sizeDelta = new Vector2(140f, 34f);
+        text.font = KoreanTMPFont.Get(); text.text = label; text.fontSize = 24f; text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center; text.color = UiArt.Ink; text.raycastTarget = false;
+        text.outlineWidth = 0.2f; text.outlineColor = new Color32(20, 10, 20, 255);
+    }
+
+    static Button NewButton(Transform parent, string name, UnityEngine.Events.UnityAction onClick)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        var b = go.GetComponent<Button>();
+        b.onClick.AddListener(onClick);
+        return b;
     }
 
     void Update()
     {
         if (monster != null) monster.anchoredPosition = new Vector2(300f, -60f + Mathf.Sin(Time.time * 2.2f) * 18f);
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (showCredits) showCredits = false;
+            else if (settingsPanel != null && settingsPanel.activeSelf) settingsPanel.SetActive(false);
+        }
     }
 
     static Image Img(Transform parent, string name, Sprite sprite, Vector2 pos, Vector2 size, Color color)
@@ -81,11 +170,13 @@ public class MainMenu : MonoBehaviour
         return img;
     }
 
-    public void OnStart() { if (!confirmReset) SceneManager.LoadScene("Map"); }
-    public void OnAchievements() { if (!confirmReset) SceneManager.LoadScene("Achievements"); }
-    public void OnSettings() { if (settingsPanel && !confirmReset) settingsPanel.SetActive(!settingsPanel.activeSelf); }
+    bool Busy => confirmReset || showCredits;
+    public void OnStart() { if (!Busy) SceneManager.LoadScene("Map"); }
+    public void OnAchievements() { if (!Busy) SceneManager.LoadScene("Achievements"); }
+    public void OnSettings() { if (settingsPanel && !Busy) settingsPanel.SetActive(!settingsPanel.activeSelf); }
     public void OnQuit()
     {
+        if (Busy) return;
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -106,24 +197,36 @@ public class MainMenu : MonoBehaviour
         }
 
         float s = Screen.height / 1080f;
-        var btn = new Rect(24f * s, Screen.height - 70f * s, 200f * s, 46f * s);
-        var style = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(20 * s) };
-        if (!confirmReset && GUI.Button(btn, "진행도 초기화", style)) confirmReset = true;
         if (Time.unscaledTime < resetDoneUntil)
-            GUI.Label(new Rect(btn.xMax + 16f * s, btn.y, 400f * s, btn.height), "초기화했어요. 처음부터 플레이할 수 있어요.", new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(20 * s), alignment = TextAnchor.MiddleLeft, normal = { textColor = new Color(0.4f, 0.95f, 0.6f) } });
+            UiArt.Label(new Rect(Screen.width - 760f * s, Screen.height - 60f * s, 520f * s, 40f * s), "초기화했어요. 처음부터 플레이할 수 있어요.", 22f * s, new Color(0.4f, 0.95f, 0.6f), TextAnchor.MiddleRight, true);
 
+        if (showCredits) { DrawCredits(s); return; }
         if (!confirmReset) return;
         SettingsWindow.Dim();
-        float w = 460f * s, h = 220f * s;
-        var r = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
-        GUI.Box(r, "");
-        GUI.Box(r, "");
-        var big = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(26 * s), alignment = TextAnchor.MiddleCenter, wordWrap = true, richText = true };
-        string sub = "<size=" + Mathf.RoundToInt(18 * s) + ">스테이지 클리어·업적이 지워져요 (설정은 유지)</size>";
-        GUI.Label(new Rect(r.x + 20f * s, r.y + 24f * s, w - 40f * s, 90f * s), "진행도를 모두 초기화할까요?\n" + sub, big);
-        var b1 = new Rect(r.x + 40f * s, r.yMax - 76f * s, (w - 100f * s) * 0.5f, 50f * s);
-        var b2 = new Rect(b1.xMax + 20f * s, b1.y, b1.width, b1.height);
-        if (GUI.Button(b1, "초기화", style)) { GameSettings.ResetProgress(); confirmReset = false; resetDoneUntil = Time.unscaledTime + 3f; }
-        if (GUI.Button(b2, "취소", style)) confirmReset = false;
+        var r = UiArt.Window("리셋", 760f, 450f);
+        UiArt.Label(new Rect(r.x + r.width * 0.08f, r.y + r.height * 0.25f, r.width * 0.84f, r.height * 0.32f),
+            "진행도를 모두 초기화할까요?\n<size=" + Mathf.RoundToInt(20 * s) + ">스테이지 클리어·업적이 지워져요 (설정은 유지)</size>", 30f * s, new Color(0.12f, 0.13f, 0.18f), TextAnchor.MiddleCenter, true);
+        float bw = r.width * 0.3f, bh = bw * 0.24f, by = r.y + r.height * 0.68f;
+        if (UiArt.Button(new Rect(r.center.x - bw - 12f * s, by, bw, bh), "초기화", 26f * s)) { GameSettings.ResetProgress(); confirmReset = false; resetDoneUntil = Time.unscaledTime + 3f; }
+        if (UiArt.Button(new Rect(r.center.x + 12f * s, by, bw, bh), "취소", 26f * s)) confirmReset = false;
+    }
+
+    void DrawCredits(float s)
+    {
+        SettingsWindow.Dim();
+        var r = UiArt.Window("크레딧", 1100f, 650f);
+        var ink = new Color(0.12f, 0.13f, 0.18f);
+        UiArt.Label(new Rect(r.x, r.y + r.height * 0.16f, r.width, r.height * 0.1f), "팀 팥없찐", 38f * s, ink, TextAnchor.MiddleCenter, true);
+        float nameW = r.width * 0.19f, nameH = nameW * 80f / 224f, rowH = nameH * 1.1f;
+        float x = r.x + r.width * 0.22f, y = r.y + r.height * 0.29f;
+        for (int i = 0; i < Credits.Length; i++)
+        {
+            var tag = new Rect(x, y + i * rowH, nameW, nameH);
+            if (UiArt.Tex("name") != null) UiArt.Draw(tag, "name"); else GUI.Box(tag, "");
+            UiArt.Label(new Rect(tag.x, tag.y, tag.width * 0.87f, tag.height), Credits[i][0], 17f * s, UiArt.Ink, TextAnchor.MiddleCenter, true);
+            UiArt.Label(new Rect(tag.xMax + 24f * s, tag.y, r.width * 0.35f, tag.height), Credits[i][1], 28f * s, ink, TextAnchor.MiddleLeft, true);
+        }
+        float bw = r.width * 0.18f, bh = bw * 0.28f;
+        if (UiArt.Button(new Rect(r.xMax - bw - r.width * 0.08f, r.yMax - bh - r.height * 0.06f, bw, bh), "닫기", 24f * s)) showCredits = false;
     }
 }

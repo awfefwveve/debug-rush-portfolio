@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 플레이어 프레임 애니메이션: 달리기 L/R(입력 기준), 점프(=대쉬 프레임) L/R, 정지 시 달리기 첫 프레임.
+/// 플레이어 프레임 애니메이션: 달리기 L/R(입력 기준), 대쉬(Shift) L/R, 점프(패링) 중엔 달리기 3번(크게 뛴 자세) 고정, 정지 시 달리기 첫 프레임.
 /// 이동 판정은 transform 변화가 아니라 입력으로 함 (물리 프레임과 화면 프레임이 달라 매 프레임 리셋되던 문제 수정).
 /// </summary>
 [RequireComponent(typeof(PlayerController))]
@@ -10,11 +10,11 @@ public class PlayerSpriteAnimator : MonoBehaviour
     public SpriteFrameAnimator anim;
     public Sprite[] runLeft, runRight, dashLeft, dashRight;
     [Tooltip("서 있을 때 그림 (없으면 달리기 첫 장)")] public Sprite idle;
-    public float runFps = 11f;
+    public float runFps = 8f;
 
     PlayerController player;
     bool facingRight = true;
-    bool wasJumping;
+    bool wasDashing;
 
     void Awake() => player = GetComponent<PlayerController>();
 
@@ -23,24 +23,27 @@ public class PlayerSpriteAnimator : MonoBehaviour
         if (anim == null) return;
         Vector2 move = player.MoveInput;
         bool moving = move.sqrMagnitude > 0.01f && !player.IsBeingPulled && !player.InputLocked;
-        if (Mathf.Abs(move.x) > 0.1f) facingRight = move.x > 0f;
+        if (player.IsDashing && Mathf.Abs(player.DashDir.x) > 0.1f) facingRight = player.DashDir.x > 0f;
+        else if (Mathf.Abs(move.x) > 0.1f) facingRight = move.x > 0f;
+        if (anim.target != null) anim.target.flipX = false;
 
-        if (player.IsJumping)
+        if (player.IsDashing)
         {
             var set = facingRight ? dashRight : dashLeft;
             if (set != null && set.Length > 0)
             {
-                float fps = set.Length / Mathf.Max(0.05f, player.jumpDuration);
-                anim.Play(set, fps, false, !wasJumping);
+                // 대쉬 시간 동안 프레임 전체를 한 번
+                float fps = set.Length / Mathf.Max(0.05f, player.dashDuration);
+                anim.Play(set, fps, false, !wasDashing);
+                wasDashing = true;
+                return;
             }
-            wasJumping = true;
-            return;
         }
-        wasJumping = false;
+        wasDashing = false;
 
         var run = facingRight ? runRight : runLeft;
         if (run == null || run.Length == 0) return;
-        if (anim.target != null) anim.target.flipX = false;
+        if (player.IsJumping) { anim.Hold(run, Mathf.Min(2, run.Length - 1)); return; }
         if (moving) anim.Play(run, runFps, true);
         else if (idle != null) { anim.Hold(new[] { idle }, 0); if (anim.target != null) anim.target.flipX = !facingRight; }
         else anim.Hold(run, 0);

@@ -22,7 +22,15 @@ public class PlayerController : MonoBehaviour
     public float jumpHeight = 0.8f;
     public Transform visual;                  // 스프라이트가 들어있는 자식
 
+    [Header("대쉬 (Shift)")]
+    public float dashSpeed = 18f;             // 칸/초
+    public float dashDuration = 0.22f;        // 약 4칸
+    public float dashCooldown = 0.6f;
+
     public bool IsJumping { get; private set; }
+    public bool IsDashing { get; private set; }
+    /// <summary>대쉬 방향 (애니메이션 좌우 판정용)</summary>
+    public Vector2 DashDir { get; private set; }
     public bool IsBeingPulled { get; private set; }
     public bool InputLocked { get; set; }
 
@@ -41,6 +49,8 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rb;
     Vector2 input;
     float nextJumpTime;
+    float nextDashTime, dashEnd;
+    Vector2 lastDir = Vector2.right;
 
     void Awake()
     {
@@ -59,21 +69,25 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         FocusTarget = FindTarget(out _);
-        if (InputLocked || IsBeingPulled) { input = Vector2.zero; return; }
+        if (InputLocked || IsBeingPulled) { input = Vector2.zero; IsDashing = false; return; }
 
         Vector2 raw = BotInput ?? new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         input = raw.sqrMagnitude > 1f ? raw.normalized : raw;
+        if (input.sqrMagnitude > 0.01f) lastDir = input.normalized;
+        if (IsDashing && Time.time >= dashEnd) IsDashing = false;
         if (BotInput.HasValue) return;
 
         if (Input.GetKeyDown(KeyCode.E)) Interact();
         if (Input.GetKeyDown(KeyCode.Q)) DropLastItem();
         if (Input.GetKeyDown(KeyCode.Space)) Jump();
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift)) Dash();
     }
 
     void FixedUpdate()
     {
         if (InputLocked || IsBeingPulled) return;
-        rb.MovePosition(rb.position + input * moveSpeed * Time.fixedDeltaTime);
+        Vector2 v = IsDashing ? DashDir * dashSpeed : input * moveSpeed;
+        rb.MovePosition(rb.position + v * Time.fixedDeltaTime);
     }
 
     // ---------- 상호작용 ----------
@@ -110,6 +124,16 @@ public class PlayerController : MonoBehaviour
     {
         if (InputLocked || IsJumping || Time.time < nextJumpTime) return;
         StartCoroutine(JumpRoutine());
+    }
+
+    /// <summary>대쉬: 누르는 방향(없으면 마지막으로 움직인 방향)으로 짧게 빠르게 이동. 벽은 그대로 막힘</summary>
+    public void Dash()
+    {
+        if (InputLocked || IsBeingPulled || IsDashing || Time.time < nextDashTime) return;
+        DashDir = input.sqrMagnitude > 0.01f ? input.normalized : lastDir;
+        IsDashing = true;
+        dashEnd = Time.time + dashDuration;
+        nextDashTime = dashEnd + dashCooldown;
     }
 
     public void DropLastItem()

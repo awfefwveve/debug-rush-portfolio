@@ -6,7 +6,9 @@ using UnityEngine;
 public static class StageLayoutDefaults
 {
     // 물체가 차지하는 칸 크기 (가로, 세로)
-    public static readonly Vector2 StationSize = new Vector2(3f, 2.5f), CrafterSize = new Vector2(4f, 3f), TerminalSize = new Vector2(2.5f, 3.5f);
+    /// <summary>아이템 생성기·제작대·단말기 그림 크기 배율 (10/22 1.25배)</summary>
+    public const float FacilityScale = 1.25f;
+    public static readonly Vector2 StationSize = new Vector2(3f, 2.5f) * FacilityScale, CrafterSize = new Vector2(4f, 3f) * FacilityScale, TerminalSize = new Vector2(2.5f, 3.5f) * FacilityScale;
 
     /// <summary>좌하단 보유 자료 박스(화면 190×120)가 겹치는 자리 (물체 금지). 카메라 줌에 따라 칸 수가 달라짐 (30×16이면 3×2칸)</summary>
     public static Rect HudZone(RectInt b)

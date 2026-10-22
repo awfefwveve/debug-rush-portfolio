@@ -14,6 +14,7 @@ public abstract class MonsterBase : MonoBehaviour
     public float moveSpeed = 2.5f;
     [Tooltip("(예전 방식) 공격 사이 간격. 지금은 패턴별 쿨타임 사용")] public float patternInterval = 2.6f;
     [Tooltip("공격 예고 시간(초)")] public float windupTime = 0.6f;
+    [Tooltip("공격 전 빨간 예고(직선·원) 표시")] public bool showTelegraph = false;
     [Tooltip("공격 후 회복 시간(초)")] public float recoverTime = 0.5f;
     public bool wander = true;
     public Rect moveArea = new Rect(-11, -4, 22, 8);
@@ -102,7 +103,7 @@ public abstract class MonsterBase : MonoBehaviour
             CurrentPattern = p;
             CurrentPhase = Phase.Windup;
             if (target != null) { AimTarget = target.position; AimDir = (AimTarget - (Vector2)transform.position).normalized; }
-            Telegraph(p);
+            if (showTelegraph) Telegraph(p);   // 빨간 공격 예고는 끔 (10/22 요청). 자기장 원·설치 로봇 감지 원은 공격 자체라 그대로
             yield return Wait(windupTime);
             ClearTelegraphs();
 

@@ -195,9 +195,9 @@ public class StageMakerWindow : EditorWindow
             {
                 // 게임과 같은 벽·바닥 경계선
                 float e = Mathf.Max(1f, cs * WallBuilder.EdgeWidth);
-                if (floorAll.Contains(c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (floorAll.Contains(c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (floorAll.Contains(c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
             }
         }
 

@@ -16,6 +16,7 @@ public class MapScreen : MonoBehaviour
         chapterDropdown.onValueChanged.AddListener(i => Build(i + 1));
         backButton.onClick.AddListener(() => SceneManager.LoadScene("Title"));
         EnsureScrollbar();
+        StyleArt();
         Build(chapterDropdown != null ? chapterDropdown.value + 1 : 1);
     }
 
@@ -44,6 +45,48 @@ public class MapScreen : MonoBehaviour
         scroll.horizontalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
         var bg = go.GetComponent<Image>(); if (bg != null) bg.color = new Color(0.09f, 0.13f, 0.24f);
         if (bar.handleRect != null) { var h = bar.handleRect.GetComponent<Image>(); if (h != null) h.color = new Color(0.22f, 0.82f, 1f); }
+    }
+
+    /// <summary>아트 팀 그림: 학년 선택 바(class / 펼친 목록 class_2), 스크롤바(back_scroll 바탕 · line_scroll 테두리 · 손잡이), 돌아가기 버튼 틀</summary>
+    void StyleArt()
+    {
+        if (backButton != null) UiArt.StyleButton(backButton, 28f);
+        var cls = UiArt.Get("class");
+        if (chapterDropdown != null && cls != null)
+        {
+            chapterDropdown.image.sprite = cls; chapterDropdown.image.type = Image.Type.Sliced; chapterDropdown.image.color = Color.white;
+            if (chapterDropdown.captionText != null) { chapterDropdown.captionText.color = UiArt.Ink; chapterDropdown.captionText.fontStyle = TMPro.FontStyles.Bold; }
+            if (chapterDropdown.template != null)
+                foreach (var img in chapterDropdown.template.GetComponentsInChildren<Image>(true))
+                {
+                    if (img.GetComponent<Scrollbar>() != null || img.transform.parent.GetComponent<Scrollbar>() != null) continue;
+                    if (img.GetComponent<Mask>() != null) continue;
+                    if (img.transform == chapterDropdown.template || img.name == "Item Background") { img.sprite = UiArt.Get("class_2"); img.type = Image.Type.Sliced; img.color = Color.white; }
+                }
+            if (chapterDropdown.itemText != null) chapterDropdown.itemText.color = UiArt.Ink;
+        }
+        var scroll = content != null ? content.GetComponentInParent<ScrollRect>() : null;
+        var bar = scroll != null ? scroll.horizontalScrollbar : null;
+        if (bar != null && UiArt.Get("back_scroll") != null)
+        {
+            var r = (RectTransform)bar.transform; r.sizeDelta = new Vector2(r.sizeDelta.x, 30f);
+            var bg = bar.GetComponent<Image>(); if (bg != null) { bg.sprite = UiArt.Get("back_scroll"); bg.type = Image.Type.Sliced; bg.color = Color.white; }
+            if (bar.handleRect != null)
+            {
+                var h = bar.handleRect.GetComponent<Image>();
+                if (h != null) { h.sprite = UiArt.Get("scroll_handle"); h.type = Image.Type.Sliced; h.color = Color.white; }
+                var area = bar.handleRect.parent as RectTransform;
+                if (area != null) { area.offsetMin = new Vector2(6f, 5f); area.offsetMax = new Vector2(-6f, -5f); }
+            }
+            var line = UiArt.Get("line_scroll");
+            if (line != null && bar.transform.Find("Frame") == null)
+            {
+                var f = new GameObject("Frame", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                f.transform.SetParent(bar.transform, false);
+                var fr = f.rectTransform; fr.anchorMin = Vector2.zero; fr.anchorMax = Vector2.one; fr.offsetMin = fr.offsetMax = Vector2.zero;
+                f.sprite = line; f.type = Image.Type.Sliced; f.raycastTarget = false;
+            }
+        }
     }
 
     void SetupContent()

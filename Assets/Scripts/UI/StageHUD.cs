@@ -21,6 +21,7 @@ public class StageHUD : MonoBehaviour
     public TMP_Text resultText;
     public Button retryButton, mapButton;
     Button nextButton;
+    Image failIcon;
 
     static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.78f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
@@ -64,6 +65,8 @@ public class StageHUD : MonoBehaviour
 
     void Update()
     {
+        if (failIcon != null && failIcon.gameObject.activeInHierarchy)   // 실패 그림 두 장 번갈아
+            failIcon.sprite = UiArt.Get(Mathf.FloorToInt(Time.unscaledTime * 2.5f) % 2 == 0 ? "icon_failed" : "icon_2_failed");
         if (stage == null || stage.Data == null) return;
         // 글자는 값이 바뀔 때만 다시 만듦 (매 프레임 새로 만들면 메모리 정리로 끊김)
         if (stageLabel != null && shownStage != stage.Data.stage) { shownStage = stage.Data.stage; stageLabel.text = $"STAGE {stage.Data.stage:00}"; }   // 기획서 p.7 "STAGE 02" 형식
@@ -124,10 +127,10 @@ public class StageHUD : MonoBehaviour
         }
 
         // 하단 가운데: 얇은 조작 안내 한 줄
-        var help = Label(root, "<color=#39D0FF>WASD</color> 이동  ·  <color=#39D0FF>E</color> 제작·회수·수정  ·  <color=#39D0FF>Space</color> 점프(패링)  ·  <color=#39D0FF>Q</color> 버리기  ·  <color=#39D0FF>Tab</color> 조합표  ·  <color=#39D0FF>ESC</color> 일시정지",
-              new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1100f, 30f), 19f, TextAlignmentOptions.Center, new Color(0.85f, 0.9f, 1f, 0.75f), false);
+        var help = Label(root, "<color=#39D0FF>WASD</color> 이동  ·  <color=#39D0FF>E</color> 제작·회수·수정  ·  <color=#39D0FF>Space</color> 점프(패링)  ·  <color=#39D0FF>Shift</color> 대쉬  ·  <color=#39D0FF>Q</color> 버리기  ·  <color=#39D0FF>Tab</color> 조합표  ·  <color=#39D0FF>ESC</color> 일시정지",
+              new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1260f, 30f), 19f, TextAlignmentOptions.Center, new Color(0.85f, 0.9f, 1f, 0.75f), false);
         help.outlineWidth = 0.2f; help.outlineColor = new Color32(5, 8, 16, 255);
-        var helpBg = Panel(root, "HelpBg", new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1140f, 30f), new Color(0.02f, 0.03f, 0.07f, 0.85f));   // 밝은 바닥 위에서도 읽히게
+        var helpBg = Panel(root, "HelpBg", new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(1300f, 30f), new Color(0.02f, 0.03f, 0.07f, 0.85f));   // 밝은 바닥 위에서도 읽히게
         helpBg.transform.SetSiblingIndex(help.transform.GetSiblingIndex());
         help.color = new Color(0.9f, 0.94f, 1f, 0.95f);
 
@@ -167,9 +170,25 @@ public class StageHUD : MonoBehaviour
         var img = resultPanel.GetComponent<Image>();
         if (img != null) img.color = new Color(0.04f, 0.06f, 0.12f, 0.94f);
         resultText.fontSize = 72f; resultText.fontStyle = FontStyles.Bold;
-        foreach (var b in new[] { retryButton, mapButton })   // (다음 스테이지는 노란색)
+        if (UiArt.Get("button_gray") != null)
         {
-            var bi = b.GetComponent<Image>(); if (bi != null) bi.color = new Color(0.13f, 0.45f, 0.8f);
+            // 아트 팀 버튼 틀: 다시 하기·맵으로 회색, 다음 스테이지 빨강 (마우스 올리면 빨강)
+            foreach (var b in new[] { retryButton, mapButton, nextButton }) if (b != null) { UiArt.StyleButton(b, 30f); ((RectTransform)b.transform).sizeDelta = new Vector2(340f, 66f); }
+            if (nextButton != null) nextButton.image.sprite = UiArt.Get("button_red");
+        }
+        else
+            foreach (var b in new[] { retryButton, mapButton })   // (다음 스테이지는 노란색)
+            {
+                var bi = b.GetComponent<Image>(); if (bi != null) bi.color = new Color(0.13f, 0.45f, 0.8f);
+            }
+        if (UiArt.Get("back_failed") != null)
+        {
+            ((RectTransform)resultPanel.transform).sizeDelta = new Vector2(1000f, 591f);
+            failIcon = new GameObject("FailIcon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            failIcon.transform.SetParent(resultPanel.transform, false);
+            Place(failIcon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-250f, -10f), new Vector2(400f, 400f));
+            failIcon.preserveAspect = true; failIcon.raycastTarget = false;
+            failIcon.gameObject.SetActive(false);
         }
     }
 
@@ -179,6 +198,7 @@ public class StageHUD : MonoBehaviour
         {
             hearts[i].gameObject.SetActive(i < max);
             hearts[i].color = i < hp ? Color.white : new Color(0.25f, 0.25f, 0.3f, 0.8f);
+            if (UiArt.Get("heart_3") != null) { hearts[i].sprite = UiArt.Get(i < hp ? "heart_3" : "heart_4"); hearts[i].color = Color.white; }   // 아트 팀 하트 (꽉 참 / 빈 하트)
         }
     }
 
@@ -203,6 +223,18 @@ public class StageHUD : MonoBehaviour
         // 클리어했고 같은 학년에 다음 스테이지가 있으면 [다음 스테이지] (마지막 스테이지면 숨김 → 스테이지 선택으로)
         var next = cleared ? NextStage() : null;
         if (nextButton != null) nextButton.gameObject.SetActive(next != null);
+
+        // 실패: 아트 팀 실패 창(back_failed) + 우는 주인공(icon_failed), 글자·버튼은 오른쪽으로
+        if (failIcon != null)
+        {
+            var img = resultPanel.GetComponent<Image>();
+            if (img != null) { img.sprite = cleared ? null : UiArt.Get("back_failed"); img.type = Image.Type.Sliced; img.color = cleared ? new Color(0.04f, 0.06f, 0.12f, 0.94f) : Color.white; }
+            failIcon.gameObject.SetActive(!cleared);
+            float x = cleared ? 0f : 200f;
+            foreach (var r in new[] { resultText.rectTransform, (RectTransform)retryButton.transform, (RectTransform)mapButton.transform, nextButton != null ? (RectTransform)nextButton.transform : null })
+                if (r != null) r.anchoredPosition = new Vector2(x, r.anchoredPosition.y);
+            if (!cleared) resultText.rectTransform.sizeDelta = new Vector2(520f, resultText.rectTransform.sizeDelta.y);
+        }
     }
 
     StageData NextStage()

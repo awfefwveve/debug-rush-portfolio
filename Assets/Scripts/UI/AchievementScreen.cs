@@ -27,6 +27,7 @@ public class AchievementScreen : MonoBehaviour
 
     void Start()
     {
+        StyleBack();
         BuildGrid();
         BuildDetailIcon();
         if (data != null && data.Length > 0) Show(0); else Refresh();
@@ -41,8 +42,8 @@ public class AchievementScreen : MonoBehaviour
         if (detailText) detailText.text = a.title + "\n\n" + AchievementManager.DescriptionFor(a) + "\n\n" + (unlocked ? "획득함" : "미획득");
         if (detailIcon)
         {
-            detailIcon.sprite = a.icon;
-            detailIcon.color = IconColor(a, unlocked);
+            detailIcon.sprite = IconSprite(a, unlocked);
+            detailIcon.color = IconTint(a, unlocked);
             detailIcon.enabled = true;
         }
         Refresh();
@@ -65,17 +66,23 @@ public class AchievementScreen : MonoBehaviour
         return a.secret ? Color.black : lockedTint;
     }
 
+    // 미획득은 자물쇠 그림 (아트 팀 lock.png), 없으면 어둡게 칠한 아이콘
+    Sprite IconSprite(AchievementData a, bool unlocked) => !unlocked && UiArt.Get("lock") != null ? UiArt.Get("lock") : a.icon;
+    Color IconTint(AchievementData a, bool unlocked) => !unlocked && UiArt.Get("lock") != null ? Color.white : IconColor(a, unlocked);
+
     void Refresh()
     {
         if (frames == null) return;
         for (int i = 0; i < frames.Length; i++)
         {
             bool has = data != null && i < data.Length && data[i] != null;
-            frames[i].color = has && i == selected ? selectedColor : frameColor;
+            if (UiArt.Get("item") != null) { frames[i].sprite = has && i == selected ? UiArt.Get("item") : UiArt.Get("item_2"); frames[i].type = Image.Type.Sliced; frames[i].color = Color.white; }
+            else frames[i].color = has && i == selected ? selectedColor : frameColor;
             iconImages[i].enabled = has;
             if (!has) continue;
-            iconImages[i].sprite = data[i].icon;
-            iconImages[i].color = IconColor(data[i], AchievementManager.IsUnlocked(data[i].id));
+            bool got = AchievementManager.IsUnlocked(data[i].id);
+            iconImages[i].sprite = IconSprite(data[i], got);
+            iconImages[i].color = IconTint(data[i], got);
         }
     }
 
@@ -112,10 +119,42 @@ public class AchievementScreen : MonoBehaviour
             iconGo.transform.SetParent(frameGo.transform, false);
             var ir = iconGo.GetComponent<RectTransform>();
             ir.anchorMin = Vector2.zero; ir.anchorMax = Vector2.one;
-            ir.offsetMin = new Vector2(10f, 10f); ir.offsetMax = new Vector2(-10f, -10f);
+            ir.offsetMin = new Vector2(18f, 18f); ir.offsetMax = new Vector2(-18f, -18f);
             iconImages[i] = iconGo.GetComponent<Image>();
             iconImages[i].preserveAspect = true;
             iconImages[i].raycastTarget = false;
+        }
+    }
+
+    // 시안: 왼쪽 위 "◀ 돌아가기" (back_click 삼각형), 상세 칸 오른쪽 아래 마스코트(icon.png)
+    void StyleBack()
+    {
+        var back = GameObject.Find("Back");
+        var arrow = UiArt.Get("back_click");
+        if (back != null && arrow != null && back.TryGetComponent(out Button b))
+        {
+            if (b.image != null) b.image.color = new Color(1f, 1f, 1f, 0f);
+            var icon = new GameObject("Arrow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            icon.transform.SetParent(back.transform, false);
+            var r = icon.rectTransform; r.anchorMin = r.anchorMax = new Vector2(0f, 0.5f);
+            r.anchoredPosition = new Vector2(30f, 0f); r.sizeDelta = new Vector2(34f, 34f); r.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            icon.sprite = arrow; icon.raycastTarget = false; icon.color = new Color(0.8f, 0.82f, 0.88f);
+            var label = back.GetComponentInChildren<TMP_Text>(true);
+            if (label != null)
+            {
+                label.text = "돌아가기"; label.color = new Color(0.8f, 0.82f, 0.88f); label.fontStyle = FontStyles.Bold; label.enableWordWrapping = false;
+                label.alignment = TextAlignmentOptions.MidlineLeft;
+                var lr = label.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = new Vector2(60f, 0f); lr.offsetMax = Vector2.zero;
+            }
+        }
+        var mascot = UiArt.Get("icon");
+        if (mascot != null && detailText != null)
+        {
+            var m = new GameObject("Mascot", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            m.transform.SetParent(detailText.rectTransform, false);
+            var r = m.rectTransform; r.anchorMin = r.anchorMax = r.pivot = new Vector2(1f, 0f);
+            r.anchoredPosition = new Vector2(10f, -10f); r.sizeDelta = new Vector2(150f, 150f);
+            m.sprite = mascot; m.preserveAspect = true; m.raycastTarget = false; m.color = new Color(1f, 1f, 1f, 0.85f);
         }
     }
 

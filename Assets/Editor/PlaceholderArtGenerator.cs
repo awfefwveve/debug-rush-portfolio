@@ -19,6 +19,8 @@ public static class PlaceholderArtGenerator
     const string Drive = "Assets/DebugRush/Art/Drive/";
     const int X4 = 4;               // PNG 배율
     const int PPU = 32 * X4;        // 128
+    /// <summary>아이템 생성기·제작대·단말기 크기 배율 (10/22 1.25배). 콜라이더·글자·아이콘 위치도 같이</summary>
+    public const float FacilityScale = StageLayoutDefaults.FacilityScale;
 
     // 팔레트: 배경은 채도·명도 낮게, 상호작용 대상은 밝게
     static readonly Color Navy = Hex("0A0E1A"), FloorA = Hex("161C2C"), FloorB = Hex("1A2133"), FloorLine = Hex("212A40"),
@@ -83,6 +85,7 @@ public static class PlaceholderArtGenerator
         ConfigureImports();
         ConfigureDriveArt();
         ConfigureTileArt();
+        AssetDatabase.ImportAsset("Assets/Resources/UI", ImportAssetOptions.ImportRecursive | ImportAssetOptions.ForceUpdate);   // UiArtImporter 설정 적용
         AssetDatabase.Refresh();
         BuildFxSet();
         BuildTileAtlas();
@@ -422,7 +425,7 @@ public static class PlaceholderArtGenerator
             foreach (var f in Directory.GetFiles(Fac, "*.png"))
             {
                 string n = Path.GetFileNameWithoutExtension(f);
-                Import(f.Replace('\\', '/'), n.StartsWith("terminal") ? 384f : 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
+                Import(f.Replace('\\', '/'), (n.StartsWith("terminal") ? 384f : 400f) / FacilityScale, new Vector2(0.5f, 0.5f), Vector4.zero);
             }
         const string portrait = "Assets/Resources/Portraits/player.png";   // 대사 초상화 (UI)
         if (File.Exists(portrait)) Import(portrait, 100f, new Vector2(0.5f, 0.5f), Vector4.zero);
@@ -435,8 +438,19 @@ public static class PlaceholderArtGenerator
     static Sprite DI(string n) { var s = D("Items/" + n); return s != null ? s : S(n); }   // 팀 아이템 아이콘, 없으면 임시
     static Sprite[] Seq(string prefix, int count) => Enumerable.Range(0, count).Select(i => S(prefix + i)).ToArray();
     static Sprite[] Monster2Seq(string prefix) => Directory.Exists(Drive + "Monster2") ? DriveSeq("Monster2", prefix) : new Sprite[0];
-    static Sprite[] DriveSeq(string folder, string prefix) =>
-        Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(x => x).Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
+    /// <summary>프레임 묶음: 파일 이름 끝 번호의 숫자 순서 (사전순이면 _10이 _2보다 앞에 옴). take > 0이면 앞에서 그만큼만</summary>
+    static Sprite[] DriveSeq(string folder, string prefix, int take = 0)
+    {
+        var files = Directory.GetFiles(Drive + folder, prefix + "_*.png").OrderBy(FrameNumber).ThenBy(x => x).ToList();
+        if (take > 0) files = files.Take(take).ToList();
+        return files.Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x.Replace('\\', '/'))).ToArray();
+    }
+
+    static int FrameNumber(string path)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(Path.GetFileNameWithoutExtension(path), @"(\d+)$");
+        return m.Success ? int.Parse(m.Groups[1].Value) : 0;
+    }
 
     /// <summary>
     /// 바닥·벽 타일을 한 장(스프라이트 아틀라스)에 모음 → 칸마다 깔린 수백 장이 한 번에 그려져서 렉이 줄어듦.
@@ -534,7 +548,11 @@ public static class PlaceholderArtGenerator
         foreach (var id in new[] { "first_clear", "no_damage", "chapter1_clear", "chapter2_clear", "chapter3_clear" })
         {
             var a = AssetDatabase.LoadAssetAtPath<AchievementData>($"Assets/DebugRush/Data/{id}.asset");
-            if (a != null) { a.icon = S("ach_" + id); EditorUtility.SetDirty(a); }
+            if (a == null) continue;
+            // 아트 팀 업적 아이콘: 첫 클리어 = clear, 1학년 클리어 = clear_2. 나머지는 임시 그림
+            var team = id == "first_clear" ? "clear" : id == "chapter1_clear" ? "clear_2" : null;
+            var teamSprite = team != null ? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/UI/" + team + ".png") : null;
+            a.icon = teamSprite != null ? teamSprite : S("ach_" + id); EditorUtility.SetDirty(a);
         }
 
         // ---------- 프리팹 ----------
@@ -543,9 +561,10 @@ public static class PlaceholderArtGenerator
             var pc = go.GetComponent<PlayerController>();
             pc.moveSpeed = 7f; pc.interactRadius = 1.4f; pc.interactHeight = 0.6f; pc.jumpHeight = 0.8f;
             var col = go.GetComponent<CircleCollider2D>(); col.radius = 0.35f; col.offset = new Vector2(0f, 0.3f);
-            var vis = pc.visual.GetComponent<SpriteRenderer>(); vis.sortingOrder = 0; vis.sprite = D("Player/run_R_01");
-            var psa = go.GetComponent<PlayerSpriteAnimator>(); psa.runFps = 11f;
-            psa.runRight = DriveSeq("Player", "run_R"); psa.runLeft = DriveSeq("Player", "run_L");
+            var vis = pc.visual.GetComponent<SpriteRenderer>(); vis.sortingOrder = 60;   // 캐릭터가 맨 앞 (벽 선 1·월드 글자 40·몬스터 10·투사체 30보다 위) vis.sprite = D("Player/run_R_01");
+            // 달리기: 아트 원본 GIF와 같게 1~4번, 0.125초씩 (5번은 1번과 거의 같은 그림이라 넣으면 같은 자세가 두 번 이어져 끊겨 보임)
+            var psa = go.GetComponent<PlayerSpriteAnimator>(); psa.runFps = 8f;
+            psa.runRight = DriveSeq("Player", "run_R", 4); psa.runLeft = DriveSeq("Player", "run_L", 4);
             psa.dashRight = DriveSeq("Player", "dash_R"); psa.dashLeft = DriveSeq("Player", "dash_L");
             AddShadow(go, 0.75f, 0.05f);
         });
@@ -661,9 +680,9 @@ public static class PlaceholderArtGenerator
             st.transform.localScale = Vector3.one;
             var sr = st.GetComponent<SpriteRenderer>();
             sr.sprite = Pick("generator_" + (st.material == ItemType.Planning ? "plan" : key), "generator_" + key); sr.color = Color.white; sr.sortingOrder = 0;
-            var box = st.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.7f, 1.9f); box.offset = new Vector2(0f, -0.1f);
+            var box = st.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.7f, 1.9f) * FacilityScale; box.offset = new Vector2(0f, -0.1f) * FacilityScale;
             RemoveChild(st.transform, "Icon"); RemoveChild(st.transform, "Label");
-            Label(st.transform, MaterialName[st.material], new Vector2(0f, -1.55f), ArtLabelColor[st.material]);
+            Label(st.transform, MaterialName[st.material], new Vector2(0f, -1.55f * FacilityScale), ArtLabelColor[st.material]);
         }
 
         var table = Object.FindAnyObjectByType<CraftingTable>();
@@ -672,18 +691,18 @@ public static class PlaceholderArtGenerator
             table.transform.position = Vector3.zero; table.transform.localScale = Vector3.one;
             var sr = table.GetComponent<SpriteRenderer>();
             sr.sprite = Pick("crafter_idle", "crafter_idle"); sr.color = Color.white; sr.sortingOrder = 0;
-            var box = table.GetComponent<BoxCollider2D>(); box.size = new Vector2(3.8f, 2.4f); box.offset = new Vector2(0f, -0.1f);
+            var box = table.GetComponent<BoxCollider2D>(); box.size = new Vector2(3.8f, 2.4f) * FacilityScale; box.offset = new Vector2(0f, -0.1f) * FacilityScale;
             RemoveChild(table.transform, "Label"); RemoveChild(table.transform, "Icon");
-            Label(table.transform, "제작대", new Vector2(0f, -1.85f), Orange);
+            Label(table.transform, "제작대", new Vector2(0f, -1.85f * FacilityScale), Orange);
             var view = table.GetComponent<CraftingTableView>();
             view.idleSprite = Pick("crafter_idle", "crafter_idle"); view.workingSprite = Pick("crafter_working", "crafter_working"); view.doneSprite = Pick("crafter_done", "crafter_done");
             if (view.outputIcon != null)
             {
-                view.outputIcon.transform.localPosition = new Vector3(0f, 0.68f, 0f);
-                view.outputIcon.transform.localScale = Vector3.one * 0.62f;
+                view.outputIcon.transform.localPosition = new Vector3(0f, 0.72f * FacilityScale, 0f);
+                view.outputIcon.transform.localScale = Vector3.one * 1.05f;   // 아이템 크게 (10/22)
                 view.outputIcon.sortingOrder = 5;
             }
-            view.materialSpacing = 1.06f; view.materialScale = 0.62f;
+            view.materialSpacing = 1.12f * FacilityScale; view.materialScale = 0.88f;   // 재료 = 1.05×0.88 ≈ 0.92칸
         }
 
         var sm = Object.FindAnyObjectByType<StageManager>();
@@ -698,21 +717,22 @@ public static class PlaceholderArtGenerator
             var sr = term.GetComponent<SpriteRenderer>();
             sr.sprite = Pick("terminal_error", "terminal_error"); sr.color = Color.white; sr.sortingOrder = 0;
             term.errorSprite = Pick("terminal_error", "terminal_error"); term.transmitSprite = Pick("terminal_sending", "terminal_transmit"); term.recoveredSprite = Pick("terminal_complete", "terminal_recovered");
-            var box = term.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.2f, 3.0f); box.offset = new Vector2(0f, 0f);
+            var box = term.GetComponent<BoxCollider2D>(); box.size = new Vector2(2.2f, 3.0f) * FacilityScale; box.offset = new Vector2(0f, 0f);
             for (int i = 0; i < term.requestIcons.Length; i++)
             {
                 var r = term.requestIcons[i];
-                r.transform.localPosition = new Vector3(-0.48f + i * 0.96f, 2.35f, 0f);
-                r.transform.localScale = Vector3.one * 0.82f;
+                r.transform.localPosition = new Vector3(-0.66f + i * 1.32f, 2.7f + 1.75f * (FacilityScale - 1f), 0f);
+                r.transform.localScale = Vector3.one * 1.22f;   // 아이템 크게 (10/22)
             }
             for (int i = 0; i < term.gaugeCells.Length; i++)
             {
                 var g = term.gaugeCells[i];
                 g.sprite = S("ui_round"); g.drawMode = SpriteDrawMode.Simple; g.sortingOrder = 6;
-                g.transform.localPosition = new Vector3(-0.945f + i * 0.27f, -1.95f, 0f);
-                g.transform.localScale = Vector3.one * 0.42f;
+                g.transform.localPosition = new Vector3((-0.945f + i * 0.27f) * FacilityScale, -1.95f * FacilityScale, 0f);
+                g.transform.localScale = Vector3.one * 0.42f * FacilityScale;
             }
             term.filled = Yellow; term.empty = Hex("2A3450");
+            term.beamColor = new Color(1f, 0.22f, 0.45f, 0.9f); term.hologramTint = new Color(1f, 1f, 1f, 0.9f); term.windowAlpha = 0.8f;   // 아이템창(item.png) 색 계열
         }
 
         var hud = Object.FindAnyObjectByType<StageHUD>();

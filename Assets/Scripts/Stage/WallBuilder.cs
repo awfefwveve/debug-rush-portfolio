@@ -45,6 +45,9 @@ public static class WallBuilder
     public static readonly Color EdgeColor = new Color(0.04f, 0.06f, 0.11f, 0.9f);
     static Sprite edgeSprite;
 
+    /// <summary>벽 옆 칸이 실제 바닥인지 (벽 칸은 제외)</summary>
+    public static bool Open(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, Vector2Int n) => !walls.Contains(n) && floor.Contains(n);
+
     static void AddEdgeLines(Transform cell, HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, Vector2Int c)
     {
         if (edgeSprite == null) edgeSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
@@ -57,9 +60,9 @@ public static class WallBuilder
             sr.sprite = edgeSprite; sr.color = EdgeColor; sr.sortingOrder = 1;
         }
         float h = 0.5f - EdgeWidth / 2f;
-        if (floor.Contains(c + Vector2Int.left)) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
-        if (floor.Contains(c + Vector2Int.right)) Line(new Vector2(h, 0f), new Vector2(EdgeWidth, 1f));
-        if (floor.Contains(c + Vector2Int.up)) Line(new Vector2(0f, h), new Vector2(1f, EdgeWidth));
+        if (Open(walls, floor, c + Vector2Int.left)) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
+        if (Open(walls, floor, c + Vector2Int.right)) Line(new Vector2(h, 0f), new Vector2(EdgeWidth, 1f));
+        if (Open(walls, floor, c + Vector2Int.up)) Line(new Vector2(0f, h), new Vector2(1f, EdgeWidth));
     }
 
     /// <summary>
@@ -112,25 +115,32 @@ public static class WallBuilder
     }
 
     /// <summary>
-    /// 입체(3/4 시점) 벽: 방 귀퉁이처럼 ㄱ자 안쪽이 바닥이면 바깥 모서리, 벽 덩어리가 바닥 쪽으로 꺾이는 곳은 안쪽 모서리,
-    /// 바로 아래 칸이 바닥이면 앞면(바닥에서 보이는 벽 옆면), 나머지는 윗면. 모서리 순서: 좌상·우상·좌하·우하
+    /// 입체(3/4 시점) 벽 (우선순위 순): 방 테두리 꼭짓점 = 바깥 모서리, 바로 아래가 바닥 = 앞면, 방이 파인 꼭짓점 = 안쪽 모서리, 나머지 = 윗면.
+    /// 이웃 4방향 벽·바닥 여부로 판정 (회전 없음, 오른쪽 그림이 없으면 왼쪽 그림 좌우 반전). 모서리 순서: 좌상·우상·좌하·우하
     /// </summary>
     static Sprite Piece3Q(HashSet<Vector2Int> w, HashSet<Vector2Int> floor, Vector2Int c, FxSet fx, out bool flip)
     {
         flip = false;
-        bool L = w.Contains(c + new Vector2Int(-1, 0)), R = w.Contains(c + new Vector2Int(1, 0)), U = w.Contains(c + new Vector2Int(0, 1)), D = w.Contains(c + new Vector2Int(0, -1));
-        bool UL = w.Contains(c + new Vector2Int(-1, 1)), UR = w.Contains(c + new Vector2Int(1, 1)), DL = w.Contains(c + new Vector2Int(-1, -1)), DR = w.Contains(c + new Vector2Int(1, -1));
+        bool L = w.Contains(c + Vector2Int.left), R = w.Contains(c + Vector2Int.right), U = w.Contains(c + Vector2Int.up), D = w.Contains(c + Vector2Int.down);
+        // 바닥 = 바닥 칸이면서 벽이 아닌 칸 (바닥을 따로 칠하지 않은 맵은 방 안쪽 전체가 바닥 목록이라 벽 칸도 들어 있음)
+        bool fL = !L && floor.Contains(c + Vector2Int.left), fR = !R && floor.Contains(c + Vector2Int.right), fU = !U && floor.Contains(c + Vector2Int.up), fD = !D && floor.Contains(c + Vector2Int.down);
         Sprite Or(Sprite s) => s != null ? s : fx.wallTopTile;
-        if (R && D && !L && !U && !DR) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[0]; return Or(fx.cornerOut[0]); }
-        if (L && D && !R && !U && !DL) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[1]; return Or(fx.cornerOut[1]); }
-        if (R && U && !L && !D && !UR) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[2]; return Or(fx.cornerOut[2]); }
-        if (L && U && !R && !D && !UL) { flip = fx.cornerOutFlip != null && fx.cornerOutFlip[3]; return Or(fx.cornerOut[3]); }
-        if (D && R && DR && !U && !L) { flip = fx.cornerInFlip != null && fx.cornerInFlip[0]; return Or(fx.cornerIn[0]); }
-        if (D && L && DL && !U && !R) { flip = fx.cornerInFlip != null && fx.cornerInFlip[1]; return Or(fx.cornerIn[1]); }
-        if (U && R && UR && !L && !D) { flip = fx.cornerInFlip != null && fx.cornerInFlip[2]; return Or(fx.cornerIn[2]); }
-        if (U && L && UL && !R && !D) { flip = fx.cornerInFlip != null && fx.cornerInFlip[3]; return Or(fx.cornerIn[3]); }
-        if (floor.Contains(c + new Vector2Int(0, -1)) && fx.wallFront != null && fx.wallFront.Length > 0)
+
+        // ㄱ자 꺾임: 수직인 두 이웃만 벽, 나머지 두 변은 벽이 아님. k = 벽 쪽 (0 좌상 · 1 우상 · 2 좌하 · 3 우하)
+        int k = -1;
+        if (R && D && !L && !U) k = 3; else if (L && D && !R && !U) k = 2; else if (R && U && !L && !D) k = 1; else if (L && U && !R && !D) k = 0;
+        // 바깥 모서리: 열린 두 변이 바닥이 아님(방 밖) = 방 테두리의 꼭짓점. 그림 이름은 방 밖 쪽 (out_tl: 위·왼쪽이 밖, 오른쪽 아래가 방)
+        if (k >= 0)
+        {
+            bool openIsFloor = k == 3 ? fU || fL : k == 2 ? fU || fR : k == 1 ? fD || fL : fD || fR;
+            if (!openIsFloor) { int o = 3 - k; flip = fx.cornerOutFlip != null && fx.cornerOutFlip[o]; return Or(fx.cornerOut[o]); }
+        }
+        // 앞면: 바로 아래가 바닥이면 바닥에서 보이는 벽 옆면 (01·02 칸마다 고정 무작위)
+        if (fD && fx.wallFront != null && fx.wallFront.Length > 0)
             return Or(fx.wallFront[Hash(c) % fx.wallFront.Length]);
+        // 안쪽 모서리: 방이 파인 곳(벽이 방 안으로 꺾여 들어온 꼭짓점), 열린 두 변이 바닥. 그림 이름은 벽 덩어리 쪽 (in_br: 오른쪽·아래가 벽, 위·왼쪽이 바닥)
+        // (위쪽이 파인 곳 in_tl·in_tr은 아래가 바닥이라 위의 앞면 규칙이 먼저 적용됨 — 3/4 시점에서 그 자리는 벽 옆면이 보임)
+        if (k >= 0) { flip = fx.cornerInFlip != null && fx.cornerInFlip[k]; return Or(fx.cornerIn[k]); }
         return fx.wallTopTile;
     }
 

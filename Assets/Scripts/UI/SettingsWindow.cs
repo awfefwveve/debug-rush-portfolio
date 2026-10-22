@@ -1,9 +1,9 @@
 using UnityEngine;
 
-/// <summary>설정창 (기획서 UI 플로우): 브금 슬라이더, 효과음 슬라이더, 언어 드롭다운, 돌아가기. 시작화면·일시정지 공용.</summary>
+/// <summary>설정창 (기획서 UI 플로우 + 아트 팀 설정창 러프): 브금 / 효과음 바, 언어 선택, 닫기. 시작화면·일시정지 공용.</summary>
 public static class SettingsWindow
 {
-    public const float Width = 400f, Height = 340f;
+    public const float Width = 1100f, Height = 650f;   // setting.png 1408×832 비율
     static bool languageOpen;
 
     static float dimFrom, dimLast = -1f;
@@ -20,37 +20,63 @@ public static class SettingsWindow
         GUI.color = prev;
     }
 
-    /// <summary>화면 중앙에 그림 (뒤는 어둡게). 돌아가기를 누르면 true.</summary>
+    /// <summary>화면 중앙에 그림 (뒤는 어둡게). 닫기를 누르면 true.</summary>
     public static bool Draw()
     {
         KoreanIMGUIFont.Apply();
         Dim();
-        var r = new Rect((Screen.width - Width) * 0.5f, (Screen.height - Height) * 0.5f, Width, Height);
-        GUI.Box(r, "설정");
-        GUILayout.BeginArea(new Rect(r.x + 28, r.y + 38, Width - 56, Height - 50));
+        float s = Screen.height / 1080f;
+        var r = UiArt.Window("설정", Width, Height);
+        float x0 = r.x + r.width * 0.09f, nameW = r.width * 0.14f, nameH = nameW * 80f / 224f;
 
         float bgm = GameSettings.BgmVolume;
-        GUILayout.Label("브금  " + Mathf.RoundToInt(bgm * 100) + "%");
-        float nb = GUILayout.HorizontalSlider(bgm, 0f, 1f);
+        float nb = VolumeRow(r, x0, r.y + r.height * 0.28f, nameW, nameH, "BGM", bgm, s);
         if (!Mathf.Approximately(nb, bgm)) GameSettings.BgmVolume = nb;
 
-        GUILayout.Space(10);
         float sfx = GameSettings.SfxVolume;
-        GUILayout.Label("효과음  " + Mathf.RoundToInt(sfx * 100) + "%");
-        float ns = GUILayout.HorizontalSlider(sfx, 0f, 1f);
+        float ns = VolumeRow(r, x0, r.y + r.height * 0.43f, nameW, nameH, "효과음", sfx, s);
         if (!Mathf.Approximately(ns, sfx)) GameSettings.SfxVolume = ns;
 
-        GUILayout.Space(10);
-        GUILayout.Label("언어");
-        if (GUILayout.Button(GameSettings.Languages[GameSettings.Language] + (languageOpen ? "  ▲" : "  ▼"))) languageOpen = !languageOpen;
+        // 언어: 이름표 + 분홍 선택 바 (▽), 펼치면 아래로 목록
+        float ly = r.y + r.height * 0.66f;
+        NameTag(new Rect(x0, ly, nameW, nameH), "언어", s);
+        var bar = new Rect(x0 + nameW + 10f * s, ly, r.width * 0.62f, nameH);
+        UiArt.Draw(bar, "language");
+        UiArt.Label(bar, GameSettings.Languages[GameSettings.Language], 28f * s, UiArt.Ink, TextAnchor.MiddleCenter, true);
+        UiArt.Label(new Rect(bar.xMax - 60f * s, bar.y, 50f * s, bar.height), languageOpen ? "△" : "▽", 26f * s, UiArt.Ink, TextAnchor.MiddleCenter, true);
+        if (GUI.Button(bar, GUIContent.none, GUIStyle.none)) languageOpen = !languageOpen;
         if (languageOpen)
             for (int i = 0; i < GameSettings.Languages.Length; i++)
-                if (GUILayout.Button("   " + GameSettings.Languages[i])) { GameSettings.Language = i; languageOpen = false; }
+            {
+                var item = new Rect(bar.x, bar.yMax + i * bar.height, bar.width, bar.height);
+                UiArt.Draw(item, item.Contains(Event.current.mousePosition) ? "language" : "language_2");
+                UiArt.Label(item, GameSettings.Languages[i], 26f * s, UiArt.Ink, TextAnchor.MiddleCenter);
+                if (GUI.Button(item, GUIContent.none, GUIStyle.none)) { GameSettings.Language = i; languageOpen = false; }
+            }
 
-        GUILayout.FlexibleSpace();
-        bool back = GUILayout.Button("돌아가기");
-        GUILayout.EndArea();
+        // 닫기 (오른쪽 위)
+        var close = new Rect(r.x + r.width * 0.7f, r.y + r.height * 0.8f, r.width * 0.17f, r.width * 0.17f * 0.3f);
+        bool back = UiArt.Button(close, "닫기", 24f * s);
         if (back) languageOpen = false;
         return back;
+    }
+
+    static float VolumeRow(Rect win, float x, float y, float nameW, float nameH, string label, float value, float s)
+    {
+        NameTag(new Rect(x, y, nameW, nameH), label, s);
+        float iconH = nameH * 0.8f;
+        var icon = new Rect(x + nameW + 12f * s, y + (nameH - iconH) * 0.5f, iconH, iconH);
+        UiArt.Draw(icon, "speaker");
+        var bar = new Rect(icon.xMax + 8f * s, y + nameH * 0.12f, win.width * 0.52f, nameH * 0.76f);
+        float v = UiArt.Slider(bar, value);
+        UiArt.Label(new Rect(bar.xMax + 4f * s, y, 90f * s, nameH), Mathf.RoundToInt(v * 100) + "%", 22f * s, new Color(0.12f, 0.13f, 0.18f), TextAnchor.MiddleLeft, true);
+        return v;
+    }
+
+    static void NameTag(Rect r, string text, float s)
+    {
+        if (UiArt.Tex("name") != null) UiArt.Draw(r, "name"); else GUI.Box(r, "");
+        // name.png: 왼쪽 칸 x 2~195 / 224
+        UiArt.Label(new Rect(r.x, r.y, r.width * 0.87f, r.height), text, 24f * s, UiArt.Ink, TextAnchor.MiddleCenter, true);
     }
 }

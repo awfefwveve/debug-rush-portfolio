@@ -28,14 +28,12 @@ public class PauseMenu : MonoBehaviour
             return;
         }
         SettingsWindow.Dim();
-        float w = 360, h = 250;
-        var r = new Rect((Screen.width-w)*.5f, (Screen.height-h)*.5f, w, h);
-        GUI.Box(r, "일시정지");
-        GUILayout.BeginArea(new Rect(r.x+28, r.y+38, w-56, h-50));
-        if (GUILayout.Button("계속하기")) SetOpen(false);
-        if (GUILayout.Button("설정")) settings = true;
-        if (GUILayout.Button("타이틀로 나가기")) { Time.timeScale = previousTimeScale; UnityEngine.SceneManagement.SceneManager.LoadScene("Title"); }
-        GUILayout.EndArea();
+        float s = Screen.height / 1080f;
+        var r = UiArt.Window("일시정지", 760f, 450f);
+        float bw = r.width * 0.46f, bh = bw * 0.2f, x = r.center.x - bw * 0.5f, y = r.y + r.height * 0.26f, gap = bh * 1.25f;
+        if (UiArt.Button(new Rect(x, y, bw, bh), "계속하기", 28f * s)) SetOpen(false);
+        if (UiArt.Button(new Rect(x, y + gap, bw, bh), "설정", 28f * s)) settings = true;
+        if (UiArt.Button(new Rect(x, y + gap * 2f, bw, bh), "타이틀로 나가기", 28f * s)) { Time.timeScale = previousTimeScale; UnityEngine.SceneManagement.SceneManager.LoadScene("Title"); }
     }
     void OnDestroy() { if (open) Time.timeScale = previousTimeScale; }
 }

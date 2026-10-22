@@ -3,9 +3,9 @@ using UnityEngine;
 /// <summary>기획서 p.7: 플레이어가 들고 있는 자료(재료·아이템)를 머리 위에 표시.</summary>
 public class CarryDisplay : MonoBehaviour
 {
-    public float height = 2.05f;
-    public float scale = 0.6f;
-    public float spacing = 0.62f;
+    public float height = 2.4f;
+    public float scale = 1.0f;     // 아이템 크게 (10/22, 예전 0.6)
+    public float spacing = 1.04f;
 
     PlayerController player;
     ItemIconSet icons;
@@ -24,7 +24,7 @@ public class CarryDisplay : MonoBehaviour
             go.transform.SetParent(player.visual != null ? player.visual : transform, false);
             go.transform.localScale = Vector3.one * scale;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sortingOrder = 50;
+            sr.sortingOrder = 65;   // 캐릭터(60) 위
             sr.enabled = false;
             slots[i] = sr;
         }
