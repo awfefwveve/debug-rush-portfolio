@@ -22,22 +22,78 @@ public static class WallBuilder
         var root = new GameObject("Walls (StageLayout)");
         var set = new HashSet<Vector2Int>(cells);
         var fx = FxSet.Get();
-        foreach (var c in set)
+        var solid = Solid(set, floor, fx);
+        foreach (var tile in Tiles(set, floor, fx))
         {
-            Piece(set, c, out var sprite, out float angle, out bool flip, fx, floor);
-            var t = new GameObject("Wall");
+            var c = tile.cell;
+            var t = new GameObject(tile.front ? "WallFront" : "Wall");
             t.transform.SetParent(root.transform, false);
             t.transform.position = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
-            t.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            t.transform.rotation = Quaternion.Euler(0f, 0f, tile.angle);
             t.layer = layer;
             t.tag = "Wall";
             var sr = t.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite; sr.sortingOrder = 0; sr.flipX = flip;
-            var box = t.AddComponent<BoxCollider2D>();
+            sr.sprite = tile.sprite; sr.sortingOrder = WallOrder; sr.flipX = tile.flipX;
+            var box = t.AddComponent<BoxCollider2D>();   // 앞면 칸도 벽 (보이는 벽 = 막히는 벽)
             box.size = Vector2.one;
-            if (fx != null && fx.Has3Q && floor != null) AddEdgeLines(t.transform, set, floor, c);
+            if (!tile.front && fx != null && fx.Has3Q && floor != null) AddEdgeLines(t.transform, solid, floor, c);
         }
         return root;
+    }
+
+    /// <summary>벽 그림 정렬 순서: 바닥(-100)보다 위, 기계·캐릭터(0 이상)보다 아래 (앞면 줄이 기계와 겹쳐도 기계가 보이게)</summary>
+    public const int WallOrder = -10;
+
+    public struct Tile { public Vector2Int cell; public Sprite sprite; public float angle; public bool flipX, front; }
+
+    /// <summary>앞면 칸: 벽 바로 아래가 바닥이면 그 바닥 칸 (3/4 시점 타일이 있을 때만)</summary>
+    public static HashSet<Vector2Int> Fronts(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, FxSet fx)
+    {
+        var f = new HashSet<Vector2Int>();
+        if (fx == null || !fx.Has3Q || floor == null || fx.wallFront == null || fx.wallFront.Length == 0) return f;
+        foreach (var c in walls) if (Open(walls, floor, c + Vector2Int.down)) f.Add(c + Vector2Int.down);
+        return f;
+    }
+
+    /// <summary>벽 + 앞면 칸 (막히는 칸 전체)</summary>
+    public static HashSet<Vector2Int> Solid(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, FxSet fx)
+    {
+        var s = new HashSet<Vector2Int>(walls);
+        s.UnionWith(Fronts(walls, floor, fx));
+        return s;
+    }
+
+    /// <summary>
+    /// 깔 벽 그림 목록 (게임·Stage Maker 공용). 3/4 시점: 벽 칸 = 윗면·모서리, 그 아래 바닥 칸 = 앞면(01·02 칸마다 고정 무작위).
+    /// 위쪽 벽을 1칸만 칠해도 윗면 한 줄 + 앞면 한 줄이 됨.
+    /// </summary>
+    /// <summary>
+    /// 윗면 그림 방향: 그림의 진한 테두리(위쪽)가 방 밖을 향하게 돌림 → 왼쪽·오른쪽 벽이 가로 줄무늬로 쌓이지 않고 세로 띠로 이어짐.
+    /// 방 밖(벽도 바닥도 아닌 칸)이 있는 쪽 우선(위 → 왼쪽 → 오른쪽 → 아래), 없으면 바닥 쪽
+    /// </summary>
+    static float TopAngle(Vector2Int c, HashSet<Vector2Int> solid, HashSet<Vector2Int> floor)
+    {
+        Vector2Int[] dirs = { Vector2Int.up, Vector2Int.left, Vector2Int.right, Vector2Int.down };
+        float[] angles = { 0f, 90f, -90f, 180f };
+        for (int i = 0; i < 4; i++) { var n = c + dirs[i]; if (!solid.Contains(n) && !floor.Contains(n)) return angles[i]; }
+        for (int i = 0; i < 4; i++) { var n = c + dirs[i]; if (!solid.Contains(n)) return angles[i]; }
+        return 0f;
+    }
+
+    public static List<Tile> Tiles(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, FxSet fx)
+    {
+        var list = new List<Tile>();
+        var fronts = Fronts(walls, floor, fx);
+        var solid = new HashSet<Vector2Int>(walls); solid.UnionWith(fronts);
+        foreach (var c in walls)
+        {
+            Piece(walls, c, out var sprite, out float angle, out bool flip, fx, floor, solid);
+            if (fx != null && fx.Has3Q && floor != null && sprite == fx.wallTopTile) angle = TopAngle(c, solid, floor);
+            list.Add(new Tile { cell = c, sprite = sprite, angle = angle, flipX = flip });
+        }
+        foreach (var c in fronts)
+            list.Add(new Tile { cell = c, sprite = fx.wallFront[Hash(c) % fx.wallFront.Length], front = true });
+        return list;
     }
 
     /// <summary>입체 타일: 벽이 바닥과 맞닿은 왼쪽·오른쪽·위 변에 진한 경계선 (2px). 아래 변은 앞면 그림이 맡음</summary>
@@ -57,7 +113,7 @@ public static class WallBuilder
             g.transform.SetParent(cell, false);
             g.transform.localPosition = offset; g.transform.localScale = new Vector3(size.x, size.y, 1f);
             var sr = g.AddComponent<SpriteRenderer>();
-            sr.sprite = edgeSprite; sr.color = EdgeColor; sr.sortingOrder = 1;
+            sr.sprite = edgeSprite; sr.color = EdgeColor; sr.sortingOrder = WallOrder + 1;
         }
         float h = 0.5f - EdgeWidth / 2f;
         if (Open(walls, floor, c + Vector2Int.left)) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
@@ -97,11 +153,11 @@ public static class WallBuilder
         return root;
     }
 
-    public static void Piece(HashSet<Vector2Int> cells, Vector2Int c, out Sprite sprite, out float angle, out bool flipX, FxSet fx, HashSet<Vector2Int> floor = null)
+    public static void Piece(HashSet<Vector2Int> cells, Vector2Int c, out Sprite sprite, out float angle, out bool flipX, FxSet fx, HashSet<Vector2Int> floor = null, HashSet<Vector2Int> solid = null)
     {
-        // 입체 타일이 있으면 윗면·앞면·모서리 방식 (회전 없음)
+        // 입체 타일이 있으면 윗면·모서리 방식 (회전 없음). 이웃 판정은 벽 + 앞면 칸 기준
         flipX = false;
-        if (fx != null && fx.Has3Q && floor != null) { angle = 0f; sprite = Piece3Q(cells, floor, c, fx, out flipX); return; }
+        if (fx != null && fx.Has3Q && floor != null) { angle = 0f; sprite = Piece3Q(solid ?? Solid(cells, floor, fx), floor, c, fx, out flipX); return; }
         bool l = cells.Contains(c + Vector2Int.left), r = cells.Contains(c + Vector2Int.right),
              d = cells.Contains(c + Vector2Int.down), u = cells.Contains(c + Vector2Int.up);
         int n = (l ? 1 : 0) + (r ? 1 : 0) + (d ? 1 : 0) + (u ? 1 : 0);
@@ -115,8 +171,9 @@ public static class WallBuilder
     }
 
     /// <summary>
-    /// 입체(3/4 시점) 벽 (우선순위 순): 방 테두리 꼭짓점 = 바깥 모서리, 바로 아래가 바닥 = 앞면, 방이 파인 꼭짓점 = 안쪽 모서리, 나머지 = 윗면.
-    /// 이웃 4방향 벽·바닥 여부로 판정 (회전 없음, 오른쪽 그림이 없으면 왼쪽 그림 좌우 반전). 모서리 순서: 좌상·우상·좌하·우하
+    /// 입체(3/4 시점) 벽 칸의 윗면 그림: 방 테두리 꼭짓점 = 바깥 모서리, 방이 파인 꼭짓점 = 안쪽 모서리, 나머지 = 윗면.
+    /// 벽 칸은 전부 윗면 계열이고, 앞면은 벽 바로 아래 바닥 칸에 따로 깔림(Tiles) → 위에서부터 윗면 줄 → 앞면 줄 → 바닥.
+    /// w = 벽 + 앞면 칸. 이웃 4방향으로 판정 (회전 없음, 오른쪽 그림이 없으면 왼쪽 그림 좌우 반전). 모서리 순서: 좌상·우상·좌하·우하
     /// </summary>
     static Sprite Piece3Q(HashSet<Vector2Int> w, HashSet<Vector2Int> floor, Vector2Int c, FxSet fx, out bool flip)
     {
@@ -135,11 +192,7 @@ public static class WallBuilder
             bool openIsFloor = k == 3 ? fU || fL : k == 2 ? fU || fR : k == 1 ? fD || fL : fD || fR;
             if (!openIsFloor) { int o = 3 - k; flip = fx.cornerOutFlip != null && fx.cornerOutFlip[o]; return Or(fx.cornerOut[o]); }
         }
-        // 앞면: 바로 아래가 바닥이면 바닥에서 보이는 벽 옆면 (01·02 칸마다 고정 무작위)
-        if (fD && fx.wallFront != null && fx.wallFront.Length > 0)
-            return Or(fx.wallFront[Hash(c) % fx.wallFront.Length]);
         // 안쪽 모서리: 방이 파인 곳(벽이 방 안으로 꺾여 들어온 꼭짓점), 열린 두 변이 바닥. 그림 이름은 벽 덩어리 쪽 (in_br: 오른쪽·아래가 벽, 위·왼쪽이 바닥)
-        // (위쪽이 파인 곳 in_tl·in_tr은 아래가 바닥이라 위의 앞면 규칙이 먼저 적용됨 — 3/4 시점에서 그 자리는 벽 옆면이 보임)
         if (k >= 0) { flip = fx.cornerInFlip != null && fx.cornerInFlip[k]; return Or(fx.cornerIn[k]); }
         return fx.wallTopTile;
     }

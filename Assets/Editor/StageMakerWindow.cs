@@ -186,18 +186,19 @@ public class StageMakerWindow : EditorWindow
 
         var wallSet = new HashSet<Vector2Int>(L.walls);
         var fx = FxSet.Get();
-        foreach (var c in wallSet)
+        var solid = WallBuilder.Solid(wallSet, floorAll, fx);
+        foreach (var tile in WallBuilder.Tiles(wallSet, floorAll, fx))   // 게임과 같은 규칙: 벽 칸 = 윗면·모서리, 그 아래 바닥 칸 = 앞면
         {
-            WallBuilder.Piece(wallSet, c, out var spr, out float ang, out bool flipX, fx, floorAll);
+            var c = tile.cell;
             var cell = CellRect(grid, cs, c);
-            if (spr != null) DrawSprite(cell, spr, ang, flipX); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
-            if (fx != null && fx.Has3Q)
+            if (tile.sprite != null) DrawSprite(cell, tile.sprite, tile.angle, tile.flipX); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
+            if (!tile.front && fx != null && fx.Has3Q)
             {
                 // 게임과 같은 벽·바닥 경계선
                 float e = Mathf.Max(1f, cs * WallBuilder.EdgeWidth);
-                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (WallBuilder.Open(wallSet, floorAll, c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
             }
         }
 

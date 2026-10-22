@@ -57,12 +57,13 @@ public class MainMenu : MonoBehaviour
         var art = UiArt.Get("start_image");
         if (art != null && bg != null && bg.TryGetComponent(out Image bgImg))
         {
-            // 아트 팀 시작 일러스트 1920×1080: 화면을 꽉 채움 (비율 유지, 넘치는 쪽은 잘림)
+            // 아트 팀 시작 일러스트 1920×1080: 그림 전체가 다 보이게 (비율 유지, 화면 비율이 다르면 남는 곳은 검정)
             var r = bgImg.rectTransform;
             r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f); r.anchoredPosition = Vector2.zero; r.sizeDelta = new Vector2(1920f, 1080f);
             bgImg.sprite = art; bgImg.color = Color.white; bgImg.type = Image.Type.Simple; bgImg.preserveAspect = false;
             var fit = bg.GetComponent<AspectRatioFitter>(); if (fit == null) fit = bg.gameObject.AddComponent<AspectRatioFitter>();
-            fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent; fit.aspectRatio = 1920f / 1080f;
+            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent; fit.aspectRatio = 1920f / 1080f;
+            if (Camera.main != null) Camera.main.backgroundColor = Color.black;   // 남는 곳 검정
         }
         else
         {
