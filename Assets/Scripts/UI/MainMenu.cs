@@ -86,8 +86,10 @@ public class MainMenu : MonoBehaviour
         var logo = UiArt.Get("title"); if (logo == null) logo = logoSprite;
         if (logo != null)
         {
-            // 시안: 왼쪽 위 로고
-            Img(root, "Logo", logo, new Vector2(-610f, 300f), new Vector2(760f, 380f), Color.white);
+            // 시작 그림 영역(비율 유지로 맞춘 Background) 왼쪽 위 기준, 가로 4.5%·세로 5% 안쪽 여백 → 어떤 화면 비율에서도 잘리지 않음
+            var holder = art != null && bg != null ? bg : root;
+            var logoImg = Img(holder, "Logo", logo, Vector2.zero, new Vector2(680f, 340f), Color.white);
+            var lr = logoImg.rectTransform; lr.anchorMin = lr.anchorMax = lr.pivot = new Vector2(0f, 1f); lr.anchoredPosition = new Vector2(86f, -54f);
             if (title != null) title.gameObject.SetActive(false);
             if (subtitle != null) subtitle.gameObject.SetActive(false);
         }
@@ -100,30 +102,35 @@ public class MainMenu : MonoBehaviour
         var canvas = FindAnyObjectByType<Canvas>();
         if (canvas == null) return;
         var root = canvas.transform;
+        // 버튼도 시작 그림 영역 안 오른쪽 아래 기준 (16:10 등에서 위아래 검은 띠로 내려가지 않게)
+        var bgArt = UiArt.Get("start_image") != null ? root.Find("Background") : null;
+        var holder = bgArt != null ? bgArt : root;
         string[] names = { "Start", "Setting", "Quit" };
         for (int i = 0; i < names.Length; i++)
         {
             var t = root.Find(names[i]);
             if (t == null || !t.TryGetComponent(out Button b)) continue;
+            t.SetParent(holder, false);
             var r = (RectTransform)t;
-            // 화면 오른쪽 아래 기준 (16:10 등 비율이 달라도 오른쪽에 붙음). 버튼 80 높이, 간격 10, 아래 다이아 묶음과 60 여백
+            // 오른쪽 아래 기준. 버튼 80 높이, 간격 10, 아래 다이아 묶음과 22 여백 (버튼 간격의 약 2배)
             r.anchorMin = r.anchorMax = new Vector2(1f, 0f); r.pivot = new Vector2(0.5f, 0.5f);
-            r.anchoredPosition = new Vector2(-270f, 480f - i * 90f); r.sizeDelta = new Vector2(440f, 80f);
+            r.anchoredPosition = new Vector2(-270f, 442f - i * 90f); r.sizeDelta = new Vector2(440f, 80f);
             UiArt.StyleButton(b, 34f);
         }
 
         // 업적 버튼(씬) → 마름모. 리셋·크레딧은 새로 만듦
         var ach = root.Find("Achievements");
+        if (ach != null) ach.SetParent(holder, false);
         if (ach != null && ach.TryGetComponent(out Button achBtn)) Diamond(achBtn, "achievements", "업적", 0);
-        Diamond(NewButton(root, "Reset", () => { if (!showCredits) confirmReset = true; }), "reset", "리셋", 1);
-        Diamond(NewButton(root, "Credit", () => { if (!confirmReset) showCredits = true; }), "credit", "크레딧", 2);
+        Diamond(NewButton(holder, "Reset", () => { if (!showCredits) confirmReset = true; }), "reset", "리셋", 1);
+        Diamond(NewButton(holder, "Credit", () => { if (!confirmReset) showCredits = true; }), "credit", "크레딧", 2);
     }
 
     void Diamond(Button b, string art, string label, int slot)
     {
         if (b == null) return;
         var r = (RectTransform)b.transform;
-        r.anchorMin = r.anchorMax = new Vector2(1f, 0f); r.pivot = new Vector2(0.5f, 0.5f);   // 오른쪽 아래 기준: 위 칸 아래끝 200 · 아래 글자 끝 46
+        r.anchorMin = r.anchorMax = new Vector2(1f, 0f); r.pivot = new Vector2(0.5f, 0.5f);   // 오른쪽 아래 기준: 마름모 위끝 200 (버튼 아래끝 222) · 아래 글자 끝 44
         r.anchoredPosition = new Vector2(-410f + slot * 140f, 140f); r.sizeDelta = new Vector2(120f, 120f);
         var sprite = UiArt.Get(art);
         if (b.image != null && sprite != null) { b.image.sprite = sprite; b.image.type = Image.Type.Simple; b.image.preserveAspect = true; b.image.color = Color.white; }
