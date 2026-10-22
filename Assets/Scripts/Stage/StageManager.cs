@@ -69,6 +69,13 @@ public class StageManager : MonoBehaviour
             yield return dialogueUI.Play(Data.intro);
             player.InputLocked = false;
         }
+        // 1-1: 대사 뒤 조작 안내 한 장
+        if (ControlsGuide.ShouldShow(Data))
+        {
+            player.InputLocked = true;
+            yield return ControlsGuide.Show();
+            player.InputLocked = false;
+        }
 
         SpawnMonsters();
         Running = true;

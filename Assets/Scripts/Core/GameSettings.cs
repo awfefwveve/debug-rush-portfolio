@@ -35,6 +35,7 @@ public static class GameSettings
             for (int s = 1; s <= 10; s++)
                 for (int d = 0; d < 3; d++) PlayerPrefs.DeleteKey($"clear_{c}_{s}_{d}");
         AchievementManager.ResetAll();
+        PlayerPrefs.DeleteKey(ControlsGuide.SeenKey);   // 시연: 조작 안내 다시 보이게
         PlayerPrefs.Save();
     }
 }

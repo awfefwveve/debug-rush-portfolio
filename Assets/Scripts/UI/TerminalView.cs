@@ -117,10 +117,10 @@ public class TerminalView : MonoBehaviour
             timerText.color = c;
         }
 
-        // 요구사항 박스 바로 위
-        Vector3 anchor = requestBox != null && requestBox.enabled
-            ? new Vector3(requestBox.bounds.center.x, requestBox.bounds.max.y + 0.25f, 0f)
-            : transform.position + Vector3.up * 2.4f;
+        // 단말기 아래 완료 칸 밑 (위쪽에 두면 홀로그램이 높아져 화면 위 '조합표(Tab)'와 겹침)
+        Vector3 anchor = body != null
+            ? new Vector3(transform.position.x, body.bounds.min.y - 0.75f, 0f)
+            : transform.position + Vector3.down * 2.9f;
         const float w = 0.26f, gap = 0.06f;
         float total = cells.Length * w + (cells.Length - 1) * gap;
         for (int i = 0; i < cells.Length; i++)

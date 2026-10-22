@@ -33,15 +33,17 @@ public class PlayerHealth : MonoBehaviour
     IEnumerator InvincibleRoutine()
     {
         IsInvincible = true;
-        var sr = GetComponentInChildren<SpriteRenderer>();
+        // 캐릭터 그림(visual)만 반투명 깜빡임 (그림자·머리 위 아이템은 그대로)
+        var pc = GetComponent<PlayerController>();
+        var sr = pc != null && pc.visual != null ? pc.visual.GetComponent<SpriteRenderer>() : GetComponentInChildren<SpriteRenderer>();
         float t = 0f;
         while (t < invincibleTime)
         {
             t += Time.deltaTime;
-            if (sr) sr.enabled = Mathf.FloorToInt(t * 12f) % 2 == 0;   // 깜빡임
+            if (sr) { var c = sr.color; c.a = Mathf.FloorToInt(t * 12f) % 2 == 0 ? 1f : 0.25f; sr.color = c; }
             yield return null;
         }
-        if (sr) sr.enabled = true;
+        if (sr) { var c = sr.color; c.a = 1f; sr.color = c; }
         IsInvincible = false;
     }
 }
