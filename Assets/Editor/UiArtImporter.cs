@@ -40,3 +40,16 @@ public class UiArtImporter : AssetPostprocessor
         }
     }
 }
+
+/// <summary>브금(Assets/Resources/Bgm): 긴 곡이라 스트리밍 재생 (메모리에 통째로 풀지 않음)</summary>
+public class BgmImporter : AssetPostprocessor
+{
+    void OnPreprocessAudio()
+    {
+        if (!assetPath.Replace('\\', '/').StartsWith("Assets/Resources/Bgm/")) return;
+        var imp = (AudioImporter)assetImporter;
+        var s = imp.defaultSampleSettings;
+        s.loadType = AudioClipLoadType.Streaming;
+        imp.defaultSampleSettings = s;
+    }
+}

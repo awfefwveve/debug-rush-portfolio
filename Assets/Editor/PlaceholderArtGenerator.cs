@@ -560,6 +560,7 @@ public static class PlaceholderArtGenerator
         {
             var pc = go.GetComponent<PlayerController>();
             pc.moveSpeed = 7f; pc.interactRadius = 1.4f; pc.interactHeight = 0.6f; pc.jumpHeight = 0.8f;
+            pc.dashSpeed = 12f; pc.dashDuration = 0.4f; pc.dashCooldown = 0.4f;   // 대쉬 그림 10장 0.4초
             var col = go.GetComponent<CircleCollider2D>(); col.radius = 0.35f; col.offset = new Vector2(0f, 0.3f);
             var vis = pc.visual.GetComponent<SpriteRenderer>(); vis.sortingOrder = 60;   // 캐릭터가 맨 앞 (벽 선 1·월드 글자 40·몬스터 10·투사체 30보다 위) vis.sprite = D("Player/run_R_01");
             // 달리기: 아트 원본 GIF와 같게 1~4번, 0.125초씩 (5번은 1번과 거의 같은 그림이라 넣으면 같은 자세가 두 번 이어져 끊겨 보임)

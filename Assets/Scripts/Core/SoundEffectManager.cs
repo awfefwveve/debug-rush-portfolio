@@ -1,11 +1,29 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-/// <summary>효과음·브금 재생 진입점. 씬 전환 뒤에도 유지됩니다. 음량은 GameSettings(설정창) 값을 따릅니다.</summary>
+/// <summary>
+/// 효과음·브금 재생 진입점. 씬 전환 뒤에도 유지됩니다. 음량은 GameSettings(설정창) 값을 따릅니다.
+/// 브금(Resources/Bgm): 스테이지 = battle(전투상황 노래), 그 외 화면(시작·스테이지 선택·업적) = title(시작 노래). 반복 재생.
+/// </summary>
 public class SoundEffectManager : MonoBehaviour
 {
     public static SoundEffectManager Instance { get; private set; }
     public AudioSource source;
     public AudioSource bgmSource;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Boot()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (mode != LoadSceneMode.Single) return;
+        PlayBgm(Resources.Load<AudioClip>(scene.name == "Stage" ? "Bgm/battle" : "Bgm/title"));
+    }
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }

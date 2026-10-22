@@ -23,9 +23,9 @@ public class PlayerController : MonoBehaviour
     public Transform visual;                  // 스프라이트가 들어있는 자식
 
     [Header("대쉬 (Shift)")]
-    public float dashSpeed = 18f;             // 칸/초
-    public float dashDuration = 0.22f;        // 약 4칸
-    public float dashCooldown = 0.6f;
+    public float dashSpeed = 12f;             // 칸/초
+    public float dashDuration = 0.4f;         // 대쉬 그림 10장을 25fps로 한 번 (약 4.8칸)
+    public float dashCooldown = 0.4f;
 
     public bool IsJumping { get; private set; }
     public bool IsDashing { get; private set; }
@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.E)) Interact();
         if (Input.GetKeyDown(KeyCode.Q)) DropLastItem();
         if (Input.GetKeyDown(KeyCode.Space)) Jump();
-        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift)) Dash();
+        if (DashPressed()) Dash();
     }
 
     void FixedUpdate()
@@ -124,6 +124,20 @@ public class PlayerController : MonoBehaviour
     {
         if (InputLocked || IsJumping || Time.time < nextJumpTime) return;
         StartCoroutine(JumpRoutine());
+    }
+
+    /// <summary>
+    /// Shift 눌림: 예전 입력(Input)과 새 입력 시스템(Keyboard)을 둘 다 봄.
+    /// 한글 입력기 상태 등에서 예전 입력이 Shift를 놓치는 경우가 있어 새 입력 시스템으로도 확인.
+    /// </summary>
+    static bool DashPressed()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift)) return true;
+#if ENABLE_INPUT_SYSTEM
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null && (kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame)) return true;
+#endif
+        return false;
     }
 
     /// <summary>대쉬: 누르는 방향(없으면 마지막으로 움직인 방향)으로 짧게 빠르게 이동. 벽은 그대로 막힘</summary>
