@@ -45,6 +45,8 @@ public class PlayerController : MonoBehaviour
     public PlayerInventory Inventory { get; private set; }
     public PlayerHealth Health { get; private set; }
     public event Action ParrySucceeded;
+    /// <summary>Q로 버림 (튜토리얼 단계 판정)</summary>
+    public event Action Dropped;
 
     Rigidbody2D rb;
     Vector2 input;
@@ -156,6 +158,7 @@ public class PlayerController : MonoBehaviour
         int index = Inventory.items.Count - 1;
         ItemType item = Inventory.items[index];
         Inventory.RemoveAt(index);           // 버리기 = 바닥에 두지 않고 바로 삭제
+        Dropped?.Invoke();
     }
 
     // ---------- 점프(패링) ----------

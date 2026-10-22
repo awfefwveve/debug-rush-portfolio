@@ -878,7 +878,7 @@ public class StageMakerWindow : EditorWindow
     }
 
     /// <summary>Title 씬 GameManager.allStages에 넣기/빼기 → 맵 화면에 표시/숨김</summary>
-    static void Register(StageData s, bool add)
+    internal static void Register(StageData s, bool add)
     {
         if (add && Registered().Contains(s)) return;
         var scene = SceneManager.GetSceneByPath(TitleScenePath);

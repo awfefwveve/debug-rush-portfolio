@@ -54,6 +54,12 @@ public class StageManager : MonoBehaviour
         var ph = player != null ? player.GetComponent<PlayerHealth>() : null;
         if (ph != null) ph.invincibleTime = Data.playerInvincibleTime;   // 피격 후 무적 n초
         bool firstEasy = Data.chapter == 1 && Data.stage == 1;   // 1-1 첫 단말기 첫 요구 = 재료 하나
+        if (IsTutorial)   // 튜토리얼: 단계 안내가 요구사항·몬스터 등장을 정함, 맞아도 HP 그대로
+        {
+            tutorial = gameObject.AddComponent<TutorialDirector>();
+            tutorial.Setup(this);
+            player.Health.noDamage = true;
+        }
         foreach (var t in terminals)
         {
             t.requestTime = Data.RequestTimeFor(Diff);
@@ -79,7 +85,7 @@ public class StageManager : MonoBehaviour
             player.InputLocked = false;
         }
 
-        SpawnMonsters();
+        if (!IsTutorial) SpawnMonsters();   // 튜토리얼은 벌 단계에서 TutorialDirector가 부름
         Running = true;
     }
 
@@ -109,7 +115,10 @@ public class StageManager : MonoBehaviour
         return best;
     }
 
-    void SpawnMonsters()
+    public bool IsTutorial => Data != null && Data.stage <= 0;
+    TutorialDirector tutorial;
+
+    public void SpawnMonsters()
     {
         if (Data.monsters == null) return;
         foreach (var m in Data.monsters)
@@ -172,7 +181,7 @@ public class StageManager : MonoBehaviour
         {
             GameManager.I?.SaveClear(Data, Diff);
             if (Data.chapter == 1 && Data.stage == 1) AchievementManager.Unlock("first_clear");
-            if (player.Health.Hp == player.Health.MaxHp) AchievementManager.Unlock("no_damage");
+            if (!IsTutorial && player.Health.Hp == player.Health.MaxHp) AchievementManager.Unlock("no_damage");
             if (IsChapterCleared(Data.chapter)) AchievementManager.Unlock($"chapter{Data.chapter}_clear");
         }
         StartCoroutine(EndRoutine(cleared));
@@ -185,7 +194,7 @@ public class StageManager : MonoBehaviour
         if (gm == null || gm.allStages == null) return false;
         int cleared = 0;
         foreach (var s in gm.allStages)
-            if (s != null && s.chapter == chapter && gm.IsCleared(s)) cleared++;
+            if (s != null && s.chapter == chapter && s.stage >= 1 && gm.IsCleared(s)) cleared++;   // 튜토리얼 제외
         return cleared >= StagesPerChapter;
     }
 

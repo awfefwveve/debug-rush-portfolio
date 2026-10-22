@@ -21,7 +21,16 @@ public class ControlsGuide : MonoBehaviour
     float openedAt;
 
     public static bool ShouldShow(StageData s) => s != null && s.chapter == 1 && s.stage == 1 && PlayerPrefs.GetInt(SeenKey, 0) == 0
-        && FindAnyObjectByType<AutoShot>() == null;   // 자동 캡처 중엔 안 띄움
+        && FindAnyObjectByType<AutoShot>() == null   // 자동 캡처 중엔 안 띄움
+        && !TutorialCleared();                       // 튜토리얼을 깼으면 이미 배운 것
+
+    static bool TutorialCleared()
+    {
+        var gm = GameManager.I;
+        if (gm == null || gm.allStages == null) return false;
+        foreach (var t in gm.allStages) if (t != null && t.chapter == 1 && t.stage <= 0 && gm.IsCleared(t)) return true;
+        return false;
+    }
 
     public static IEnumerator Show()
     {

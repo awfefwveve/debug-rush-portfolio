@@ -73,7 +73,7 @@ public class StageHUD : MonoBehaviour
             failIcon.sprite = UiArt.Get(Mathf.FloorToInt(Time.unscaledTime * 2.5f) % 2 == 0 ? "icon_failed" : "icon_2_failed");
         if (stage == null || stage.Data == null) return;
         // 글자는 값이 바뀔 때만 다시 만듦 (매 프레임 새로 만들면 메모리 정리로 끊김)
-        if (stageLabel != null && shownStage != stage.Data.stage) { shownStage = stage.Data.stage; stageLabel.text = $"STAGE {stage.Data.stage:00}"; }   // 기획서 p.7 "STAGE 02" 형식
+        if (stageLabel != null && shownStage != stage.Data.stage) { shownStage = stage.Data.stage; stageLabel.text = stage.Data.stage <= 0 ? "TUTORIAL" : $"STAGE {stage.Data.stage:00}"; }   // 기획서 p.7 "STAGE 02" 형식
         if (fixLabel != null)
         {
             int done = 0, total = 0;

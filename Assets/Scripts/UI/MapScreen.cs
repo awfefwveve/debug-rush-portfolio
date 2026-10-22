@@ -121,7 +121,8 @@ public class MapScreen : MonoBehaviour
         var stages = GameManager.I.allStages.Where(s => s != null && s.chapter == chapter).ToArray();
         int last = Mathf.Max(StageManager.StagesPerChapter, stages.Length > 0 ? stages.Max(s => s.stage) : 0);
         // 챕터당 5칸을 모두 보여주고, 등록 안 된 스테이지는 "준비 중"으로 잠금
-        for (int n = 1; n <= last; n++)
+        int firstN = stages.Any(x => x.stage <= 0) ? 0 : 1;   // 튜토리얼(0)이 있으면 맨 앞 카드
+        for (int n = firstN; n <= last; n++)
         {
             var s = stages.FirstOrDefault(x => x.stage == n);
             var card = Instantiate(cardPrefab, content);

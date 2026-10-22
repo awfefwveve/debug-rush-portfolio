@@ -5,6 +5,8 @@ using UnityEngine;
 public class PlayerHealth : MonoBehaviour
 {
     public float invincibleTime = 1.5f;
+    /// <summary>맞아도 HP가 안 깎임 (튜토리얼)</summary>
+    [NonSerialized] public bool noDamage;
 
     public int MaxHp { get; private set; }
     public int Hp { get; private set; }
@@ -23,7 +25,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int dmg = 1)
     {
-        if (IsInvincible || Hp <= 0) return;
+        if (IsInvincible || Hp <= 0 || noDamage) return;
         Hp = Mathf.Max(0, Hp - dmg);
         HpChanged?.Invoke(Hp, MaxHp);
         if (Hp <= 0) Died?.Invoke();

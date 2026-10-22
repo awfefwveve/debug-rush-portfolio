@@ -35,6 +35,10 @@ public class BugTerminal : MonoBehaviour, IInteractable
 
     /// <summary>첫 요구사항을 재료 하나로 (1-1 첫 단말기: 시작하자마자 성공하는 경험)</summary>
     [NonSerialized] public bool easyFirst;
+    /// <summary>요구사항을 직접 정함 (튜토리얼). null을 돌려주면 평소대로 무작위</summary>
+    [NonSerialized] public Func<List<ItemType>> requestOverride;
+    /// <summary>잠금: 요구사항은 보이지만 넣을 수 없음 (튜토리얼 중간 단계)</summary>
+    [NonSerialized] public bool locked;
 
     public void Init(int goal)
     {
@@ -49,6 +53,8 @@ public class BugTerminal : MonoBehaviour, IInteractable
         TimeLeft = requestTime;
         if (!IsDone)
         {
+            var forced = requestOverride?.Invoke();
+            if (forced != null) { Remaining.AddRange(forced); Changed?.Invoke(); return; }
             if (easyFirst)
             {
                 easyFirst = false;
@@ -83,7 +89,7 @@ public class BugTerminal : MonoBehaviour, IInteractable
 
     public void Interact(PlayerController player)
     {
-        if (IsDone || Remaining.Count == 0) return;
+        if (IsDone || Remaining.Count == 0 || locked) return;
         var inv = player.Inventory;
         bool delivered = false;
 
