@@ -23,8 +23,8 @@ public class PlayerController : MonoBehaviour
     public Transform visual;                  // 스프라이트가 들어있는 자식
 
     [Header("대쉬 (Shift)")]
-    public float dashSpeed = 12f;             // 칸/초
-    public float dashDuration = 0.4f;         // 대쉬 그림 10장을 25fps로 한 번 (약 4.8칸)
+    public float dashSpeed = 10f;             // 칸/초 (0.4초 동안 약 4칸)
+    public float dashDuration = 0.4f;         // 대쉬 그림 10장을 25fps로 한 번 
     public float dashCooldown = 0.4f;
 
     public bool IsJumping { get; private set; }

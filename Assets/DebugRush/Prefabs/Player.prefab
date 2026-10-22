@@ -149,7 +149,7 @@ MonoBehaviour:
   jumpCooldown: 0.3
   jumpHeight: 0.8
   visual: {fileID: 7488799164640399776}
-  dashSpeed: 12
+  dashSpeed: 10
   dashDuration: 0.4
   dashCooldown: 0.4
 --- !u!114 &957745906778816020
