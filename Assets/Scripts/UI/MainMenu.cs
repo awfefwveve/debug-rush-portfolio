@@ -105,8 +105,9 @@ public class MainMenu : MonoBehaviour
             var t = root.Find(names[i]);
             if (t == null || !t.TryGetComponent(out Button b)) continue;
             var r = (RectTransform)t;
-            r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
-            r.anchoredPosition = new Vector2(700f, -110f - i * 96f); r.sizeDelta = new Vector2(440f, 84f);
+            // 화면 오른쪽 아래 기준 (16:10 등 비율이 달라도 오른쪽에 붙음). 버튼 80 높이, 간격 10, 아래 다이아 묶음과 60 여백
+            r.anchorMin = r.anchorMax = new Vector2(1f, 0f); r.pivot = new Vector2(0.5f, 0.5f);
+            r.anchoredPosition = new Vector2(-270f, 480f - i * 90f); r.sizeDelta = new Vector2(440f, 80f);
             UiArt.StyleButton(b, 34f);
         }
 
@@ -121,8 +122,8 @@ public class MainMenu : MonoBehaviour
     {
         if (b == null) return;
         var r = (RectTransform)b.transform;
-        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
-        r.anchoredPosition = new Vector2(560f + slot * 140f, -395f); r.sizeDelta = new Vector2(120f, 120f);
+        r.anchorMin = r.anchorMax = new Vector2(1f, 0f); r.pivot = new Vector2(0.5f, 0.5f);   // 오른쪽 아래 기준: 위 칸 아래끝 200 · 아래 글자 끝 46
+        r.anchoredPosition = new Vector2(-410f + slot * 140f, 140f); r.sizeDelta = new Vector2(120f, 120f);
         var sprite = UiArt.Get(art);
         if (b.image != null && sprite != null) { b.image.sprite = sprite; b.image.type = Image.Type.Simple; b.image.preserveAspect = true; b.image.color = Color.white; }
         var colors = b.colors; colors.normalColor = Color.white; colors.highlightedColor = new Color(1f, 0.75f, 0.85f); colors.pressedColor = new Color(0.8f, 0.55f, 0.65f); colors.selectedColor = Color.white;
