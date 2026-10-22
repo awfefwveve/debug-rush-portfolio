@@ -22,7 +22,6 @@ public static class WallBuilder
         var root = new GameObject("Walls (StageLayout)");
         var set = new HashSet<Vector2Int>(cells);
         var fx = FxSet.Get();
-        var solid = Solid(set, floor, fx);
         foreach (var tile in Tiles(set, floor, fx))
         {
             var c = tile.cell;
@@ -36,7 +35,7 @@ public static class WallBuilder
             sr.sprite = tile.sprite; sr.sortingOrder = WallOrder; sr.flipX = tile.flipX;
             var box = t.AddComponent<BoxCollider2D>();   // 앞면 칸도 벽 (보이는 벽 = 막히는 벽)
             box.size = Vector2.one;
-            if (!tile.front && fx != null && fx.Has3Q && floor != null) AddEdgeLines(t.transform, solid, floor, c);
+            if (tile.lines != 0) AddEdgeLines(root.transform, c, tile.lines);   // 칸 회전과 무관하게 월드 기준
         }
         return root;
     }
@@ -44,7 +43,8 @@ public static class WallBuilder
     /// <summary>벽 그림 정렬 순서: 바닥(-100)보다 위, 기계·캐릭터(0 이상)보다 아래 (앞면 줄이 기계와 겹쳐도 기계가 보이게)</summary>
     public const int WallOrder = -10;
 
-    public struct Tile { public Vector2Int cell; public Sprite sprite; public float angle; public bool flipX, front; }
+    /// <summary>lines: 진한 선을 그을 변 (1 왼쪽 · 2 오른쪽 · 4 위 · 8 아래) + 귀퉁이 점 (16 좌상 · 32 우상 · 64 좌하 · 128 우하)</summary>
+    public struct Tile { public Vector2Int cell; public Sprite sprite; public float angle; public bool flipX, front; public int lines; }
 
     /// <summary>앞면 칸: 벽 바로 아래가 바닥이면 그 바닥 칸 (3/4 시점 타일이 있을 때만)</summary>
     public static HashSet<Vector2Int> Fronts(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, FxSet fx)
@@ -66,59 +66,86 @@ public static class WallBuilder
     /// <summary>
     /// 깔 벽 그림 목록 (게임·Stage Maker 공용). 3/4 시점: 벽 칸 = 윗면·모서리, 그 아래 바닥 칸 = 앞면(01·02 칸마다 고정 무작위).
     /// 위쪽 벽을 1칸만 칠해도 윗면 한 줄 + 앞면 한 줄이 됨.
+    /// 진한 선: 벽끼리 맞닿은 곳엔 없고, 바닥에 닿는 변(과 외곽선 없는 칸의 방 밖 변)에만 → 칸마다 끊기지 않고 일자로 이어짐.
     /// </summary>
-    /// <summary>
-    /// 윗면 그림 방향: 그림의 진한 테두리(위쪽)가 방 밖을 향하게 돌림 → 왼쪽·오른쪽 벽이 가로 줄무늬로 쌓이지 않고 세로 띠로 이어짐.
-    /// 방 밖(벽도 바닥도 아닌 칸)이 있는 쪽 우선(위 → 왼쪽 → 오른쪽 → 아래), 없으면 바닥 쪽
-    /// </summary>
-    static float TopAngle(Vector2Int c, HashSet<Vector2Int> solid, HashSet<Vector2Int> floor)
-    {
-        Vector2Int[] dirs = { Vector2Int.up, Vector2Int.left, Vector2Int.right, Vector2Int.down };
-        float[] angles = { 0f, 90f, -90f, 180f };
-        for (int i = 0; i < 4; i++) { var n = c + dirs[i]; if (!solid.Contains(n) && !floor.Contains(n)) return angles[i]; }
-        for (int i = 0; i < 4; i++) { var n = c + dirs[i]; if (!solid.Contains(n)) return angles[i]; }
-        return 0f;
-    }
-
     public static List<Tile> Tiles(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, FxSet fx)
     {
         var list = new List<Tile>();
         var fronts = Fronts(walls, floor, fx);
         var solid = new HashSet<Vector2Int>(walls); solid.UnionWith(fronts);
+        bool q = fx != null && fx.Has3Q && floor != null;
         foreach (var c in walls)
         {
             Piece(walls, c, out var sprite, out float angle, out bool flip, fx, floor, solid);
-            if (fx != null && fx.Has3Q && floor != null && sprite == fx.wallTopTile) angle = TopAngle(c, solid, floor);
-            list.Add(new Tile { cell = c, sprite = sprite, angle = angle, flipX = flip });
+            int lines = 0;
+            if (q)
+            {
+                bool Out(Vector2Int d) => !solid.Contains(c + d) && !floor.Contains(c + d);   // 방 밖
+                bool Flr(Vector2Int d) => Open(solid, floor, c + d);                          // 바닥
+                if (sprite == fx.wallTopTile)
+                {
+                    // 위·아래 테두리 일자 구간만 팀 윗면 그림(외곽선이 바깥쪽), 나머지(좌우 벽·벽 덩어리)는 외곽선 없는 칠
+                    bool straight = solid.Contains(c + Vector2Int.left) && solid.Contains(c + Vector2Int.right);
+                    if (straight && Out(Vector2Int.up)) angle = 0f;
+                    else if (straight && Out(Vector2Int.down)) angle = 180f;
+                    else if (fx.wallFillTile != null) sprite = fx.wallFillTile;
+                }
+                bool fill = sprite == fx.wallFillTile && sprite != null;
+                Vector2Int[] dirs = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
+                for (int i = 0; i < 4; i++)
+                    if (Flr(dirs[i]) || (fill && Out(dirs[i]))) lines |= 1 << i;
+                // 안쪽 모서리: 상하좌우는 벽인데 대각선만 바닥 → 옆 칸들의 선이 이 칸 귀퉁이에서 꺾임.
+                // 그 귀퉁이에 선 조각(점)을 찍어 선이 끊기지 않고 꺾이게 (팀 안쪽 모서리 그림은 흰 테두리가 칸마다 상자처럼 보여서 선으로 대신)
+                if (fill || sprite == fx.wallTopTile)
+                {
+                    Vector2Int[] diag = { new Vector2Int(-1, 1), new Vector2Int(1, 1), new Vector2Int(-1, -1), new Vector2Int(1, -1) };   // 좌상·우상·좌하·우하
+                    int dots = 0;
+                    for (int i = 0; i < 4; i++)
+                        if (Flr(diag[i]) && solid.Contains(c + new Vector2Int(diag[i].x, 0)) && solid.Contains(c + new Vector2Int(0, diag[i].y))) dots |= 16 << i;
+                    lines |= dots;
+                }
+            }
+            list.Add(new Tile { cell = c, sprite = sprite, angle = angle, flipX = flip, lines = lines });
         }
         foreach (var c in fronts)
-            list.Add(new Tile { cell = c, sprite = fx.wallFront[Hash(c) % fx.wallFront.Length], front = true });
+        {
+            // 앞면 줄 끝: 옆이 바닥이면 세로 선
+            int lines = (Open(solid, floor, c + Vector2Int.left) ? 1 : 0) | (Open(solid, floor, c + Vector2Int.right) ? 2 : 0);
+            list.Add(new Tile { cell = c, sprite = fx.wallFront[Hash(c) % fx.wallFront.Length], front = true, lines = lines });
+        }
         return list;
     }
 
     /// <summary>입체 타일: 벽이 바닥과 맞닿은 왼쪽·오른쪽·위 변에 진한 경계선 (2px). 아래 변은 앞면 그림이 맡음</summary>
     public const float EdgeWidth = 1f / 16f;
-    public static readonly Color EdgeColor = new Color(0.04f, 0.06f, 0.11f, 0.9f);
+    public static readonly Color EdgeColor = new Color32(58, 45, 42, 255);   // 팀 윗면 그림의 외곽선 색
     static Sprite edgeSprite;
 
     /// <summary>벽 옆 칸이 실제 바닥인지 (벽 칸은 제외)</summary>
     public static bool Open(HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, Vector2Int n) => !walls.Contains(n) && floor.Contains(n);
 
-    static void AddEdgeLines(Transform cell, HashSet<Vector2Int> walls, HashSet<Vector2Int> floor, Vector2Int c)
+    static void AddEdgeLines(Transform root, Vector2Int c, int lines)
     {
+        var center = new Vector2(c.x + 0.5f, c.y + 0.5f);
         if (edgeSprite == null) edgeSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
         void Line(Vector2 offset, Vector2 size)
         {
             var g = new GameObject("Edge");
-            g.transform.SetParent(cell, false);
-            g.transform.localPosition = offset; g.transform.localScale = new Vector3(size.x, size.y, 1f);
+            g.transform.SetParent(root, false);
+            g.transform.position = center + offset; g.transform.localScale = new Vector3(size.x, size.y, 1f);
             var sr = g.AddComponent<SpriteRenderer>();
             sr.sprite = edgeSprite; sr.color = EdgeColor; sr.sortingOrder = WallOrder + 1;
         }
         float h = 0.5f - EdgeWidth / 2f;
-        if (Open(walls, floor, c + Vector2Int.left)) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
-        if (Open(walls, floor, c + Vector2Int.right)) Line(new Vector2(h, 0f), new Vector2(EdgeWidth, 1f));
-        if (Open(walls, floor, c + Vector2Int.up)) Line(new Vector2(0f, h), new Vector2(1f, EdgeWidth));
+        if ((lines & 1) != 0) Line(new Vector2(-h, 0f), new Vector2(EdgeWidth, 1f));
+        if ((lines & 2) != 0) Line(new Vector2(h, 0f), new Vector2(EdgeWidth, 1f));
+        if ((lines & 4) != 0) Line(new Vector2(0f, h), new Vector2(1f, EdgeWidth));
+        if ((lines & 8) != 0) Line(new Vector2(0f, -h), new Vector2(1f, EdgeWidth));
+        var dot = new Vector2(EdgeWidth, EdgeWidth);
+        if ((lines & 16) != 0) Line(new Vector2(-h, h), dot);
+        if ((lines & 32) != 0) Line(new Vector2(h, h), dot);
+        if ((lines & 64) != 0) Line(new Vector2(-h, -h), dot);
+        if ((lines & 128) != 0) Line(new Vector2(h, -h), dot);
     }
 
     /// <summary>
@@ -192,8 +219,7 @@ public static class WallBuilder
             bool openIsFloor = k == 3 ? fU || fL : k == 2 ? fU || fR : k == 1 ? fD || fL : fD || fR;
             if (!openIsFloor) { int o = 3 - k; flip = fx.cornerOutFlip != null && fx.cornerOutFlip[o]; return Or(fx.cornerOut[o]); }
         }
-        // 안쪽 모서리: 방이 파인 곳(벽이 방 안으로 꺾여 들어온 꼭짓점), 열린 두 변이 바닥. 그림 이름은 벽 덩어리 쪽 (in_br: 오른쪽·아래가 벽, 위·왼쪽이 바닥)
-        if (k >= 0) { flip = fx.cornerInFlip != null && fx.cornerInFlip[k]; return Or(fx.cornerIn[k]); }
+        // (벽 덩어리의 볼록한 귀퉁이는 윗면 칠 + 바닥 쪽 선. 안쪽 모서리는 Tiles에서 대각선만 바닥인 칸에 씀)
         return fx.wallTopTile;
     }
 

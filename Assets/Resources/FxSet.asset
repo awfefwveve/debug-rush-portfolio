@@ -50,6 +50,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 7697bb1e81e4fb245b0fd0b06db088b0, type: 3}
   tileWorkFloor: {fileID: 21300000, guid: 976b1bdd5f7e4a04dafd60639cc72462, type: 3}
   wallTopTile: {fileID: 21300000, guid: fb7ca24f138fc22478009544563dfc26, type: 3}
+  wallFillTile: {fileID: 21300000, guid: 3689a91c5ab12a940b377038c71f249b, type: 3}
   wallFront:
   - {fileID: 21300000, guid: 167422fd6905de14d9ce040271c7e723, type: 3}
   - {fileID: 21300000, guid: a62a810ded4bb6e4d9b67e33fb49acfd, type: 3}

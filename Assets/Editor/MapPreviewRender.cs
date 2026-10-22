@@ -41,7 +41,24 @@ public static class MapPreviewRender
         foreach (var p in WallBuilder.FloorLayout(floor, fx, work))
             Blit(img, p.sprite, (p.center.x - p.size / 2f - x0) * Cell, (p.center.y - p.size / 2f - y0) * Cell, p.size * Cell, false);
         foreach (var t in WallBuilder.Tiles(walls, floor, fx))
+        {
             Blit(img, t.sprite, (t.cell.x - x0) * Cell, (t.cell.y - y0) * Cell, Cell, t.flipX, t.angle);
+            int lx = (t.cell.x - x0) * Cell, ly = (t.cell.y - y0) * Cell, e = Mathf.Max(1, Mathf.RoundToInt(Cell * WallBuilder.EdgeWidth));
+            for (int a = 0; a < Cell; a++) for (int b = 0; b < e; b++)
+            {
+                if ((t.lines & 1) != 0) Set(img, lx + b, ly + a, WallBuilder.EdgeColor);
+                if ((t.lines & 2) != 0) Set(img, lx + Cell - 1 - b, ly + a, WallBuilder.EdgeColor);
+                if ((t.lines & 4) != 0) Set(img, lx + a, ly + Cell - 1 - b, WallBuilder.EdgeColor);
+                if ((t.lines & 8) != 0) Set(img, lx + a, ly + b, WallBuilder.EdgeColor);
+            }
+            for (int a = 0; a < e; a++) for (int b = 0; b < e; b++)
+            {
+                if ((t.lines & 16) != 0) Set(img, lx + a, ly + Cell - 1 - b, WallBuilder.EdgeColor);
+                if ((t.lines & 32) != 0) Set(img, lx + Cell - 1 - a, ly + Cell - 1 - b, WallBuilder.EdgeColor);
+                if ((t.lines & 64) != 0) Set(img, lx + a, ly + b, WallBuilder.EdgeColor);
+                if ((t.lines & 128) != 0) Set(img, lx + Cell - 1 - a, ly + b, WallBuilder.EdgeColor);
+            }
+        }
         void Box(Vector2 c, Vector2 size, Color col)
         {
             int ax = Mathf.RoundToInt((c.x - size.x / 2f - x0) * Cell), ay = Mathf.RoundToInt((c.y - size.y / 2f - y0) * Cell);

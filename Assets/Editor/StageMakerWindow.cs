@@ -186,19 +186,23 @@ public class StageMakerWindow : EditorWindow
 
         var wallSet = new HashSet<Vector2Int>(L.walls);
         var fx = FxSet.Get();
-        var solid = WallBuilder.Solid(wallSet, floorAll, fx);
         foreach (var tile in WallBuilder.Tiles(wallSet, floorAll, fx))   // 게임과 같은 규칙: 벽 칸 = 윗면·모서리, 그 아래 바닥 칸 = 앞면
         {
             var c = tile.cell;
             var cell = CellRect(grid, cs, c);
             if (tile.sprite != null) DrawSprite(cell, tile.sprite, tile.angle, tile.flipX); else EditorGUI.DrawRect(cell, new Color(0.35f, 0.42f, 0.58f));
-            if (!tile.front && fx != null && fx.Has3Q)
+            if (tile.lines != 0)
             {
-                // 게임과 같은 벽·바닥 경계선
+                // 게임과 같은 진한 선 (바닥에 닿는 변 등, 벽끼리 맞닿은 곳엔 없음)
                 float e = Mathf.Max(1f, cs * WallBuilder.EdgeWidth);
-                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.left)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.right)) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
-                if (WallBuilder.Open(solid, floorAll, c + Vector2Int.up)) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 1) != 0) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if ((tile.lines & 2) != 0) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, cell.height), WallBuilder.EdgeColor);
+                if ((tile.lines & 4) != 0) EditorGUI.DrawRect(new Rect(cell.x, cell.y, cell.width, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 8) != 0) EditorGUI.DrawRect(new Rect(cell.x, cell.yMax - e, cell.width, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 16) != 0) EditorGUI.DrawRect(new Rect(cell.x, cell.y, e, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 32) != 0) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.y, e, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 64) != 0) EditorGUI.DrawRect(new Rect(cell.x, cell.yMax - e, e, e), WallBuilder.EdgeColor);
+                if ((tile.lines & 128) != 0) EditorGUI.DrawRect(new Rect(cell.xMax - e, cell.yMax - e, e, e), WallBuilder.EdgeColor);
             }
         }
 

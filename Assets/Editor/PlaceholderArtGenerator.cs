@@ -121,6 +121,7 @@ public static class PlaceholderArtGenerator
         for (int i = 1; i <= 3; i++) FloorTile3Q($"tile_floor_0{i}", i, false);
         FloorTile3Q("tile_floor_work", 0, true);
         TopTile("tile_wall_top", false, false, false, false);
+        Save(New(128, 128, Hex("E9E0D7")), "tile_wall_fill");   // 팀 윗면(tile_wall_top) 가운데 색, 외곽선 없음
         FrontTile("tile_wall_front_01", 0); FrontTile("tile_wall_front_02", 1);
         TopTile("tile_corner_out_tl", true, false, true, false); TopTile("tile_corner_out_tr", false, true, true, false);
         TopTile("tile_corner_out_bl", true, false, false, true); TopTile("tile_corner_out_br", false, true, false, true);
@@ -524,6 +525,7 @@ public static class PlaceholderArtGenerator
         fx.tileFloorLarge = TileSet("tile_floor_large_");
         fx.tileWorkFloor = T("tile_floor_work");
         fx.wallTopTile = T("tile_wall_top");
+        fx.wallFillTile = T("tile_wall_fill");
         fx.wallFront = TileSet("tile_wall_front_");
         // 모서리: 그래픽 팀은 왼쪽(tl·bl)만 그려도 됨 → 오른쪽 그림이 없으면 왼쪽 그림을 좌우 반전
         Corners("tile_corner_out_", out fx.cornerOut, out fx.cornerOutFlip);

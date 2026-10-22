@@ -26,6 +26,7 @@ public class FxSet : ScriptableObject
     public Sprite[] tileFloorLarge;     // tile_floor_large_01~ (64×64 = 2×2칸, 넓은 바닥에 가끔)
     public Sprite tileWorkFloor;        // 제작대 주변 바닥
     public Sprite wallTopTile;          // tile_wall_top
+    public Sprite wallFillTile;         // tile_wall_fill: 외곽선 없는 윗면 색 (좌우 벽·벽 덩어리, 선은 코드가 바닥·바깥 쪽에만 그음)
     public Sprite[] wallFront;          // tile_wall_front_01~02 (아래가 바닥인 벽)
     public Sprite[] cornerOut = new Sprite[4], cornerIn = new Sprite[4];
     [Tooltip("오른쪽 모서리 그림이 없어서 왼쪽 그림을 좌우 반전해 쓰는지")] public bool[] cornerOutFlip = new bool[4], cornerInFlip = new bool[4];
