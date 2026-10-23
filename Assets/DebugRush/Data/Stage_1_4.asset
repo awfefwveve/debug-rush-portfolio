@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: 1-4
   summary: "\uACFC\uBD80\uD558\uB41C \uB124\uD2B8\uC6CC\uD06C"
   sceneName: Stage
-  timeLimit: 600
+  timeLimit: 100
   timeMultiplier:
   - 1.3
   - 1
@@ -29,14 +29,14 @@ MonoBehaviour:
   - 26
   monsters:
   - prefab: {fileID: 6141458271797316770, guid: 0bf5b4b0655fc6e46bd239776d7ca796, type: 3}
-    patternCount: 1
-    patternMask: 1
+    patternCount: 2
+    patternMask: 3
     spawnPos: {x: -2.5, y: 0.5}
     tuning:
       speedGap: 3
       cooldown:
       - 3
-      - 9
+      - 6
       parryChance: 0.5
       fanAngle: 20
       fieldDuration: 3
@@ -606,7 +606,7 @@ MonoBehaviour:
     - material: 3
       pos: {x: -2.5, y: 5.5}
     - material: 0
-      pos: {x: 4, y: 5.5}
+      pos: {x: 4, y: 4.5}
     - material: 1
       pos: {x: 2, y: -4.5}
     crafters:
