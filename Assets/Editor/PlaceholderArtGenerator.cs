@@ -416,7 +416,17 @@ public static class PlaceholderArtGenerator
             Import(f.Replace('\\', '/'), ppu, new Vector2(0.5f, 0.5f), Vector4.zero);
         }
         if (Directory.Exists(Drive + "Monster2"))                         // 두 번째 몬스터 팀 그림 (800×800, 몸 중심)
-            foreach (var f in Directory.GetFiles(Drive + "Monster2", "*.png")) Import(f.Replace('\\', '/'), 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
+            foreach (var f in Directory.GetFiles(Drive + "Monster2", "*.png"))
+            {
+                string n = Path.GetFileNameWithoutExtension(f);   // saw(톱)·bomb(폭탄)은 128px = 1칸
+                Import(f.Replace('\\', '/'), n.StartsWith("saw") || n.StartsWith("bomb") ? 128f : 400f, new Vector2(0.5f, 0.5f), Vector4.zero);
+            }
+        if (Directory.Exists(Drive + "Boss"))                             // 보스 (800×800 = 2칸, 몸 중심) · 전선 한 칸·낙하물은 128px = 1칸
+            foreach (var f in Directory.GetFiles(Drive + "Boss", "*.png"))
+            {
+                string n = Path.GetFileNameWithoutExtension(f);
+                Import(f.Replace('\\', '/'), n.StartsWith("line") || n.StartsWith("fall") ? 128f : 400f, new Vector2(0.5f, 0.5f), Vector4.zero, n.StartsWith("line"));
+            }
         foreach (var f in Directory.GetFiles(Drive + "Items", "*.png"))
             Import(f.Replace('\\', '/'), PPU, new Vector2(0.5f, 0.5f), Vector4.zero);
 
@@ -439,6 +449,7 @@ public static class PlaceholderArtGenerator
     static Sprite DI(string n) { var s = D("Items/" + n); return s != null ? s : S(n); }   // 팀 아이템 아이콘, 없으면 임시
     static Sprite[] Seq(string prefix, int count) => Enumerable.Range(0, count).Select(i => S(prefix + i)).ToArray();
     static Sprite[] Monster2Seq(string prefix) => Directory.Exists(Drive + "Monster2") ? DriveSeq("Monster2", prefix) : new Sprite[0];
+    static Sprite[] BossSeq(string prefix) => Directory.Exists(Drive + "Boss") ? DriveSeq("Boss", prefix) : new Sprite[0];
     /// <summary>프레임 묶음: 파일 이름 끝 번호의 숫자 순서 (사전순이면 _10이 _2보다 앞에 옴). take > 0이면 앞에서 그만큼만</summary>
     static Sprite[] DriveSeq(string folder, string prefix, int take = 0)
     {
@@ -517,6 +528,7 @@ public static class PlaceholderArtGenerator
         if (fx == null) { fx = ScriptableObject.CreateInstance<FxSet>(); AssetDatabase.CreateAsset(fx, path); }
         fx.bulletNormal = S("bullet_normal"); fx.bulletParry = S("bullet_parry");
         fx.fireFx = Seq("fx_fire_", 4); fx.hitFx = Seq("fx_hit_", 4); fx.vanishFx = Seq("fx_vanish_", 6);
+        fx.dropFx = Directory.Exists(Drive + "Boss") ? DriveSeq("Boss", "drop") : new Sprite[0];   // 아트 팀 낙하물 이펙트 (낙하물·폭탄 공용)
         fx.warnCircleFill = S("warn_circle_fill"); fx.warnCircleBorder = S("warn_circle_border"); fx.warnLine = S("warn_line");
         fx.wallSingle = S("wall_single"); fx.wallEnd = S("wall_end"); fx.wallStraight = S("wall_straight");
         fx.wallCorner = S("wall_corner"); fx.wallT = S("wall_t"); fx.wallCross = S("wall_cross");
@@ -618,12 +630,35 @@ public static class PlaceholderArtGenerator
             msa.pattern1 = Monster2Seq("pattern1"); msa.pattern2 = Monster2Seq("pattern2");
             AddShadow(go, 1.0f, -0.85f);
         });
-        EditPrefab("Monster1C", go => { Monster(go, 0f, false); SetSprite(go, S("robot_scrap"), 10); AddShadow(go, 1.0f, -0.85f);
-            var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f; });
+        // 몬스터3 = 보스 (10/23 아트 팀 그림): 이동 / 3-A·3-C 공격 / 3-B 공격2. 다른 몬스터처럼 쫓아감. 크기 1.8배 (2칸 그림 → 3.6칸)
+        EditPrefab("Monster1C", go =>
+        {
+            Monster(go, 2f, true);
+            go.transform.localScale = Vector3.one * 1.8f;
+            var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f;
+            c.splitProjectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "SplitShot.prefab");
+            c.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab");
+            c.warnMarkerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(P + "WarnMarker.prefab");
+            c.fallingPrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "FallShot.prefab");
+            var move = BossSeq("move");
+            SetSprite(go, move.Length > 0 ? move[0] : S("robot_scrap"), 10);
+            var vis = go.GetComponentsInChildren<SpriteRenderer>().First(s => s.gameObject.name != "Shadow");
+            var sfa = Get<SpriteFrameAnimator>(vis.gameObject); sfa.target = vis;
+            var msa = Get<MonsterSpriteAnimator>(go); msa.anim = sfa; msa.fps = 9f;
+            msa.move = move.Length > 0 ? move : new[] { S("robot_scrap") };
+            var atk = BossSeq("pattern1"); var atk2 = BossSeq("pattern2");
+            msa.pattern1 = atk; msa.pattern2 = atk2; msa.pattern3 = atk;
+            AddShadow(go, 1.0f, -0.8f);
+        });
 
         EditPrefab("Shot", go => Bullet(go, 7f, 0.22f));
         EditPrefab("SplitShot", go => Bullet(go, 7f, 0.22f));
-        EditPrefab("FallShot", go => Bullet(go, 14f, 0.3f));
+        EditPrefab("FallShot", go =>   // 보스 3-C 낙하물 (아트 팀 item_fall, 벌 탄과 같은 크기)
+        {
+            Bullet(go, 14f, 0.5f);   // (아래에서 0.6배 → 판정 0.3칸)
+            var fall = D("Boss/fall");
+            if (fall != null) { var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.normalSprite = p.parrySprite = fall; SetSprite(go, fall, 30); go.transform.localScale = Vector3.one * 0.6f; }
+        });
         EditPrefab("Monster1A_Shot", go =>
         {
             foreach (var a in go.GetComponentsInChildren<SpriteFrameAnimator>()) Object.DestroyImmediate(a, true);   // 깜빡임 원인 제거
@@ -632,13 +667,16 @@ public static class PlaceholderArtGenerator
         EditPrefab("Blade", go =>
         {
             Bullet(go, 14f, 0.3f);
-            var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = true;
-            p.normalSprite = S("blade"); p.parrySprite = S("blade_parry");
-            SetSprite(go, S("blade"), 30);
+            // 몬스터2 2-A 절단기 날 = 아트 팀 톱(saw), 패링 가능 날은 보라색으로 칠한 사본(saw_parry)
+            var saw = D("Monster2/saw"); var sawParry = D("Monster2/saw_parry");
+            var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = saw == null;
+            p.normalSprite = saw != null ? saw : S("blade"); p.parrySprite = sawParry != null ? sawParry : S("blade_parry");
+            SetSprite(go, p.normalSprite, 30);
+            if (saw != null) { var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 0.42f; }
         });
-        EditPrefab("Mine", go => SetSprite(go, S("mine"), -5));
+        EditPrefab("Mine", go => SetSprite(go, D("Monster2/bomb") != null ? D("Monster2/bomb") : S("mine"), -5));   // 몬스터2 2-B 설치 로봇 = 아트 팀 폭탄
         EditPrefab("WarnMarker", go => { SetSprite(go, S("warn_circle_border"), -40); go.transform.localScale = Vector3.one * 0.35f; go.GetComponentInChildren<SpriteRenderer>().color = new Color(1f, 0.3f, 0.35f, 0.9f); });
-        EditPrefab("ElectricLine", go => SetSprite(go, S("wire"), -5));
+        EditPrefab("ElectricLine", go => SetSprite(go, D("Boss/line_h") != null ? D("Boss/line_h") : S("wire"), -5));   // 보스 3-B 전선 = 아트 팀 전선 한 칸을 길이만큼 늘림
         EditPrefab("MagneticField", go =>
         {
             var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 2.2f;

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 아트 팀 UI 그림 (Resources/UI, 원본: assets_drive/1022_UI). 없으면 null → 각 화면은 예전 색 상자로 그림.
-/// 버튼 틀: button_gray(기본) / button_red(마우스 올림·누름). 마름모 아이콘: achievements·reset·credit.
+/// 버튼 틀: button_pink(기본, 10/23 연핑크. 없으면 button_gray) / button_red(마우스 올림·누름). 마름모 아이콘: achievements·reset·credit.
 /// </summary>
 public static class UiArt
 {
@@ -27,7 +27,7 @@ public static class UiArt
     /// <summary>uGUI 버튼에 회색/빨강 틀 (마우스 올리면 빨강)</summary>
     public static void StyleButton(Button b, float fontSize = 34f)
     {
-        var gray = Get("button_gray"); var red = Get("button_red");
+        var gray = Get("button_pink"); if (gray == null) gray = Get("button_gray"); var red = Get("button_red");
         if (b == null || gray == null) return;
         var img = b.image != null ? b.image : b.GetComponent<Image>();
         if (img == null) return;
@@ -44,7 +44,7 @@ public static class UiArt
     /// <summary>그림 버튼 (회색, 마우스 올리면 빨강). 그림이 없으면 기본 버튼</summary>
     public static bool Button(Rect r, string text, float fontSize)
     {
-        var gray = Tex("button_gray"); var red = Tex("button_red");
+        var gray = Tex("button_pink"); if (gray == null) gray = Tex("button_gray"); var red = Tex("button_red");
         if (gray == null) return GUI.Button(r, text, new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(fontSize) });
         bool hover = r.Contains(Event.current.mousePosition);
         GUI.DrawTexture(r, hover && red != null ? red : gray, ScaleMode.StretchToFill);

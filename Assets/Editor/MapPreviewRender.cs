@@ -22,16 +22,16 @@ public static class MapPreviewRender
         foreach (var s in AssetDatabase.FindAssets("t:StageData").Select(AssetDatabase.GUIDToAssetPath).Select(AssetDatabase.LoadAssetAtPath<StageData>))
         {
             if (s == null || s.layout == null || !s.layout.use || s.layout.walls == null || s.layout.walls.Count == 0) continue;
-            var png = Render(s.layout, fx).EncodeToPNG();
+            var png = Render(s, fx).EncodeToPNG();
             File.WriteAllBytes(Path.Combine(outDir, s.displayName + ".png"), png);
             Debug.Log("[MapPreview] " + s.displayName);
         }
         readable.Clear();
     }
 
-    static Texture2D Render(StageLayout l, FxSet fx)
+    static Texture2D Render(StageData s, FxSet fx)
     {
-        l.Migrate();
+        var l = s.layout; l.Migrate();
         int w = l.width, h = l.height, x0 = WallBuilder.MinX(w), y0 = WallBuilder.MinY(h);
         var img = new Texture2D(w * Cell, h * Cell, TextureFormat.RGBA32, false);
         img.SetPixels(Enumerable.Repeat(new Color(0.04f, 0.05f, 0.1f), img.width * img.height).ToArray());
@@ -69,6 +69,7 @@ public static class MapPreviewRender
         foreach (var st in l.stations) Box(st.pos, StageLayoutDefaults.StationSize, new Color(0.3f, 0.8f, 1f));
         foreach (var c in l.crafters) Box(c, StageLayoutDefaults.CrafterSize, new Color(1f, 0.6f, 0.2f));
         foreach (var t in l.terminals) Box(t, StageLayoutDefaults.TerminalSize, new Color(1f, 0.3f, 0.4f));
+        if (s.monsters != null) foreach (var m in s.monsters) if (m != null) Box(m.spawnPos, new Vector2(2f, 2f), Color.magenta);   // 몬스터 시작 자리
         Box(l.playerStart + Vector2.up * 0.5f, new Vector2(0.8f, 1f), Color.green);
         img.Apply();
         return img;

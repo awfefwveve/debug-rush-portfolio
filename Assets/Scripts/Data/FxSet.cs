@@ -12,6 +12,7 @@ public class FxSet : ScriptableObject
     public Sprite[] fireFx;      // 발사 64×64 4프레임
     public Sprite[] hitFx;       // 피격 64×64 4프레임
     public Sprite[] vanishFx;    // 소멸 128×128 6프레임
+    public Sprite[] dropFx;      // 아트 팀 "낙하물 이펙트" 7프레임: 보스 낙하물 떨어진 자리 · 몬스터2 폭탄 폭발 공용
 
     [Header("공격 예고")]
     public Sprite warnCircleFill;    // 원형 예고 128×128 채움

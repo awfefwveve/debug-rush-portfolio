@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 30
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6dec904cbdf881b489d03f6d3b0e3320, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 73085edfc5e06ad4181dc90ebd2f25d8, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -129,7 +129,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.3
+  m_Radius: 0.42
 --- !u!50 &1364193351372761557
 Rigidbody2D:
   serializedVersion: 5
@@ -174,8 +174,8 @@ MonoBehaviour:
   damage: 1
   parryStunTime: 3
   useSharedBullet: 0
-  normalSprite: {fileID: 21300000, guid: 6dec904cbdf881b489d03f6d3b0e3320, type: 3}
-  parrySprite: {fileID: 21300000, guid: 2e83d2ce574b16943b9ef04d7d8e032e, type: 3}
-  rotateToDirection: 1
+  normalSprite: {fileID: 21300000, guid: 73085edfc5e06ad4181dc90ebd2f25d8, type: 3}
+  parrySprite: {fileID: 21300000, guid: df3b474e1335fcf4fa22648ad306ccbf, type: 3}
+  rotateToDirection: 0
   splitPrefab: {fileID: 0}
   splitCount: 0

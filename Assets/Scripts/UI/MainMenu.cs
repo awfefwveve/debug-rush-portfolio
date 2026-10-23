@@ -125,14 +125,16 @@ public class MainMenu : MonoBehaviour
         Diamond(NewButton(holder, "Reset", () => { if (!showCredits) confirmReset = true; }), "reset", "리셋", 1);
         Diamond(NewButton(holder, "Credit", () => { if (!confirmReset) showCredits = true; }), "credit", "크레딧", 2);
 
-        // 시작 일러스트의 팔·손가락 (아트 팀이 따로 줄 예정): Resources/UI/start_arm.png · start_finger.png 를
-        // 시작 그림과 같은 1920×1080 캔버스 위치 그대로 내보내 넣으면 팔은 버튼 뒤, 손가락은 버튼 위에 겹쳐 나옴
+        // 시작 일러스트 분리본 (10/23): 로봇 팔(start_arm)은 버튼 뒤, 집게 손가락(start_finger)은 시작 버튼 위, 테두리(start_line)는 맨 위.
+        // 위치 = 예전 합본 일러에서 팔이 있던 자리 (1920×1080 기준 왼쪽 위 픽셀). 손가락은 팔 그림 안 (1, 519) 자리와 같은 모양
         if (bgArt != null)
         {
             var arm = UiArt.Get("start_arm");
-            if (arm != null) { var a = Layer(holder, "Arm", arm); a.transform.SetSiblingIndex(0); }
+            if (arm != null) Place(holder, "Arm", arm, new Vector2(1368f, -48f)).transform.SetSiblingIndex(0);
             var finger = UiArt.Get("start_finger");
-            if (finger != null) Layer(holder, "Finger", finger).transform.SetAsLastSibling();
+            if (finger != null) Place(holder, "Finger", finger, new Vector2(1369f, 471f)).transform.SetAsLastSibling();
+            var line = UiArt.Get("start_line");
+            if (line != null) Layer(holder, "Frame", line).transform.SetAsLastSibling();
         }
     }
 
@@ -158,6 +160,20 @@ public class MainMenu : MonoBehaviour
         text.font = KoreanTMPFont.Get(); text.text = label; text.fontSize = 24f; text.fontStyle = FontStyles.Bold;
         text.alignment = TextAlignmentOptions.Center; text.color = UiArt.Ink; text.raycastTarget = false;
         text.outlineWidth = 0.2f; text.outlineColor = new Color32(20, 10, 20, 255);
+    }
+
+    /// <summary>시작 그림 안 고정 자리 (1920×1080 기준 왼쪽 위 픽셀 위치·그림 원래 크기). 화면 비율이 달라 그림이 줄어도 같이 줄어듦</summary>
+    static Image Place(Transform holder, string name, Sprite sprite, Vector2 topLeftPx)
+    {
+        var img = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        img.transform.SetParent(holder, false);
+        float w = sprite.rect.width, h = sprite.rect.height;
+        var r = img.rectTransform;
+        r.anchorMin = new Vector2(topLeftPx.x / 1920f, 1f - (topLeftPx.y + h) / 1080f);
+        r.anchorMax = new Vector2((topLeftPx.x + w) / 1920f, 1f - topLeftPx.y / 1080f);
+        r.offsetMin = r.offsetMax = Vector2.zero;
+        img.sprite = sprite; img.raycastTarget = false;
+        return img;
     }
 
     /// <summary>시작 그림과 같은 크기·위치의 겹침 그림 (그림 영역 전체에 맞춤)</summary>

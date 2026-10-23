@@ -2,74 +2,86 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// 1-C 고철 로봇.
-/// P1: 투사체 1개 → 벽/플레이어에 닿으면 8방향 분열 / P2: 십자 전선(점프로 회피) / P3: 주의 표시 후 낙하탄 최대 5연속
+/// 몬스터3 = 보스 (기획서). 다른 몬스터처럼 플레이어를 쫓아감 (속도 = 플레이어 - n).
+/// 3-A: 탄 1발 → 벽·기계·플레이어에 닿으면 8갈래로 갈라짐, 그중 1발 패링 가능(확률 n)
+/// 3-B: 보스 중심 십자 전선 3연속 (점프로 넘기, 각 전선은 n초 뒤 사라짐)
+/// 3-C: 플레이어가 있던 자리에 주의 표시 → 낙하물, 5연속 (떨어진 자리에 낙하물 이펙트)
 /// </summary>
 public class Monster1C : MonsterBase
 {
-    [Header("패턴 1")]
-    public Projectile splitProjectilePrefab;   // splitCount=8, splitPrefab=작은 탄
-    [Range(0f, 1f)] public float parryChance = 0.4f;
+    public static readonly string[] PatternNames = { "3-A 8갈래 탄", "3-B 십자 전선 3연속", "3-C 낙하 5연속" };
 
-    [Header("패턴 2")]
-    public Hazard linePrefab;                  // jumpable = true, lifetime = 3
+    [Header("3-A")]
+    public Projectile splitProjectilePrefab;   // splitCount = 8, splitPrefab = 작은 탄
+
+    [Header("3-B")]
+    public Hazard linePrefab;                  // jumpable = true, lifetime = 전선 유지 시간
     public float lineLength = 30f, lineThickness = 1f;
+    public int lineRepeat = 3;
+    public float lineGap = 1.1f;               // 다음 십자까지 (초)
 
-    [Header("패턴 3")]
+    [Header("3-C")]
     public GameObject warnMarkerPrefab;
-    public Projectile fallingPrefab;           // speed 12, lifetime 0.5 (위에서 아래로)
+    public Projectile fallingPrefab;           // 위에서 아래로
     public int dropCount = 5;
-    public float warnTime = 0.6f, dropGap = 0.3f, dropHeight = 6f;
+    public float warnTime = 0.6f, dropGap = 0.3f, dropHeight = 6f, impactScale = 0.9f;
 
     protected override int PatternMax => 3;
 
-    void Awake() => wander = false;
-
-    protected override void Telegraph(int index)
-    {
-        if (index == 0) TelegraphLine(transform.position, AimDir, 10f, 0.6f);
-        else if (index == 1)
-            foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
-                TelegraphLine(transform.position, d, lineLength * 0.5f, lineThickness);
-    }
+    // 빨간 공격 예고는 끔 (10/22). 3-C 주의 표시는 패턴 자체라 그대로
+    protected override void Telegraph(int index) { }
 
     protected override IEnumerator RunPattern(int index)
     {
         switch (index)
         {
-            case 0: yield return Pattern1(); break;
-            case 1: yield return Pattern2(); break;
-            default: yield return Pattern3(); break;
+            case 0: yield return SplitShot(); break;
+            case 1: yield return CrossLines(); break;
+            default: yield return Drops(); break;
         }
     }
 
-    IEnumerator Pattern1()
+    IEnumerator SplitShot()
     {
-        Fire(splitProjectilePrefab, transform.position, AimDir, Random.value < parryChance);
+        var p = Fire(splitProjectilePrefab, transform.position, AimDir, false);
+        if (p != null) p.splitParryChance = Tuning.parryChance;    // 8갈래 중 1발 패링 가능
         yield return Wait(0.8f);
     }
 
-    IEnumerator Pattern2()
+    IEnumerator CrossLines()
     {
-        // 가로선 + 세로선 = 십자
-        for (int i = 0; i < 2; i++)
+        for (int k = 0; k < lineRepeat; k++)
         {
-            var h = Instantiate(linePrefab, transform.position, Quaternion.Euler(0, 0, i * 90f));
-            h.transform.localScale = new Vector3(lineLength, lineThickness, 1f);
+            for (int i = 0; i < 2; i++)   // 가로선 + 세로선 = 십자
+            {
+                var h = Instantiate(linePrefab, transform.position, Quaternion.Euler(0, 0, i * 90f));
+                h.transform.localScale = new Vector3(lineLength, lineThickness, 1f);
+            }
+            yield return Wait(lineGap);
         }
-        yield return Wait(linePrefab.lifetime);
+        yield return Wait(Mathf.Max(0f, linePrefab.lifetime - lineGap));
     }
 
-    IEnumerator Pattern3()
+    IEnumerator Drops()
     {
+        var fx = FxSet.Get();
+        float fall = fallingPrefab != null && fallingPrefab.speed > 0f ? dropHeight / fallingPrefab.speed : 0.4f;
         for (int i = 0; i < dropCount; i++)
         {
             Vector2 pos = target.position;                       // 플레이어가 서 있는 곳
-            var marker = Instantiate(warnMarkerPrefab, pos, Quaternion.identity);
+            var marker = warnMarkerPrefab != null ? Instantiate(warnMarkerPrefab, pos, Quaternion.identity) : null;
             yield return Wait(warnTime);
             Fire(fallingPrefab, pos + Vector2.up * dropHeight, Vector2.down, false);
-            Destroy(marker);
+            StartCoroutine(Impact(pos, fall, marker, fx));
             yield return Wait(dropGap);
         }
+        yield return Wait(fall);
+    }
+
+    IEnumerator Impact(Vector2 pos, float delay, GameObject marker, FxSet fx)
+    {
+        yield return Wait(delay);
+        if (marker != null) Destroy(marker);
+        if (fx != null && fx.dropFx != null && fx.dropFx.Length > 0) SpriteFrameAnimator.Spawn(fx.dropFx, pos, 18f, 35, impactScale);
     }
 }

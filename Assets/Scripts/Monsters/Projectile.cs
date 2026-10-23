@@ -20,6 +20,7 @@ public class Projectile : MonoBehaviour
     [Header("분열 (몬스터 1-C 패턴 1)")]
     public Projectile splitPrefab;
     public int splitCount = 0;                   // 8
+    [System.NonSerialized] public float splitParryChance;   // 갈라진 탄 중 1발이 패링 가능할 확률 (보스 3-A)
 
     public bool Parryable { get; private set; }
     MonsterBase owner;
@@ -84,11 +85,12 @@ public class Projectile : MonoBehaviour
     {
         if (splitCount > 0 && splitPrefab != null)
         {
+            int parryIdx = Random.value < splitParryChance ? Random.Range(0, splitCount) : -1;
             for (int i = 0; i < splitCount; i++)
             {
                 float ang = 360f / splitCount * i;
                 var s = Instantiate(splitPrefab, transform.position, Quaternion.identity);
-                s.Launch(owner, Quaternion.Euler(0, 0, ang) * Vector2.right, false);
+                s.Launch(owner, Quaternion.Euler(0, 0, ang) * Vector2.right, i == parryIdx);
             }
         }
         Vanish();

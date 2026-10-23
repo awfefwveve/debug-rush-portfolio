@@ -1,0 +1,611 @@
+fileFormatVersion: 2
+guid: b059413cc2ed783439661cf28a2bcc1a
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5915158273671269365
+    second: drop_06_0
+  - first:
+      213: -15997852358804328
+    second: drop_06_1
+  - first:
+      213: 3255679684469492285
+    second: drop_06_2
+  - first:
+      213: -1861090769058674802
+    second: drop_06_3
+  - first:
+      213: 5649547537603031461
+    second: drop_06_4
+  - first:
+      213: -8114559848382074409
+    second: drop_06_5
+  - first:
+      213: 4159045825165325350
+    second: drop_06_6
+  - first:
+      213: -3612760286248769983
+    second: drop_06_7
+  - first:
+      213: 1875297452979830017
+    second: drop_06_8
+  - first:
+      213: -8844032785516072426
+    second: drop_06_9
+  - first:
+      213: -685973985594416260
+    second: drop_06_10
+  - first:
+      213: 3665510807938614783
+    second: drop_06_11
+  - first:
+      213: 6810194248516342502
+    second: drop_06_12
+  - first:
+      213: 8724764209141790019
+    second: drop_06_13
+  - first:
+      213: -4973150543375800698
+    second: drop_06_14
+  - first:
+      213: -3804967385171379794
+    second: drop_06_15
+  - first:
+      213: -6867899168392942962
+    second: drop_06_16
+  - first:
+      213: 4424626919272670975
+    second: drop_06_17
+  - first:
+      213: -5907072406365183413
+    second: drop_06_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 400
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: drop_06_0
+      rect:
+        serializedVersion: 2
+        x: 197
+        y: 731
+        width: 27
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5fb836c2c1dd61250800000000000000
+      internalID: 5915158273671269365
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_1
+      rect:
+        serializedVersion: 2
+        x: 392
+        y: 742
+        width: 17
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 89cfbfcb90a27cff0800000000000000
+      internalID: -15997852358804328
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_2
+      rect:
+        serializedVersion: 2
+        x: 502
+        y: 749
+        width: 47
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d3a82477c6f7e2d20800000000000000
+      internalID: 3255679684469492285
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_3
+      rect:
+        serializedVersion: 2
+        x: 586
+        y: 726
+        width: 32
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e87cf775ec31c26e0800000000000000
+      internalID: -1861090769058674802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_4
+      rect:
+        serializedVersion: 2
+        x: 14
+        y: 585
+        width: 38
+        height: 78
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a1f2888d89376e40800000000000000
+      internalID: 5649547537603031461
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_5
+      rect:
+        serializedVersion: 2
+        x: 714
+        y: 521
+        width: 60
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7d1f9888fca436f80800000000000000
+      internalID: -8114559848382074409
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_6
+      rect:
+        serializedVersion: 2
+        x: 168
+        y: 528
+        width: 15
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 624fc857426e7b930800000000000000
+      internalID: 4159045825165325350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_7
+      rect:
+        serializedVersion: 2
+        x: 726
+        y: 449
+        width: 27
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 146e08f29a5ecddc0800000000000000
+      internalID: -3612760286248769983
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_8
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 316
+        width: 27
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10dbe050915660a10800000000000000
+      internalID: 1875297452979830017
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_9
+      rect:
+        serializedVersion: 2
+        x: 653
+        y: 301
+        width: 49
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 612f76d0a0fa34580800000000000000
+      internalID: -8844032785516072426
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_10
+      rect:
+        serializedVersion: 2
+        x: 604
+        y: 270
+        width: 16
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c736c776b4eea76f0800000000000000
+      internalID: -685973985594416260
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_11
+      rect:
+        serializedVersion: 2
+        x: 243
+        y: 225
+        width: 14
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff5498bb8a28ed230800000000000000
+      internalID: 3665510807938614783
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_12
+      rect:
+        serializedVersion: 2
+        x: 13
+        y: 109
+        width: 52
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e2993a469ba28e50800000000000000
+      internalID: 6810194248516342502
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_13
+      rect:
+        serializedVersion: 2
+        x: 66
+        y: 144
+        width: 13
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34530fa82d6941970800000000000000
+      internalID: 8724764209141790019
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_14
+      rect:
+        serializedVersion: 2
+        x: 439
+        y: 122
+        width: 70
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6866b8ffde1dbfab0800000000000000
+      internalID: -4973150543375800698
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_15
+      rect:
+        serializedVersion: 2
+        x: 708
+        y: 147
+        width: 39
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ea9b9e0a25a023bc0800000000000000
+      internalID: -3804967385171379794
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_16
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 51
+        width: 19
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8aecb2181250b0a0800000000000000
+      internalID: -6867899168392942962
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_17
+      rect:
+        serializedVersion: 2
+        x: 379
+        y: 23
+        width: 69
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff6e0ea8dbe676d30800000000000000
+      internalID: 4424626919272670975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drop_06_18
+      rect:
+        serializedVersion: 2
+        x: 609
+        y: 76
+        width: 47
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b42671481fcd50ea0800000000000000
+      internalID: -5907072406365183413
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      drop_06_0: 5915158273671269365
+      drop_06_1: -15997852358804328
+      drop_06_10: -685973985594416260
+      drop_06_11: 3665510807938614783
+      drop_06_12: 6810194248516342502
+      drop_06_13: 8724764209141790019
+      drop_06_14: -4973150543375800698
+      drop_06_15: -3804967385171379794
+      drop_06_16: -6867899168392942962
+      drop_06_17: 4424626919272670975
+      drop_06_18: -5907072406365183413
+      drop_06_2: 3255679684469492285
+      drop_06_3: -1861090769058674802
+      drop_06_4: 5649547537603031461
+      drop_06_5: -8114559848382074409
+      drop_06_6: 4159045825165325350
+      drop_06_7: -3612760286248769983
+      drop_06_8: 1875297452979830017
+      drop_06_9: -8844032785516072426
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

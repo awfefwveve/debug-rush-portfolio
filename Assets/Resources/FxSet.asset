@@ -31,6 +31,14 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 39bb2623e501503499c9f3c423b58193, type: 3}
   - {fileID: 21300000, guid: f170ceb7070100d49a9b06147afde5c1, type: 3}
   - {fileID: 21300000, guid: 8027e0be29232db48844203d48ccff31, type: 3}
+  dropFx:
+  - {fileID: 21300000, guid: c4ef308616a15dc4d844579eb1437363, type: 3}
+  - {fileID: 21300000, guid: e341274eb0d92de459ae7d1d66383839, type: 3}
+  - {fileID: 21300000, guid: 94f27daabafaced49a3a5b45a3c49110, type: 3}
+  - {fileID: 21300000, guid: aeeaec5c2ec4b0941a9dbd2c28cb8b31, type: 3}
+  - {fileID: 21300000, guid: c7049352ffc401a4a9049f229d452401, type: 3}
+  - {fileID: 21300000, guid: b059413cc2ed783439661cf28a2bcc1a, type: 3}
+  - {fileID: 21300000, guid: 68224f92c4143ad40bbc2440dc2bd965, type: 3}
   warnCircleFill: {fileID: 21300000, guid: 14748db6b357c314eaba8c1dc319fd56, type: 3}
   warnCircleBorder: {fileID: 21300000, guid: d5a39a4f9eeb76a4bb4286cb6c6d4a78, type: 3}
   warnLine: {fileID: 21300000, guid: fe0bd841e6277b443b781f947b0e0062, type: 3}

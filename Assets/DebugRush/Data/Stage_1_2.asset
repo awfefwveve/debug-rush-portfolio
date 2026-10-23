@@ -17,16 +17,16 @@ MonoBehaviour:
   displayName: 1-2
   summary: 
   sceneName: Stage
-  timeLimit: 100
+  timeLimit: 600
   timeMultiplier:
   - 1.3
   - 1
   - 0.8
-  terminalGoal: 040000000500000006000000
+  terminalGoal: 020000000300000004000000
   requestTime:
-  - 30
+  - 45
   - 24
-  - 19.5
+  - 20
   monsters:
   - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
     patternCount: 2

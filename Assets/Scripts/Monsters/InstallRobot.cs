@@ -60,7 +60,7 @@ public class InstallRobot : MonoBehaviour
         var pc = player.GetComponent<PlayerController>();
         if (pc != null && d <= radius && !pc.Health.IsInvincible) pc.Health.TakeDamage(1);
         var fx = FxSet.Get();
-        if (fx != null) SpriteFrameAnimator.Spawn(fx.vanishFx, transform.position, 22f, 35, radius);
+        if (fx != null) SpriteFrameAnimator.Spawn(fx.dropFx != null && fx.dropFx.Length > 0 ? fx.dropFx : fx.vanishFx, transform.position, 18f, 35, radius);   // 폭탄 폭발 = 아트 팀 낙하물 이펙트 (2칸 그림 × 반지름)
         Destroy(gameObject);
     }
 

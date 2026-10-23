@@ -17,9 +17,10 @@ public class StageMakerWindow : EditorWindow
     const string StageScenePath = "Assets/Scenes/Stage.unity";
     const string BeePrefab = "Assets/DebugRush/Prefabs/Monster1A.prefab";
     const string RobotPrefab = "Assets/DebugRush/Prefabs/Monster1B.prefab";   // 몬스터2 (수정 기획서, 스토리상 "도움 NPC")
+    const string BossPrefab = "Assets/DebugRush/Prefabs/Monster1C.prefab";    // 몬스터3 = 보스
     const int Chapters = 3, PerChapter = StageManager.StagesPerChapter;   // 챕터당 5스테이지
 
-    enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee, Robot }
+    enum Tool { Move, Wall, Floor, Erase, Planning, Programming, Graphic, QA, Crafter, Terminal, Player, Bee, Robot, Boss }
 
     static readonly (Tool tool, string label, string tip)[] Palette =
     {
@@ -36,6 +37,7 @@ public class StageMakerWindow : EditorWindow
         (Tool.Player, "시작점", "플레이어 시작 위치"),
         (Tool.Bee, "벌", "몬스터1(벌) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 패턴·수치를 오른쪽에서 편집"),
         (Tool.Robot, "몬스터2", "몬스터2(도움 NPC) 추가. 놓인 몬스터를 클릭하면 그 몬스터의 패턴·수치를 오른쪽에서 편집"),
+        (Tool.Boss, "보스", "몬스터3(보스) 추가: 3-A 8갈래 탄 · 3-B 십자 전선 3연속 · 3-C 낙하 5연속. 클릭하면 패턴·수치 편집"),
     };
 
     StageData selected;
@@ -243,7 +245,7 @@ public class StageMakerWindow : EditorWindow
         var p = O("player", "시작점", L.playerStart + new Vector2(0f, 1f), new Vector2(2f, 2f), "player"); p.feet = true; yield return p;
         if (selected.monsters != null)
             for (int i = 0; i < selected.monsters.Length; i++)
-                yield return O("bee:" + i, $"{MonsterName(selected.monsters[i])} {i + 1}", selected.monsters[i].spawnPos, new Vector2(2f, 2f), IsRobot(selected.monsters[i]) ? "robot" : "bee");
+                yield return O("bee:" + i, $"{MonsterName(selected.monsters[i])} {i + 1}", selected.monsters[i].spawnPos, new Vector2(2f, 2f), Kind(selected.monsters[i]) == 2 ? "boss" : IsRobot(selected.monsters[i]) ? "robot" : "bee");
     }
 
     static readonly ItemType[] Materials = { ItemType.Planning, ItemType.Programming, ItemType.Graphic, ItemType.QA };
@@ -286,7 +288,7 @@ public class StageMakerWindow : EditorWindow
                 || (mat != null && hit.StartsWith("station:") && L.stations[Index(hit)].material == mat)
                 || (tool == Tool.Crafter && hit.StartsWith("crafter:"))
                 || (tool == Tool.Terminal && hit.StartsWith("terminal:"))
-                || ((tool == Tool.Bee || tool == Tool.Robot) && hit.StartsWith("bee:"))
+                || ((tool == Tool.Bee || tool == Tool.Robot || tool == Tool.Boss) && hit.StartsWith("bee:"))
                 || (tool == Tool.Player && hit == "player"));
             if (sameKind)
             {
@@ -295,7 +297,7 @@ public class StageMakerWindow : EditorWindow
                 e.Use(); return;
             }
             // 물체는 바닥 칸 위에만
-            bool placing = mat != null || tool == Tool.Crafter || tool == Tool.Terminal || tool == Tool.Bee || tool == Tool.Robot || tool == Tool.Player;
+            bool placing = mat != null || tool == Tool.Crafter || tool == Tool.Terminal || tool == Tool.Bee || tool == Tool.Robot || tool == Tool.Boss || tool == Tool.Player;
             if (placing && !OnFloor(tool == Tool.Player ? snap - new Vector2(0f, 0.5f) : snap)) { ShowNotification(new GUIContent("바닥 위에만 놓을 수 있어요")); e.Use(); return; }
             switch (tool)
             {
@@ -314,6 +316,9 @@ public class StageMakerWindow : EditorWindow
                 case Tool.Robot:
                     int rc = selected.monsters?.Length ?? 0;
                     Record("몬스터2"); SetBee(rc, snap, RobotPrefab); dragging = "bee:" + rc; selBee = rc; GUI.FocusControl(null); break;
+                case Tool.Boss:
+                    int bc = selected.monsters?.Length ?? 0;
+                    Record("보스"); SetBee(bc, snap, BossPrefab); dragging = "bee:" + bc; selBee = bc; GUI.FocusControl(null); break;
             }
             e.Use();
         }
@@ -419,7 +424,7 @@ public class StageMakerWindow : EditorWindow
     void SetBee(int index, Vector2 pos, string prefabPath = BeePrefab)
     {
         var list = (selected.monsters ?? new MonsterSpawn[0]).ToList();
-        int all = (1 << Names(prefabPath == RobotPrefab).Length) - 1;
+        int all = (1 << Names(prefabPath == BossPrefab ? 2 : prefabPath == RobotPrefab ? 1 : 0).Length) - 1;
         int mask = (selected.newMonsterPatternMask != 0 ? selected.newMonsterPatternMask : 1) & all;
         if (mask == 0) mask = all;
         while (list.Count <= index)
@@ -575,9 +580,9 @@ public class StageMakerWindow : EditorWindow
             var sp = s.monsters[selBee];
             GUILayout.Label($"{MonsterName(sp)} {selBee + 1} 전용 패턴", EditorStyles.miniBoldLabel);
             int mask = sp.patternMask != 0 ? sp.patternMask : (1 << Mathf.Max(1, sp.patternCount)) - 1;
-            int nm = PatternToggles(mask, Names(IsRobot(sp)));
+            int nm = PatternToggles(mask, Names(Kind(sp)));
             if (nm != mask) { Record("패턴"); sp.patternMask = nm; sp.patternCount = Bits(nm); }
-            DrawTuning(sp, IsRobot(sp));
+            DrawTuning(sp, Kind(sp));
         }
         else
         {
@@ -595,24 +600,30 @@ public class StageMakerWindow : EditorWindow
     }
 
     static bool IsRobot(MonsterSpawn m) => m != null && m.prefab != null && m.prefab.GetComponent<Monster1B>() != null;   // 몬스터2
-    static string MonsterName(MonsterSpawn m) => IsRobot(m) ? "몬스터2" : "벌";
-    static string[] Names(bool robot) => robot ? Monster1B.PatternNames : Monster1A.PatternNames;
+    static int Kind(MonsterSpawn m) => m == null || m.prefab == null ? 0 : m.prefab.GetComponent<Monster1C>() != null ? 2 : m.prefab.GetComponent<Monster1B>() != null ? 1 : 0;   // 0 벌 · 1 몬스터2 · 2 보스
+    static string MonsterName(MonsterSpawn m) => Kind(m) == 2 ? "보스" : IsRobot(m) ? "몬스터2" : "벌";
+    static string[] Names(int kind) => kind == 2 ? Monster1C.PatternNames : kind == 1 ? Monster1B.PatternNames : Monster1A.PatternNames;
 
     /// <summary>기획서의 n값을 몬스터별로 입력</summary>
-    void DrawTuning(MonsterSpawn sp, bool monster2)
+    void DrawTuning(MonsterSpawn sp, int kind)
     {
+        bool monster2 = kind == 1, boss = kind == 2;
         if (sp.tuning == null) sp.tuning = new MonsterTuning();
         var t = sp.tuning;
         if (t.cooldown == null || t.cooldown.Length < 2) t.cooldown = new[] { 3f, 9f };
+        if (boss && t.cooldown.Length < 3) t.cooldown = new[] { t.cooldown[0], t.cooldown[1], 8f };
         EditorGUI.BeginChangeCheck();
         GUILayout.Label("수치 (기획서의 n값)", EditorStyles.miniBoldLabel);
         float gap = EditorGUILayout.Slider("플레이어보다 느리게 (칸/초)", t.speedGap, 0.5f, 6f);
-        float cdA = EditorGUILayout.Slider(monster2 ? "2-A 쿨타임 (초)" : "1-A 쿨타임 (초)", t.cooldown[0], 0.5f, 20f);
-        float cdB = EditorGUILayout.Slider(monster2 ? "2-B 쿨타임 (초)" : "1-B 쿨타임 (초)", t.cooldown[1], 0.5f, 30f);
+        string pre = boss ? "3" : monster2 ? "2" : "1";
+        float cdA = EditorGUILayout.Slider(pre + "-A 쿨타임 (초)", t.cooldown[0], 0.5f, 20f);
+        float cdB = EditorGUILayout.Slider(pre + "-B 쿨타임 (초)", t.cooldown[1], 0.5f, 30f);
+        float cdC = boss ? EditorGUILayout.Slider("3-C 쿨타임 (초)", t.cooldown[2], 0.5f, 30f) : 0f;
         float parry = EditorGUILayout.Slider("패링 가능 탄 나올 확률", t.parryChance, 0f, 1f);
         float fan = t.fanAngle, fdur = t.fieldDuration, frad = t.fieldRadius, mdet = t.mineDetect, mdel = t.mineDelay, mrad = t.mineRadius;
         int mmax = t.maxMines;
-        if (!monster2)
+        if (boss) { }
+        else if (!monster2)
         {
             fan = EditorGUILayout.Slider("1-A 부채꼴 좌우 각도 (도)", t.fanAngle, 5f, 60f);
             fdur = EditorGUILayout.Slider("1-B 자기장 시간 (초)", t.fieldDuration, 0.5f, 8f);
@@ -628,7 +639,7 @@ public class StageMakerWindow : EditorWindow
         if (EditorGUI.EndChangeCheck())
         {
             Record("몬스터 수치");
-            t.speedGap = gap; t.cooldown = new[] { cdA, cdB }; t.parryChance = parry;
+            t.speedGap = gap; t.cooldown = boss ? new[] { cdA, cdB, cdC } : new[] { cdA, cdB }; t.parryChance = parry;
             t.fanAngle = fan; t.fieldDuration = fdur; t.fieldRadius = frad;
             t.mineDetect = mdet; t.mineDelay = mdel; t.mineRadius = mrad; t.maxMines = mmax;
         }
@@ -942,6 +953,7 @@ public class StageMakerWindow : EditorWindow
             case Tool.Terminal: return Thumb("terminal");
             case Tool.Player: return Thumb("player");
             case Tool.Robot: return Thumb("robot");
+            case Tool.Boss: return Thumb("boss");
             default: return Thumb("bee");
         }
     }
@@ -960,6 +972,7 @@ public class StageMakerWindow : EditorWindow
             "player" => "Assets/DebugRush/Art/Drive/Player/run_R_01.png",
             "bee" => "Assets/DebugRush/Art/Drive/Monster1/move_01.png",
             "robot" => System.IO.File.Exists("Assets/DebugRush/Art/Drive/Monster2/move_01.png") ? "Assets/DebugRush/Art/Drive/Monster2/move_01.png" : "Assets/DebugRush/Art/Placeholder/robot_factory.png",
+            "boss" => System.IO.File.Exists("Assets/DebugRush/Art/Drive/Boss/move_01.png") ? "Assets/DebugRush/Art/Drive/Boss/move_01.png" : "Assets/DebugRush/Art/Placeholder/robot_scrap.png",
             "floor" => "Assets/DebugRush/Art/Placeholder/floor_32.png",
             _ => "Assets/DebugRush/Art/Placeholder/wall_single.png",
         };

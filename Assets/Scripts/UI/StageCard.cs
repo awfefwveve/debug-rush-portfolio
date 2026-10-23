@@ -17,6 +17,7 @@ public class StageCard : MonoBehaviour
 
     public void Setup(StageData s)
     {
+        cardArt = CardArt(s);
         bool unlocked = GameManager.I.IsUnlocked(s);
         bool cleared = GameManager.I.IsCleared(s);
         Layout(s.displayName, unlocked ? s.summary : "", !unlocked,
@@ -32,6 +33,21 @@ public class StageCard : MonoBehaviour
     }
 
     /// <summary>아직 기획되지 않은 스테이지 슬롯: 잠금 + "준비 중"</summary>
+    // 아트 팀 스테이지 창 (stage_1·2·3 → Resources/UI/stage_card_1~3): 나오는 몬스터로 고름 (벌 / 몬스터2 / 보스)
+    string cardArt;
+    static string CardArt(StageData s)
+    {
+        int kind = 1;
+        if (s.monsters != null)
+            foreach (var m in s.monsters)
+            {
+                if (m == null || m.prefab == null) continue;
+                if (m.prefab.GetComponent<Monster1C>() != null) kind = 3;
+                else if (m.prefab.GetComponent<Monster1B>() != null) kind = Mathf.Max(kind, 2);
+            }
+        return "stage_card_" + kind;
+    }
+
     public void SetupPlaceholder(int chapter, int stage)
     {
         Layout($"{chapter}-{stage}", "", true, "준비 중", false);
@@ -51,7 +67,7 @@ public class StageCard : MonoBehaviour
         if (UiArt.Get("item") != null && bg != null)
         {
             // 아트 팀 칸 틀: 기본 item_2, 클리어 item(이중 테두리) + CLEAR 도장(clear_2)
-            var card = UiArt.Get("stage_card");
+            var card = cardArt != null ? UiArt.Get(cardArt) : null;
             bg.sprite = card != null ? card : cleared ? UiArt.Get("item") : UiArt.Get("item_2"); bg.type = card != null ? Image.Type.Simple : Image.Type.Sliced; bg.color = Color.white;
             if (outline != null) outline.enabled = false;
             Stamp(cleared);
@@ -100,7 +116,7 @@ public class StageCard : MonoBehaviour
         // 아트 팀 버튼 바탕(320×96, 글자 없음)이 Resources/UI/play_button.png 에 있으면 그걸 사용
         var art = Resources.Load<Sprite>("UI/play_button");
         Place((RectTransform)b.transform, new Vector2(0f, -250f), art != null ? new Vector2(250f, 76f) : new Vector2(250f, 76f));
-        if (art == null && UiArt.Get("button_red") != null) { UiArt.StyleButton(b, 34f); b.image.sprite = UiArt.Get("button_red"); }   // 아트 팀 공통 버튼 틀 (플레이는 빨강)
+        if (art == null && UiArt.Get("button_red") != null) UiArt.StyleButton(b, 34f);   // 아트 팀 공통 버튼 틀 (연핑크, 마우스 올리면 빨강)
         else if (b.image != null)
         {
             if (art != null) { b.image.sprite = art; b.image.type = Image.Type.Simple; b.image.preserveAspect = true; b.image.color = Color.white; }
