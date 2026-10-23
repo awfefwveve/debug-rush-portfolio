@@ -18,6 +18,7 @@ public abstract class MonsterBase : MonoBehaviour
     [Tooltip("공격 후 회복 시간(초)")] public float recoverTime = 0.5f;
     public bool wander = true;
     [Tooltip("길찾기 기준점: 그림 몸 중심에서 아래로 (그림 반높이 × 이 값). 걷는 몬스터는 발밑, 큰 보스는 0(몸 중심)")] [Range(0f, 1f)] public float navFootRatio = 0.5f;
+    [Tooltip("걷는 몬스터: 기계(생성기·제작대·단말기)도 못 지나감. 나는 벌은 끔")] public bool walks = false;
     float navFoot = -1f;
     public Rect moveArea = new Rect(-11, -4, 22, 8);
     [Tooltip("스테이지 시작 후 첫 공격까지 대기(초)")] public float firstAttackDelay = 0f;
@@ -134,17 +135,43 @@ public abstract class MonsterBase : MonoBehaviour
         }
     }
 
+    /// <summary>발밑 (길찾기·폭탄 설치 기준점)</summary>
+    public Vector2 Foot
+    {
+        get
+        {
+            if (navFoot < 0f) { var sr = Body; navFoot = sr != null ? sr.bounds.extents.y * navFootRatio : 0f; }
+            return (Vector2)transform.position + Vector2.down * navFoot;
+        }
+    }
+
+    SpriteRenderer body; bool bodyFound;
+    SpriteRenderer Body { get { if (!bodyFound) { bodyFound = true; foreach (var s in GetComponentsInChildren<SpriteRenderer>()) if (s.gameObject.name != "Shadow") { body = s; break; } } return body; } }
+    bool behind;
+
+    // 걷는 몬스터가 기계보다 위쪽(뒤)에 있으면 기계 뒤로 그림 (발밑 y 기준). 평소 10, 뒤일 땐 -2 (벽 -10보다는 위)
+    void SortAgainstMachines()
+    {
+        if (!walks) return;   // 나는 벌은 그대로
+        var sr = Body;
+        if (sr == null) return;
+        bool b = MonsterNav.BehindMachine(Foot, sr.bounds.extents.x * 0.6f);
+        if (b == behind) return;
+        behind = b;
+        foreach (var s in GetComponentsInChildren<SpriteRenderer>()) if (s.gameObject.name != "Shadow") s.sortingOrder = b ? -2 : 10;
+    }
+
     void Update()
     {
         UpdateTelegraphs();
+        SortAgainstMachines();
         // 예고·공격 중에는 제자리 (읽기 쉽게). 이동 = 플레이어 쪽으로 (대각선도 같은 속도)
         if (halted || IsStunned || !wander || CurrentPhase != Phase.Move || target == null) return;
         Vector2 to = (Vector2)target.position - (Vector2)transform.position;
         if (to.magnitude <= stopDistance) return;
         // 칸 길찾기: 벽(윗면·앞면 줄)은 못 지나가고 돌아서 쫓아감 (예전엔 위치를 직접 옮겨서 벽을 뚫고 다녔음)
-        if (navFoot < 0f) { var sr = GetComponentInChildren<SpriteRenderer>(); navFoot = sr != null ? sr.bounds.extents.y * navFootRatio : 0f; }
-        var foot = (Vector2)transform.position + Vector2.down * navFoot;
-        var nav = MonsterNav.Step(foot, target.position, moveSpeed * Time.deltaTime);
+        var foot = Foot;
+        var nav = MonsterNav.Step(foot, target.position, moveSpeed * Time.deltaTime, walks);
         if (nav.HasValue) { transform.position = nav.Value + Vector2.up * navFoot; return; }
         Vector2 next = (Vector2)transform.position + to.normalized * moveSpeed * Time.deltaTime;
         next.x = Mathf.Clamp(next.x, moveArea.xMin, moveArea.xMax);

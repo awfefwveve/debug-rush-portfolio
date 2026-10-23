@@ -51,7 +51,7 @@ public class Monster1B : MonsterBase
             var old = mines.Dequeue();
             if (old) Destroy(old);
         }
-        var m = Instantiate(minePrefab, transform.position, Quaternion.identity);
+        var m = Instantiate(minePrefab, MonsterNav.NearestWalkable(Foot), Quaternion.identity);   // 발밑에 설치 (벽·기계 칸이면 가장 가까운 빈 바닥)
         foreach (var h in m.GetComponents<Hazard>()) Destroy(h);   // 예전 "밟으면 폭발" 동작 대신 감지 → 폭발
         var bot = m.AddComponent<InstallRobot>();
         bot.Setup(Tuning.mineDetect, Tuning.mineDelay, Tuning.mineRadius);
