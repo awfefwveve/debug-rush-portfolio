@@ -41,13 +41,18 @@ public static class UiArt
     // ---------- IMGUI (설정·일시정지·크레딧 창) ----------
     static GUIStyle labelStyle;
 
-    /// <summary>그림 버튼 (회색, 마우스 올리면 빨강). 그림이 없으면 기본 버튼</summary>
+    /// <summary>창 안 그림 버튼 (회색, 마우스 올리면 밝게). 그림이 없으면 기본 버튼</summary>
     public static bool Button(Rect r, string text, float fontSize)
     {
-        var gray = Tex("button_pink"); if (gray == null) gray = Tex("button_gray"); var red = Tex("button_red");
+        // 설정·일시정지·리셋·크레딧 창(회색 설정창 틀) 안 버튼은 회색 통일, 마우스 올리면 밝게 (10/23 B)
+        var gray = Tex("button_gray");
         if (gray == null) return GUI.Button(r, text, new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(fontSize) });
         bool hover = r.Contains(Event.current.mousePosition);
-        GUI.DrawTexture(r, hover && red != null ? red : gray, ScaleMode.StretchToFill);
+        var prev = GUI.color;
+        GUI.color = Color.white;
+        GUI.DrawTexture(r, gray, ScaleMode.StretchToFill);
+        if (hover) { GUI.color = new Color(1f, 1f, 1f, 0.18f); GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill); }
+        GUI.color = prev;
         Label(r, text, fontSize, Ink, TextAnchor.MiddleCenter, true);
         return GUI.Button(r, GUIContent.none, GUIStyle.none);
     }

@@ -40,7 +40,10 @@ public static class GameSettings
     {
         for (int c = 1; c <= 3; c++)
             for (int s = 0; s <= 10; s++)   // 0 = 튜토리얼
+            {
                 for (int d = 0; d < 3; d++) PlayerPrefs.DeleteKey($"clear_{c}_{s}_{d}");
+                PlayerPrefs.DeleteKey($"stars_{c}_{s}");
+            }
         AchievementManager.ResetAll();
         PlayerPrefs.DeleteKey(ControlsGuide.SeenKey);   // 시연: 조작 안내 다시 보이게
         PlayerPrefs.DeleteKey("settings_devmode");       // 시연: 개발자 모드도 끔

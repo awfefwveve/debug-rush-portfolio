@@ -580,6 +580,7 @@ public static class PlaceholderArtGenerator
             // 달리기: 아트 원본 GIF와 같게 1~4번, 0.125초씩 (5번은 1번과 거의 같은 그림이라 넣으면 같은 자세가 두 번 이어져 끊겨 보임)
             var psa = go.GetComponent<PlayerSpriteAnimator>(); psa.runFps = 8f;
             psa.runRight = DriveSeq("Player", "run_R", 4); psa.runLeft = DriveSeq("Player", "run_L", 4);
+            psa.idleRight = D("Player/run_R_05"); psa.idleLeft = D("Player/run_L_05");   // 다리 벌린 기본 자세 = 달리기 5번 (GIF 4장 고리에는 없는 그림)
             psa.dashRight = DriveSeq("Player", "dash_R"); psa.dashLeft = DriveSeq("Player", "dash_L");
             AddShadow(go, 0.75f, 0.05f);
         });
@@ -675,7 +676,7 @@ public static class PlaceholderArtGenerator
             var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = saw == null;
             p.normalSprite = saw != null ? saw : S("blade"); p.parrySprite = sawParry != null ? sawParry : S("blade_parry");
             SetSprite(go, p.normalSprite, 30);
-            if (saw != null) { var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 0.42f; }
+            if (saw != null) { var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 0.42f; go.transform.localScale = Vector3.one * 1.5f; }   // 톱 1.5배 (10/23 B, 판정도 같이 1.5배)
         });
         EditPrefab("Mine", go => SetSprite(go, D("Monster2/bomb") != null ? D("Monster2/bomb") : S("mine"), -5));   // 몬스터2 2-B 설치 로봇 = 아트 팀 폭탄
         EditPrefab("WarnMarker", go => { SetSprite(go, S("warn_circle_border"), -40); go.transform.localScale = Vector3.one * 0.35f; go.GetComponentInChildren<SpriteRenderer>().color = new Color(1f, 0.3f, 0.35f, 0.9f); });

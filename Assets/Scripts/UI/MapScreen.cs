@@ -90,6 +90,7 @@ public class MapScreen : MonoBehaviour
                 tplCanvas.overrideSorting = true; tplCanvas.sortingOrder = 30000;
             }
             if (chapterDropdown.itemText != null) chapterDropdown.itemText.color = UiArt.Ink;
+            ChapterLocks();
         }
         var scroll = content != null ? content.GetComponentInParent<ScrollRect>() : null;
         var bar = scroll != null ? scroll.horizontalScrollbar : null;
@@ -115,6 +116,61 @@ public class MapScreen : MonoBehaviour
         }
     }
 
+
+    GameObject chapterPanel, chapterBlocker;
+
+    /// <summary>
+    /// 학년 고르기 (10/23 B): '1학년'을 누르면 바로 아래 어두운 칸(class_2)에 2학년·3학년이 잠금 표시(lock)와 함께 펼쳐짐.
+    /// 2·3학년은 스테이지가 없어 눌러도 안 들어감 (개발자 모드여도 잠금). 바깥을 누르면 닫힘. 기본 드롭다운 목록은 안 씀
+    /// </summary>
+    void ChapterLocks()
+    {
+        var bar = (RectTransform)chapterDropdown.transform;
+        chapterDropdown.enabled = false;   // 기본 목록 대신 아래 패널 (그림은 그대로 보임)
+        var toggle = new GameObject("ChapterToggle", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<Button>();
+        toggle.transform.SetParent(bar, false);
+        var tr = (RectTransform)toggle.transform; tr.anchorMin = Vector2.zero; tr.anchorMax = Vector2.one; tr.offsetMin = tr.offsetMax = Vector2.zero;
+        toggle.image.color = new Color(1f, 1f, 1f, 0f);
+        toggle.onClick.AddListener(() => ShowChapters(!chapterPanel.activeSelf));
+
+        float h = bar.rect.height;
+        chapterPanel = new GameObject("ChapterList", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+        var pr = (RectTransform)chapterPanel.transform; pr.SetParent(bar, false);
+        pr.anchorMin = new Vector2(0f, 0f); pr.anchorMax = new Vector2(1f, 0f); pr.pivot = new Vector2(0.5f, 1f);
+        pr.anchoredPosition = new Vector2(0f, -2f); pr.sizeDelta = new Vector2(0f, h * 2f);
+        var pc = chapterPanel.GetComponent<Canvas>(); pc.overrideSorting = true; pc.sortingOrder = 30000;
+        for (int i = 0; i < 2; i++)
+        {
+            var row = new GameObject($"Grade{i + 2}", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            row.transform.SetParent(pr, false);
+            var rr = row.rectTransform; rr.anchorMin = new Vector2(0f, 1f); rr.anchorMax = new Vector2(1f, 1f); rr.pivot = new Vector2(0.5f, 1f);
+            rr.anchoredPosition = new Vector2(0f, -i * h); rr.sizeDelta = new Vector2(0f, h);
+            row.sprite = UiArt.Get("class_2"); row.type = Image.Type.Sliced; row.color = row.sprite != null ? Color.white : new Color(0.1f, 0.12f, 0.14f, 1f);
+            var label = StageHUD.Label(row.transform, $"{i + 2}학년", new Vector2(0f, 0.5f), new Vector2(70f, 0f), new Vector2(120f, h), 24f, TMPro.TextAlignmentOptions.Left, new Color(0.7f, 0.72f, 0.78f), true);
+            label.rectTransform.pivot = new Vector2(0f, 0.5f);
+            var lk = new GameObject("Lock", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            lk.transform.SetParent(row.transform, false);
+            var lr = lk.rectTransform; lr.anchorMin = lr.anchorMax = new Vector2(1f, 0.5f); lr.pivot = new Vector2(1f, 0.5f);
+            lr.anchoredPosition = new Vector2(-12f, 0f); lr.sizeDelta = new Vector2(h * 0.8f, h * 0.8f);
+            lk.sprite = UiArt.Get("lock"); lk.preserveAspect = true; lk.raycastTarget = false; lk.enabled = lk.sprite != null;
+        }
+
+        // 바깥 누르면 닫힘 (목록 바로 아래 층의 투명 판)
+        chapterBlocker = new GameObject("ChapterBlocker", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster), typeof(Image), typeof(Button));
+        var root = chapterDropdown.GetComponentInParent<Canvas>().rootCanvas.transform;
+        var brt = (RectTransform)chapterBlocker.transform; brt.SetParent(root, false);
+        brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one; brt.offsetMin = brt.offsetMax = Vector2.zero;
+        var bc = chapterBlocker.GetComponent<Canvas>(); bc.overrideSorting = true; bc.sortingOrder = 29999;
+        chapterBlocker.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+        chapterBlocker.GetComponent<Button>().onClick.AddListener(() => ShowChapters(false));
+        ShowChapters(false);
+    }
+
+    void ShowChapters(bool on)
+    {
+        if (chapterPanel != null) chapterPanel.SetActive(on);
+        if (chapterBlocker != null) chapterBlocker.SetActive(on);
+    }
     void SetupContent()
     {
         var r = (RectTransform)content;

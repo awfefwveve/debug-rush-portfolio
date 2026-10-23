@@ -10,13 +10,15 @@ public class PlayerSpriteAnimator : MonoBehaviour
     public SpriteFrameAnimator anim;
     public Sprite[] runLeft, runRight, dashLeft, dashRight;
     [Tooltip("서 있을 때 그림 (없으면 달리기 첫 장)")] public Sprite idle;
+    [Tooltip("서 있을 때 그림 방향별 (다리 벌린 기본 자세 = 달리기 5번)")] public Sprite idleLeft, idleRight;
     public float runFps = 8f;
 
     PlayerController player;
     bool facingRight = true;
     bool wasDashing;
+    Sprite[] idleL, idleR;
 
-    void Awake() => player = GetComponent<PlayerController>();
+    void Awake() { player = GetComponent<PlayerController>(); idleL = new[] { idleLeft }; idleR = new[] { idleRight }; }
 
     void LateUpdate()
     {
@@ -45,6 +47,7 @@ public class PlayerSpriteAnimator : MonoBehaviour
         if (run == null || run.Length == 0) return;
         if (player.IsJumping) { anim.Hold(run, Mathf.Min(2, run.Length - 1)); return; }
         if (moving) anim.Play(run, runFps, true);
+        else if ((facingRight ? idleRight : idleLeft) != null) anim.Hold(facingRight ? idleR : idleL, 0);   // 다리 벌린 기본 자세
         else if (idle != null) { anim.Hold(new[] { idle }, 0); if (anim.target != null) anim.target.flipX = !facingRight; }
         else anim.Hold(run, 0);
     }

@@ -269,6 +269,8 @@ public class StageHUD : MonoBehaviour
         float limit = stage.Data != null ? stage.Data.TimeFor(stage.Diff) : 0f;
         float left = Mathf.Max(0f, stage.TimeLeft);
         bool[] stars = { limit > 0f && left >= limit * 0.3f, hits == 0, parries > 0 };
+        int got = (stars[0] ? 1 : 0) + (stars[1] ? 1 : 0) + (stars[2] ? 1 : 0);
+        if (stage.Data != null) GameManager.SaveStars(stage.Data, got);   // 스테이지 선택 카드 아래 별 (최고 기록)
         var sb = new System.Text.StringBuilder("\n<size=56>");
         foreach (var s in stars) sb.Append(s ? "<color=#FFD23F>★</color>" : "<color=#4A5068>★</color>");
         int sec = Mathf.CeilToInt(left);

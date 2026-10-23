@@ -19,6 +19,17 @@ public static class StageFixBatch
         {
             if (s == null || s.chapter != 1 || !TimeLimit.ContainsKey(s.stage)) continue;
             s.timeLimit = TimeLimit[s.stage];
+            if (s.stage == 1 && s.monsters != null)   // 1-1은 벌 자기장(1-B) 끔, 1-2부터 사용 (10/23 B)
+                foreach (var m in s.monsters)
+                    if (m?.prefab != null && m.prefab.GetComponent<Monster1A>() != null) { m.patternMask = 1; m.patternCount = 1; }
+            if (s.stage == 5 && s.layout != null && s.layout.walls != null)   // 1-5 가운데 십자 벽 삭제 → 바닥 (10/23 B)
+            {
+                int before = s.layout.walls.Count;
+                s.layout.walls.RemoveAll(c => c.x >= -9 && c.x <= 9 && c.y >= -7 && c.y <= 5);
+                if (s.layout.customFloor)
+                    for (int x = -9; x <= 9; x++) for (int y = -7; y <= 5; y++) { var c = new Vector2Int(x, y); if (!s.layout.floor.Contains(c)) s.layout.floor.Add(c); }
+                Debug.Log($"[Fix] 1-5 십자 벽 {before - s.layout.walls.Count}칸 삭제");
+            }
             if (s.stage == 4 && s.monsters != null)
                 foreach (var m in s.monsters)
                     if (m?.prefab != null && m.prefab.GetComponent<Monster1B>() != null)

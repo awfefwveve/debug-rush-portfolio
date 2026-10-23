@@ -28,6 +28,7 @@ public class Monster1A : MonsterBase
     public float dropRadius = 1.1f, dropWarn = 0.7f, dropGap = 0.25f;
 
     protected override int PatternMax => 2;
+    protected override bool MoveWhileAttacking(int pattern) => pattern == FieldB;   // 자기장 켠 채로 움직임 (자기장 원은 벌을 따라감)
 
     public override void ApplyTuning(MonsterTuning t, float playerSpeed)
     {

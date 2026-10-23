@@ -29,8 +29,8 @@ MonoBehaviour:
   - 29
   monsters:
   - prefab: {fileID: 5659492794940413673, guid: 6d4c9207568a08f449cb4cd2d4d113e7, type: 3}
-    patternCount: 2
-    patternMask: 3
+    patternCount: 1
+    patternMask: 1
     spawnPos: {x: 3, y: 3}
     tuning:
       speedGap: 3.5

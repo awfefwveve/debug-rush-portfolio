@@ -23,6 +23,8 @@ public class StageCard : MonoBehaviour
         Layout(s.displayName, unlocked ? s.summary : "", !unlocked,
                unlocked ? "" : "잠김\n<size=22>이전 스테이지를 클리어하세요</size>", cleared);
 
+        StarRow(cleared ? GameManager.Stars(s) : -1);
+
         var play = PlayButton();
         if (play == null) return;
         play.gameObject.SetActive(unlocked);
@@ -70,7 +72,7 @@ public class StageCard : MonoBehaviour
             var card = cardArt != null ? UiArt.Get(cardArt) : null;
             bg.sprite = card != null ? card : cleared ? UiArt.Get("item") : UiArt.Get("item_2"); bg.type = card != null ? Image.Type.Simple : Image.Type.Sliced; bg.color = Color.white;
             if (outline != null) outline.enabled = false;
-            Stamp(cleared);
+            Stamp(false);   // (클리어 도장 clear_2는 업적 그림이라 카드엔 안 씀, 대신 카드 아래 별)
         }
         else
         {
@@ -126,6 +128,27 @@ public class StageCard : MonoBehaviour
         if (label != null) { label.text = "플레이"; label.fontSize = 34f; label.fontStyle = FontStyles.Bold; label.color = Color.white; }
         b.interactable = true;
         return b;
+    }
+
+    /// <summary>클리어한 스테이지 카드 아래 얻은 별 (최고 기록 0~3). -1이면 숨김</summary>
+    void StarRow(int stars)
+    {
+        var t = transform.Find("Stars");
+        TMP_Text label;
+        if (t == null)
+        {
+            label = new GameObject("Stars", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            label.transform.SetParent(transform, false);
+            Place(label.rectTransform, new Vector2(0f, -Height / 2f - 30f), new Vector2(300f, 48f));
+            label.font = KoreanTMPFont.Get(); label.fontSize = 40f; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false;
+            var le = label.gameObject.AddComponent<LayoutElement>(); le.ignoreLayout = true;
+        }
+        else label = t.GetComponent<TMP_Text>();
+        label.gameObject.SetActive(stars >= 0);
+        if (stars < 0) return;
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < 3; i++) sb.Append(i < stars ? "<color=#FFD23F>★</color>" : "<color=#4A5068>★</color>");
+        label.text = sb.ToString();
     }
 
     void Stamp(bool cleared)

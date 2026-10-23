@@ -29,8 +29,11 @@ public class PauseMenu : MonoBehaviour
         }
         SettingsWindow.Dim();
         float s = Screen.height / 1080f;
-        var r = UiArt.Window("일시정지", 760f, 450f);
-        float bw = r.width * 0.46f, bh = bw * 0.2f, x = r.center.x - bw * 0.5f, y = r.y + r.height * 0.26f, gap = bh * 1.25f;
+        var r = UiArt.Window("일시정지", 900f, 532f);
+        // 창 그림(setting.png)의 밝은 칸 안: 가로 5%~93%, 세로 18%~97% → 그 가운데에 버튼 3개를 세로로
+        float cx = r.x + r.width * 0.49f, top = r.y + r.height * 0.18f, bottom = r.y + r.height * 0.97f;
+        float bw = r.width * 0.42f, bh = bw * 0.22f, step = bh * 1.35f;
+        float x = cx - bw * 0.5f, y = (top + bottom) * 0.5f - (bh + step * 2f) * 0.5f, gap = step;
         if (UiArt.Button(new Rect(x, y, bw, bh), "계속하기", 28f * s)) SetOpen(false);
         if (UiArt.Button(new Rect(x, y + gap, bw, bh), "설정", 28f * s)) settings = true;
         if (UiArt.Button(new Rect(x, y + gap * 2f, bw, bh), "타이틀로 나가기", 28f * s)) { Time.timeScale = previousTimeScale; UnityEngine.SceneManagement.SceneManager.LoadScene("Title"); }

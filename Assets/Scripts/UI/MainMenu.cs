@@ -21,8 +21,8 @@ public class MainMenu : MonoBehaviour
     static readonly string[][] Credits =
     {
         new[] { "기획 · 레벨 · 사운드", "조은희" },
-        new[] { "메인 프로그래밍", "김보정" },
-        new[] { "보조 프로그래밍", "양예슬비" },
+        new[] { "메인 프로그래밍", "양예슬비" },
+        new[] { "보조 프로그래밍", "김보정" },
         new[] { "그래픽", "김태은" },
         new[] { "그래픽", "강수린" },
     };
@@ -61,8 +61,9 @@ public class MainMenu : MonoBehaviour
             var r = bgImg.rectTransform;
             r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f); r.anchoredPosition = Vector2.zero; r.sizeDelta = new Vector2(1920f, 1080f);
             bgImg.sprite = art; bgImg.color = Color.white; bgImg.type = Image.Type.Simple; bgImg.preserveAspect = false;
-            var fit = bg.GetComponent<AspectRatioFitter>(); if (fit == null) fit = bg.gameObject.AddComponent<AspectRatioFitter>();
-            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent; fit.aspectRatio = 1920f / 1080f;
+            // 그림 영역은 항상 1920×1080 크기 그대로 두고 통째로 확대·축소 → 안에 붙인 버튼·팔·손가락이 어떤 해상도·비율에서도 그림과 같은 자리 (예전엔 영역 크기가 바뀌어 버튼만 따로 놀았음)
+            var old = bg.GetComponent<AspectRatioFitter>(); if (old != null) Destroy(old);
+            if (bg.GetComponent<FitScale>() == null) bg.gameObject.AddComponent<FitScale>();
             if (Camera.main != null) Camera.main.backgroundColor = Color.black;   // 남는 곳 검정
         }
         else

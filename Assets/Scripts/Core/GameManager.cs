@@ -35,6 +35,14 @@ public class GameManager : MonoBehaviour
     // ---------- 저장 / 해금 ----------
     static string Key(StageData s, Difficulty d) => $"clear_{s.chapter}_{s.stage}_{(int)d}";
 
+    /// <summary>클리어 별 (0~3) 최고 기록</summary>
+    public static int Stars(StageData s) => PlayerPrefs.GetInt($"stars_{s.chapter}_{s.stage}", 0);
+    public static void SaveStars(StageData s, int stars)
+    {
+        if (stars <= Stars(s)) return;
+        PlayerPrefs.SetInt($"stars_{s.chapter}_{s.stage}", Mathf.Clamp(stars, 0, 3)); PlayerPrefs.Save();
+    }
+
     public void SaveClear(StageData s, Difficulty d)
     {
         PlayerPrefs.SetInt(Key(s, d), 1);

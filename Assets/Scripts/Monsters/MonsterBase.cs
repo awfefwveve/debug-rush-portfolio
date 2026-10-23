@@ -52,6 +52,8 @@ public abstract class MonsterBase : MonoBehaviour
     float[] readyAt = new float[0];
 
     protected abstract int PatternMax { get; }
+    /// <summary>이 패턴을 쓰는 동안에도 계속 쫓아가는가 (벌 1-B 자기장)</summary>
+    protected virtual bool MoveWhileAttacking(int pattern) => false;
     /// <summary>index: 0 = 패턴1</summary>
     protected abstract IEnumerator RunPattern(int index);
     /// <summary>예고 표시: 패턴별로 원형/직선 예고를 추가</summary>
@@ -69,7 +71,9 @@ public abstract class MonsterBase : MonoBehaviour
         moveSpeed = Mathf.Max(0.5f, playerSpeed - t.speedGap);
     }
 
-    float Cooldown(int p) => Tuning.cooldown != null && p < Tuning.cooldown.Length ? Mathf.Max(0.3f, Tuning.cooldown[p]) : 4f;
+    /// <summary>스킬 쿨타임 전체 배율 (10/23 B: 살짝 빠르게)</summary>
+    public const float CooldownScale = 0.85f;
+    float Cooldown(int p) => (Tuning.cooldown != null && p < Tuning.cooldown.Length ? Mathf.Max(0.3f, Tuning.cooldown[p]) : 4f) * CooldownScale;
 
     /// <summary>mask: 사용할 패턴 비트 (0이면 앞에서부터 count개)</summary>
     public void Init(Transform playerTarget, int count, int mask = 0)
@@ -152,7 +156,7 @@ public abstract class MonsterBase : MonoBehaviour
     // 걷는 몬스터가 기계보다 위쪽(뒤)에 있으면 기계 뒤로 그림 (발밑 y 기준). 평소 10, 뒤일 땐 -2 (벽 -10보다는 위)
     void SortAgainstMachines()
     {
-        if (!walks) return;   // 나는 벌은 그대로
+        if (!walks || this is Monster1C) return;   // 나는 벌은 그대로, 보스는 항상 기계보다 앞 (10/23 B)
         var sr = Body;
         if (sr == null) return;
         bool b = MonsterNav.BehindMachine(Foot, sr.bounds.extents.x * 0.6f);
@@ -166,7 +170,8 @@ public abstract class MonsterBase : MonoBehaviour
         UpdateTelegraphs();
         SortAgainstMachines();
         // 예고·공격 중에는 제자리 (읽기 쉽게). 이동 = 플레이어 쪽으로 (대각선도 같은 속도)
-        if (halted || IsStunned || !wander || CurrentPhase != Phase.Move || target == null) return;
+        bool canMove = CurrentPhase == Phase.Move || (CurrentPhase == Phase.Attack && MoveWhileAttacking(CurrentPattern));
+        if (halted || IsStunned || !wander || !canMove || target == null) return;
         Vector2 to = (Vector2)target.position - (Vector2)transform.position;
         if (to.magnitude <= stopDistance) return;
         // 칸 길찾기: 벽(윗면·앞면 줄)은 못 지나가고 돌아서 쫓아감 (예전엔 위치를 직접 옮겨서 벽을 뚫고 다녔음)
