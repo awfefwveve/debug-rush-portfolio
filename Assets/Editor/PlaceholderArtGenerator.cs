@@ -619,7 +619,7 @@ public static class PlaceholderArtGenerator
         {
             Monster(go, 2.2f, true);
             go.GetComponent<MonsterBase>().navFootRatio = 0.8f;   // 걷는 로봇: 발밑 기준으로 벽 판정
-            go.transform.localScale = Vector3.one * 4.5f;    // 몬스터2 크게 (10/23 B: 1.5 → 3배 = 4.5, 그림 약 9칸). 이동은 몸 중심 칸 기준 길찾기
+            go.transform.localScale = Vector3.one * 2.2f;    // 몬스터2 (10/23: 그림 약 4.4칸 = 주인공의 약 2.2배)
             var b = go.GetComponent<Monster1B>();
             b.bladePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "Blade.prefab");
             b.minePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(P + "Mine.prefab");
@@ -636,8 +636,8 @@ public static class PlaceholderArtGenerator
         EditPrefab("Monster1C", go =>
         {
             Monster(go, 2f, true);
-            go.GetComponent<MonsterBase>().navFootRatio = 0f;     // 큰 보스: 몸 중심 기준 (발밑 기준이면 몸이 방 위로 넘어감)
-            go.transform.localScale = Vector3.one * 9f;      // 보스 크게 (10/23 B: 1.8 → 5배 = 9, 그림 약 18칸). 이동은 몸 중심 칸 기준 길찾기
+            go.GetComponent<MonsterBase>().navFootRatio = 0.5f;   // 보스: 몸 중심과 발밑 사이 기준
+            go.transform.localScale = Vector3.one * 3.2f;    // 보스 (10/23: 그림 약 6.4칸 = 주인공의 약 3.2배)
             var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f;
             c.splitProjectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "SplitShot.prefab");
             c.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab");
