@@ -171,7 +171,8 @@ public abstract class MonsterBase : MonoBehaviour
         if (to.magnitude <= stopDistance) return;
         // 칸 길찾기: 벽(윗면·앞면 줄)은 못 지나가고 돌아서 쫓아감 (예전엔 위치를 직접 옮겨서 벽을 뚫고 다녔음)
         var foot = Foot;
-        var nav = MonsterNav.Step(foot, target.position, moveSpeed * Time.deltaTime, walks);
+        // 걷는 몬스터(로봇·보스)만 길찾기. 벌은 날아다녀서 벽·기계 위로 곧장 쫓아감 (10/23 B)
+        var nav = walks ? MonsterNav.Step(foot, target.position, moveSpeed * Time.deltaTime, true) : null;
         if (nav.HasValue) { transform.position = nav.Value + Vector2.up * navFoot; return; }
         Vector2 next = (Vector2)transform.position + to.normalized * moveSpeed * Time.deltaTime;
         next.x = Mathf.Clamp(next.x, moveArea.xMin, moveArea.xMax);
