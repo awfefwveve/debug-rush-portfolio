@@ -201,7 +201,7 @@ public class MainMenu : MonoBehaviour
         if (monster != null) monster.anchoredPosition = new Vector2(300f, -60f + Mathf.Sin(Time.time * 2.2f) * 18f);
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (showCredits) showCredits = false;
+            if (showCredits) { showCredits = false; creditOpenedAt = -1f; }
             else if (settingsPanel != null && settingsPanel.activeSelf) settingsPanel.SetActive(false);
         }
     }
@@ -257,22 +257,60 @@ public class MainMenu : MonoBehaviour
         if (UiArt.Button(new Rect(r.center.x + 12f * s, by, bw, bh), "취소", 26f * s)) confirmReset = false;
     }
 
+    // 소리 저작권 표기 (10/23 B): 크레딧 아래쪽에 이어서
+    static readonly string[] SoundCredits =
+    {
+        "공격 소리", "SFX provided by 셀바이뮤직", "Title : Laser gun 5-short", "https://sellbuymusic.com/md/sgrnncc-efzhwbn", "",
+        "공격 소리2", "SFX provided by 셀바이뮤직", "Title : Laser gun 7-short", "https://sellbuymusic.com/md/sypnncx-ufzhwbn", "",
+        "공격 소리3", "SFX provided by 셀바이뮤직", "Title : Storytelling Cartoon SciFiLazer 01", "https://sellbuymusic.com/md/sppxkwf-rfzhwbn", "",
+        "대쉬", "SFX provided by 셀바이뮤직", "Title : Whoosh 9-low-1", "https://sellbuymusic.com/md/suyntbh-lfzhwbn", "",
+        "그 외", "PIXABAY",
+    };
+
+    float creditScroll, creditOpenedAt = -1f;
+
+    /// <summary>크레딧: 창 안 칸에서 영화 엔딩처럼 아래→위로 천천히 자동 스크롤 (마우스 휠·방향키로 직접 움직여도 됨), 끝에서 멈춤</summary>
     void DrawCredits(float s)
     {
         SettingsWindow.Dim();
         var r = UiArt.Window("크레딧", 1100f, 650f);
         var ink = new Color(0.12f, 0.13f, 0.18f);
-        UiArt.Label(new Rect(r.x, r.y + r.height * 0.16f, r.width, r.height * 0.1f), "팀 팥없찐", 38f * s, ink, TextAnchor.MiddleCenter, true);
-        float nameW = r.width * 0.19f, nameH = nameW * 80f / 224f, rowH = nameH * 1.1f;
-        float x = r.x + r.width * 0.22f, y = r.y + r.height * 0.29f;
-        for (int i = 0; i < Credits.Length; i++)
+        var area = new Rect(r.x + r.width * 0.07f, r.y + r.height * 0.17f, r.width * 0.84f, r.height * 0.62f);   // 창 그림의 밝은 칸 안
+        float nameW = r.width * 0.19f, nameH = nameW * 80f / 224f, rowH = nameH * 1.1f, lineH = 34f * s;
+        float contentH = area.height * 0.5f + 70f * s + Credits.Length * rowH + 40f * s + 50f * s + SoundCredits.Length * lineH + area.height * 0.3f;
+        float max = Mathf.Max(0f, contentH - area.height);
+
+        if (creditOpenedAt < 0f) { creditOpenedAt = Time.unscaledTime; creditScroll = 0f; }
+        var e = Event.current;
+        if (e.type == EventType.ScrollWheel && area.Contains(e.mousePosition)) { creditScroll += e.delta.y * 30f * s; e.Use(); }
+        if (e.type == EventType.KeyDown && (e.keyCode == KeyCode.DownArrow || e.keyCode == KeyCode.UpArrow)) { creditScroll += (e.keyCode == KeyCode.DownArrow ? 60f : -60f) * s; e.Use(); }
+        if (e.type == EventType.Repaint && Time.unscaledTime - creditOpenedAt > 0.8f) creditScroll += 45f * s * Time.unscaledDeltaTime;   // 자동으로 천천히
+        creditScroll = Mathf.Clamp(creditScroll, 0f, max);
+
+        GUI.BeginGroup(area);   // 칸 밖은 잘림
+        float y = area.height * 0.5f - creditScroll;   // 칸 가운데쯤에서 시작해 위로 올라감
+        UiArt.Label(new Rect(0f, y, area.width, 60f * s), "팀 팥없찐", 38f * s, ink, TextAnchor.MiddleCenter, true);
+        y += 70f * s;
+        float x = area.width * 0.18f;
+        for (int i = 0; i < Credits.Length; i++, y += rowH)
         {
-            var tag = new Rect(x, y + i * rowH, nameW, nameH);
+            var tag = new Rect(x, y, nameW, nameH);
             if (UiArt.Tex("name") != null) UiArt.Draw(tag, "name"); else GUI.Box(tag, "");
             UiArt.Label(new Rect(tag.x, tag.y, tag.width * 0.87f, tag.height), Credits[i][0], 17f * s, UiArt.Ink, TextAnchor.MiddleCenter, true);
-            UiArt.Label(new Rect(tag.xMax + 24f * s, tag.y, r.width * 0.35f, tag.height), Credits[i][1], 28f * s, ink, TextAnchor.MiddleLeft, true);
+            UiArt.Label(new Rect(tag.xMax + 24f * s, tag.y, area.width * 0.45f, tag.height), Credits[i][1], 28f * s, ink, TextAnchor.MiddleLeft, true);
         }
+        y += 40f * s;
+        UiArt.Label(new Rect(0f, y, area.width, 50f * s), "사운드", 32f * s, ink, TextAnchor.MiddleCenter, true);
+        y += 50f * s;
+        foreach (var line in SoundCredits)
+        {
+            bool head = line == "공격 소리" || line == "공격 소리2" || line == "공격 소리3" || line == "대쉬" || line == "그 외";
+            UiArt.Label(new Rect(0f, y, area.width, lineH), line, (head ? 24f : 20f) * s, head ? ink : new Color(0.25f, 0.27f, 0.34f), TextAnchor.MiddleCenter, head);
+            y += lineH;
+        }
+        GUI.EndGroup();
+
         float bw = r.width * 0.18f, bh = bw * 0.28f;
-        if (UiArt.Button(new Rect(r.xMax - bw - r.width * 0.08f, r.yMax - bh - r.height * 0.06f, bw, bh), "닫기", 24f * s)) showCredits = false;
+        if (UiArt.Button(new Rect(r.xMax - bw - r.width * 0.08f, r.yMax - bh - r.height * 0.06f, bw, bh), "닫기", 24f * s)) { showCredits = false; creditOpenedAt = -1f; }
     }
 }
