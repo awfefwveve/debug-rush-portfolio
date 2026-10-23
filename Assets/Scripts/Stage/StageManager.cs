@@ -124,7 +124,7 @@ public class StageManager : MonoBehaviour
         foreach (var m in Data.monsters)
         {
             if (m == null || m.prefab == null) continue;
-            var go = Instantiate(m.prefab, m.spawnPos, Quaternion.identity);
+            var go = Instantiate(m.prefab, MonsterNav.NearestOpen(m.spawnPos), Quaternion.identity);   // 시작 자리가 벽 칸이면 가장 가까운 바닥으로
             var mon = go.GetComponent<MonsterBase>();
             // 기획서 n값(쫓아가는 속도 = 플레이어 - n, 패턴 쿨타임 등)은 스테이지 데이터에서
             mon.ApplyTuning(m.tuning, player.moveSpeed);

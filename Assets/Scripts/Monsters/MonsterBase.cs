@@ -17,6 +17,8 @@ public abstract class MonsterBase : MonoBehaviour
     [Tooltip("공격 전 빨간 예고(직선·원) 표시")] public bool showTelegraph = false;
     [Tooltip("공격 후 회복 시간(초)")] public float recoverTime = 0.5f;
     public bool wander = true;
+    [Tooltip("길찾기 기준점: 그림 몸 중심에서 아래로 (그림 반높이 × 이 값). 걷는 몬스터는 발밑, 큰 보스는 0(몸 중심)")] [Range(0f, 1f)] public float navFootRatio = 0.5f;
+    float navFoot = -1f;
     public Rect moveArea = new Rect(-11, -4, 22, 8);
     [Tooltip("스테이지 시작 후 첫 공격까지 대기(초)")] public float firstAttackDelay = 0f;
     [Tooltip("플레이어와 이 거리 안이면 더 다가가지 않음(칸)")] public float stopDistance = 1.2f;
@@ -139,6 +141,11 @@ public abstract class MonsterBase : MonoBehaviour
         if (halted || IsStunned || !wander || CurrentPhase != Phase.Move || target == null) return;
         Vector2 to = (Vector2)target.position - (Vector2)transform.position;
         if (to.magnitude <= stopDistance) return;
+        // 칸 길찾기: 벽(윗면·앞면 줄)은 못 지나가고 돌아서 쫓아감 (예전엔 위치를 직접 옮겨서 벽을 뚫고 다녔음)
+        if (navFoot < 0f) { var sr = GetComponentInChildren<SpriteRenderer>(); navFoot = sr != null ? sr.bounds.extents.y * navFootRatio : 0f; }
+        var foot = (Vector2)transform.position + Vector2.down * navFoot;
+        var nav = MonsterNav.Step(foot, target.position, moveSpeed * Time.deltaTime);
+        if (nav.HasValue) { transform.position = nav.Value + Vector2.up * navFoot; return; }
         Vector2 next = (Vector2)transform.position + to.normalized * moveSpeed * Time.deltaTime;
         next.x = Mathf.Clamp(next.x, moveArea.xMin, moveArea.xMax);
         next.y = Mathf.Clamp(next.y, moveArea.yMin, moveArea.yMax);
