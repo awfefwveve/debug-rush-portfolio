@@ -57,6 +57,10 @@ public static class SettingsWindow
         // 닫기 (오른쪽 위)
         var close = new Rect(r.x + r.width * 0.7f, r.y + r.height * 0.8f, r.width * 0.17f, r.width * 0.17f * 0.3f);
         bool back = UiArt.Button(close, "닫기", 24f * s);
+        // 개발자 모드 (스테이지 테스트용): 왼쪽 아래 버튼으로 켜고 끔
+        var dev = new Rect(r.x + r.width * 0.09f, close.y, r.width * 0.3f, close.height);
+        if (UiArt.Button(dev, GameSettings.DevMode ? "개발자 모드: 켜짐" : "개발자 모드: 꺼짐", 22f * s)) GameSettings.DevMode = !GameSettings.DevMode;
+        if (GameSettings.DevMode) UiArt.Label(new Rect(dev.xMax + 12f * s, dev.y, r.width * 0.28f, dev.height), "모든 스테이지 열림", 20f * s, new Color(0.75f, 0.1f, 0.3f), TextAnchor.MiddleLeft, true);
         if (back) languageOpen = false;
         return back;
     }

@@ -22,6 +22,13 @@ public static class GameSettings
         set { PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value)); PlayerPrefs.Save(); Changed?.Invoke(); }
     }
 
+    /// <summary>개발자 모드 (테스트용): 켜면 모든 스테이지가 잠금 없이 열림. 설정창에서 켜고 끔</summary>
+    public static bool DevMode
+    {
+        get => PlayerPrefs.GetInt("settings_devmode", 0) == 1;
+        set { PlayerPrefs.SetInt("settings_devmode", value ? 1 : 0); PlayerPrefs.Save(); Changed?.Invoke(); }
+    }
+
     public static int Language
     {
         get => Mathf.Clamp(PlayerPrefs.GetInt(LangKey, 0), 0, Languages.Length - 1);
@@ -36,6 +43,7 @@ public static class GameSettings
                 for (int d = 0; d < 3; d++) PlayerPrefs.DeleteKey($"clear_{c}_{s}_{d}");
         AchievementManager.ResetAll();
         PlayerPrefs.DeleteKey(ControlsGuide.SeenKey);   // 시연: 조작 안내 다시 보이게
+        PlayerPrefs.DeleteKey("settings_devmode");       // 시연: 개발자 모드도 끔
         PlayerPrefs.Save();
     }
 }

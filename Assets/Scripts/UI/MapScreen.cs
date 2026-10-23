@@ -17,6 +17,15 @@ public class MapScreen : MonoBehaviour
         backButton.onClick.AddListener(() => SceneManager.LoadScene("Title"));
         EnsureScrollbar();
         StyleArt();
+        if (GameSettings.DevMode)   // 개발자 모드 표시 (모든 스테이지 열림)
+        {
+            var canvas = GetComponentInParent<Canvas>(); if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+            if (canvas != null)
+            {
+                var dev = StageHUD.Label(canvas.transform, "DEV", new Vector2(0f, 0f), new Vector2(60f, 30f), new Vector2(90f, 36f), 26f, TMPro.TextAlignmentOptions.Center, new Color(1f, 0.35f, 0.55f), true);
+                dev.outlineWidth = 0.2f; dev.outlineColor = new Color32(10, 5, 10, 255);
+            }
+        }
         Build(chapterDropdown != null ? chapterDropdown.value + 1 : 1);
     }
 

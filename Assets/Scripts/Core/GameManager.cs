@@ -52,7 +52,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool IsUnlocked(StageData s)
     {
-        if (s.stage <= 0) return true;   // 튜토리얼은 처음부터 열림
+        if (s.stage <= 0 || GameSettings.DevMode) return true;   // 튜토리얼은 처음부터 열림 · 개발자 모드면 전부 열림
         var prev = allStages.Where(x => x != null && x.chapter == s.chapter && x.stage >= 1 && x.stage < s.stage)   // 튜토리얼(0)은 해금 조건 아님
                             .OrderByDescending(x => x.stage).FirstOrDefault();
         if (prev != null) return IsCleared(prev);
