@@ -16,6 +16,7 @@ public class Projectile : MonoBehaviour
     public bool useSharedBullet = true;
     public Sprite normalSprite, parrySprite;
     [Tooltip("탄 그림을 진행 방향으로 회전 (칼날 등)")] public bool rotateToDirection = false;
+    [Tooltip("그림이 위를 보고 그려짐 (톱: 톱니가 위) → 위쪽을 진행 방향으로")] public bool artFacesUp = false;
 
     [Header("분열 (몬스터 1-C 패턴 1)")]
     public Projectile splitPrefab;
@@ -46,7 +47,8 @@ public class Projectile : MonoBehaviour
             var anim = sr.GetComponent<SpriteFrameAnimator>();
             if (anim != null) Destroy(anim);
         }
-        if (rotateToDirection) transform.right = dir;
+        if (rotateToDirection && artFacesUp) transform.up = dir;
+        else if (rotateToDirection) transform.right = dir;
         else transform.rotation = Quaternion.identity;
         Destroy(gameObject, lifetime);
     }

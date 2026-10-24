@@ -671,10 +671,10 @@ public static class PlaceholderArtGenerator
         EditPrefab("Blade", go =>
         {
             Bullet(go, 14f, 0.3f);
-            // 몬스터2 2-A 절단기 날 = 아트 팀 톱(saw), 패링 가능 날은 보라색으로 칠한 사본(saw_parry)
-            var saw = D("Monster2/saw"); var sawParry = D("Monster2/saw_parry");
-            var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = saw == null;
-            p.normalSprite = saw != null ? saw : S("blade"); p.parrySprite = sawParry != null ? sawParry : S("blade_parry");
+            // 몬스터2 2-A 절단기 날 = 아트 팀 톱(saw) 원래 색 그대로 (패링 가능 날도 같은 그림, 10/24 B). 톱니가 위로 그려져 있어 날아가는 쪽으로 돌림
+            var saw = D("Monster2/saw");
+            var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.rotateToDirection = true; p.artFacesUp = saw != null;
+            p.normalSprite = saw != null ? saw : S("blade"); p.parrySprite = saw != null ? saw : S("blade_parry");
             SetSprite(go, p.normalSprite, 30);
             if (saw != null) { var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 0.42f; go.transform.localScale = Vector3.one * 1.5f; }   // 톱 1.5배 (10/23 B, 판정도 같이 1.5배)
         });

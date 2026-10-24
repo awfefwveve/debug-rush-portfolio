@@ -19,23 +19,32 @@ public class Monster1B : MonsterBase
     [Tooltip("같은 행·열로 보는 오차(칸)")] public float alignTolerance = 0.6f;
 
     readonly Queue<GameObject> mines = new Queue<GameObject>();
-    Vector2 lineDir;
+    Vector2 lineDir, lineFrom;
 
     protected override int PatternMax => 2;
 
+    // 예전엔 몸 중심(그림 가운데)으로 비교 → 발밑으로 쫓아가서 플레이어가 늘 중심 아래 = 아래로만 쐈음.
+    // 이제 로봇 몸이 차지하는 세로·가로 범위로 같은 행·열을 봄
     protected override bool CanUse(int index)
     {
         if (index != BladeA) return true;
         if (target == null) return false;
-        Vector2 d = (Vector2)target.position - (Vector2)transform.position;
-        if (Mathf.Abs(d.y) <= alignTolerance) { lineDir = new Vector2(Mathf.Sign(d.x), 0f); return true; }
-        if (Mathf.Abs(d.x) <= alignTolerance) { lineDir = new Vector2(0f, Mathf.Sign(d.y)); return true; }
+        Vector2 me = transform.position, pl = target.position, foot = Foot;
+        var body = Body;
+        float halfW = body != null ? body.bounds.extents.x : 0.5f;
+        float top = body != null ? body.bounds.max.y : me.y + 0.5f;
+        // 같은 행: 플레이어 높이가 로봇 발밑~머리 사이 → 좌우로, 플레이어 높이에서 발사
+        if (pl.y >= foot.y - alignTolerance && pl.y <= top && Mathf.Abs(pl.x - me.x) > halfW * 0.5f)
+        { lineDir = new Vector2(Mathf.Sign(pl.x - me.x), 0f); lineFrom = new Vector2(me.x, pl.y); return true; }
+        // 같은 열: 플레이어가 로봇 몸 폭 안 → 위·아래로
+        if (Mathf.Abs(pl.x - me.x) <= Mathf.Max(alignTolerance, halfW * 0.6f))
+        { lineDir = new Vector2(0f, Mathf.Sign(pl.y - me.y)); lineFrom = me; return true; }
         return false;
     }
 
     protected override void Telegraph(int index)
     {
-        if (index == BladeA) TelegraphLine(transform.position, lineDir, 30f, 0.6f);
+        if (index == BladeA) TelegraphLine(lineFrom, lineDir, 30f, 0.6f);
         else TelegraphCircle(transform.position, Tuning.mineDetect);
     }
 
@@ -43,7 +52,7 @@ public class Monster1B : MonsterBase
     {
         if (index == BladeA)
         {
-            Fire(bladePrefab, transform.position, lineDir, Random.value < Tuning.parryChance);
+            Fire(bladePrefab, lineFrom, lineDir, Random.value < Tuning.parryChance);
             yield break;                                   // 쏜 직후 바로 이동 가능
         }
         while (mines.Count >= Mathf.Max(1, Tuning.maxMines))

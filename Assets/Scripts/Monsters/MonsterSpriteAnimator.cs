@@ -28,7 +28,7 @@ public class MonsterSpriteAnimator : MonoBehaviour
         if (anim == null) return;
         bool stunned = monster.IsStunned;
         anim.Paused = stunned;
-        if (sr != null) sr.color = stunned ? new Color(0.65f, 0.65f, 0.8f) : Color.white;
+        if (sr != null) sr.color = Color.white;   // 스턴 중에도 에셋 원래 색 (보라 틴트 뺌, 10/24 B). 멈춘 애니메이션으로 표시
 
         // 항상 플레이어 쪽을 바라봄 (원본 그림은 왼쪽을 봄). 바로 위·아래일 땐 떨리지 않게 그대로
         if (sr != null && monster.Target != null)

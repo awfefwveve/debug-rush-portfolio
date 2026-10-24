@@ -177,5 +177,6 @@ MonoBehaviour:
   normalSprite: {fileID: 0}
   parrySprite: {fileID: 0}
   rotateToDirection: 0
+  artFacesUp: 0
   splitPrefab: {fileID: 5062739518961319735, guid: 0cf482545eae612418b4a41c21a493c9, type: 3}
   splitCount: 8

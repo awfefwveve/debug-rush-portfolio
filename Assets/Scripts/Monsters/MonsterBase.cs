@@ -150,7 +150,7 @@ public abstract class MonsterBase : MonoBehaviour
     }
 
     SpriteRenderer body; bool bodyFound;
-    SpriteRenderer Body { get { if (!bodyFound) { bodyFound = true; foreach (var s in GetComponentsInChildren<SpriteRenderer>()) if (s.gameObject.name != "Shadow") { body = s; break; } } return body; } }
+    protected SpriteRenderer Body { get { if (!bodyFound) { bodyFound = true; foreach (var s in GetComponentsInChildren<SpriteRenderer>()) if (s.gameObject.name != "Shadow") { body = s; break; } } return body; } }
     bool behind;
 
     // 걷는 몬스터가 기계보다 위쪽(뒤)에 있으면 기계 뒤로 그림 (발밑 y 기준). 평소 10, 뒤일 땐 -2 (벽 -10보다는 위)
