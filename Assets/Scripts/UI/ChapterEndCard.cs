@@ -5,6 +5,7 @@ using UnityEngine;
 public class ChapterEndCard : MonoBehaviour
 {
     int chapter;
+    public void Close() => done = true;   // 자동 시연용
     bool done;
     float openedAt;
 

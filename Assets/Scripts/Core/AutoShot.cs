@@ -19,6 +19,15 @@ public class AutoShot : MonoBehaviour
     static void Boot()
     {
         var args = System.Environment.GetCommandLineArgs();
+        int sc = System.Array.IndexOf(args, "-showcase");   // 플레이 영상용 자동 시연 (캡처 파일 없음). 예: -showcase 8 (8초 기다렸다 시작)
+        if (sc >= 0)
+        {
+            var g = new GameObject("AutoShot"); DontDestroyOnLoad(g);
+            var sh = g.AddComponent<AutoShot>(); sh.showcase = true;
+            sh.showcaseDelay = sc + 1 < args.Length && float.TryParse(args[sc + 1], out var dl) ? dl : 5f;
+            sh.dir = Path.Combine(Application.temporaryCachePath, "showcase");
+            return;
+        }
         int i = System.Array.IndexOf(args, "-autoshot");
         if (i < 0 || i + 1 >= args.Length) return;
         var go = new GameObject("AutoShot");
@@ -30,6 +39,7 @@ public class AutoShot : MonoBehaviour
 
     IEnumerator Start()
     {
+        if (showcase) { yield return Showcase(); yield break; }
         Directory.CreateDirectory(dir);
         yield return new WaitForSecondsRealtime(2f);
         yield return Shot("01_title");
@@ -63,6 +73,57 @@ public class AutoShot : MonoBehaviour
             yield return Play();
         }
         Application.Quit();
+    }
+
+    bool showcase;
+    float showcaseDelay = 5f;
+
+    /// <summary>플레이 영상용: 타이틀 → 스테이지 선택 → 1-1 자동 플레이 → 1-3 → 1-5 보스 → 클리어 화면 → 종료 (약 60초)</summary>
+    IEnumerator Showcase()
+    {
+        yield return new WaitForSecondsRealtime(showcaseDelay);   // 녹화 시작할 시간
+        yield return new WaitForSecondsRealtime(4f);              // 타이틀
+        SceneManager.LoadScene("Map");
+        yield return new WaitForSecondsRealtime(3f);
+        yield return PlayStage("1-1", 28f, false);
+        yield return PlayStage("1-3", 9f, false);
+        yield return PlayStage("1-5", 11f, true);
+        yield return new WaitForSecondsRealtime(1f);
+        Application.Quit();
+    }
+
+    IEnumerator PlayStage(string name, float seconds, bool clearAtEnd)
+    {
+        var gm = GameManager.I;
+        var s = gm != null ? gm.allStages.FirstOrDefault(x => x != null && $"{x.chapter}-{x.stage}" == name) : null;
+        if (s == null) yield break;
+        gm.StartStage(s, Difficulty.Easy);
+        yield return new WaitForSecondsRealtime(1.2f);
+        for (int i = 0; i < 30; i++)   // 시작 대사 넘기기
+        {
+            var dlg = FindAnyObjectByType<DialogueUI>();
+            if (dlg != null && dlg.skipButton != null && dlg.skipButton.gameObject.activeInHierarchy) dlg.skipButton.onClick.Invoke();
+            if (StageManager.I != null && StageManager.I.Running) break;
+            yield return new WaitForSecondsRealtime(0.1f);
+        }
+        player = FindAnyObjectByType<PlayerController>();
+        if (player == null) yield break;
+        StartCoroutine(Brain());
+        yield return new WaitForSeconds(seconds);
+        if (clearAtEnd && StageManager.I != null && StageManager.I.Running)
+        {
+            StageManager.I.DebugClear();
+            for (int i = 0; i < 40; i++)
+            {
+                var dlg = FindAnyObjectByType<DialogueUI>();
+                if (dlg != null && dlg.skipButton != null && dlg.skipButton.gameObject.activeInHierarchy) dlg.skipButton.onClick.Invoke();
+                yield return new WaitForSecondsRealtime(0.1f);
+            }
+            // 학년 클리어 화면 잠깐 보여 주고 닫기
+            yield return new WaitForSecondsRealtime(2.5f);
+            var card = FindAnyObjectByType<ChapterEndCard>(); if (card != null) card.Close();
+            yield return new WaitForSecondsRealtime(5f);
+        }
     }
 
     // ---------- 자동 플레이 ----------
@@ -259,6 +320,7 @@ public class AutoShot : MonoBehaviour
 
     IEnumerator Shot(string name)
     {
+        if (showcase) yield break;
         yield return new WaitForEndOfFrame();
         ScreenCapture.CaptureScreenshot(Path.Combine(dir, name + ".png"));
     }
