@@ -180,7 +180,7 @@ public class StageManager : MonoBehaviour
         if (cleared)
         {
             GameManager.I?.SaveClear(Data, Diff);
-            if (Data.chapter == 1 && Data.stage == 1) AchievementManager.Unlock("first_clear");
+            if (!IsTutorial) AchievementManager.Unlock("first_clear");   // 첫 클리어 = 튜토리얼 말고 아무 스테이지나 처음 깼을 때 (개발자 모드로 바로 들어가도)
             if (!IsTutorial && player.Health.Hp == player.Health.MaxHp) AchievementManager.Unlock("no_damage");
             if (IsChapterCleared(Data.chapter)) AchievementManager.Unlock($"chapter{Data.chapter}_clear");
         }

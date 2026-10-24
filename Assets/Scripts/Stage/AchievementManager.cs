@@ -16,6 +16,11 @@ public static class AchievementManager
         PlayerPrefs.DeleteKey(ListKey);
     }
 
+    /// <summary>새로 얻은 업적 (결과 창에 "업적 획득" 표시)</summary>
+    public static event System.Action<string> Unlocked;
+
+    public static string NameOf(string id) => id == "first_clear" ? "첫 클리어" : id == "no_damage" ? "무피격 클리어" : id.StartsWith("chapter") && id.Length > 7 ? id.Substring(7, 1) + "학년 클리어" : id;
+
     public static bool IsUnlocked(string id) => PlayerPrefs.GetInt(Key(id), 0) == 1;
 
     public static void Unlock(string id)
@@ -25,7 +30,8 @@ public static class AchievementManager
         var list = PlayerPrefs.GetString(ListKey, "");
         if (!("," + list + ",").Contains("," + id + ",")) PlayerPrefs.SetString(ListKey, list.Length > 0 ? list + "," + id : id);
         PlayerPrefs.Save();
-        Debug.Log($"업적 획득: {id}");   // TODO: 토스트 UI
+        Debug.Log($"업적 획득: {id}");
+        Unlocked?.Invoke(id);
     }
 
     /// <summary>비밀 업적이고 미획득이면 설명 숨김</summary>

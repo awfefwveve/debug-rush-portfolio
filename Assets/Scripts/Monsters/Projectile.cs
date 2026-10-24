@@ -21,6 +21,7 @@ public class Projectile : MonoBehaviour
     public Projectile splitPrefab;
     public int splitCount = 0;                   // 8
     [System.NonSerialized] public float splitParryChance;   // 갈라진 탄 중 1발이 패링 가능할 확률 (보스 3-A)
+    [System.NonSerialized] public bool visualOnly;          // 그림만 (보스 3-C 낙하물: 떨어지는 순간 표시 원 안에서만 판정, 떨어지는 길에는 판정 없음)
 
     public bool Parryable { get; private set; }
     MonsterBase owner;
@@ -54,6 +55,7 @@ public class Projectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D c)
     {
+        if (visualOnly) return;
         if (c.TryGetComponent(out PlayerController p))
         {
             if (Parryable && p.IsJumping)

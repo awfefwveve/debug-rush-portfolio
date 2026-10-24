@@ -122,9 +122,6 @@ public class AchievementScreen : MonoBehaviour
         scroll = area.gameObject.GetComponent<ScrollRect>(); if (scroll == null) scroll = area.gameObject.AddComponent<ScrollRect>();
         scroll.viewport = view; scroll.content = content; scroll.horizontal = false; scroll.vertical = true;
         scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 40f;
-        // ScrollRect가 드래그 받을 바탕 (투명)
-        var hit = area.GetComponent<Image>(); if (hit == null) hit = area.gameObject.AddComponent<Image>();
-        hit.color = new Color(0f, 0f, 0f, 0f);
 
         // 세로 스크롤바
         var barGo = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));

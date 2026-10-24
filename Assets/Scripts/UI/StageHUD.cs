@@ -23,6 +23,9 @@ public class StageHUD : MonoBehaviour
     Button nextButton;
     Image failIcon;
     int parries, hits, lastHp;
+    readonly System.Collections.Generic.List<string> newAchievements = new System.Collections.Generic.List<string>();
+    void OnAchievement(string id) => newAchievements.Add(AchievementManager.NameOf(id));
+    void OnDestroy() => AchievementManager.Unlocked -= OnAchievement;
 
     static readonly Color Band = new Color(0.04f, 0.06f, 0.12f, 0.78f);
     static readonly Color Accent = new Color(0.22f, 0.82f, 1f);
@@ -41,6 +44,7 @@ public class StageHUD : MonoBehaviour
         player.Health.HpChanged += OnHp;
         player.Inventory.Changed += RefreshHeld;
         player.ParrySucceeded += () => parries++;
+        AchievementManager.Unlocked += OnAchievement;
         player.Health.HpChanged += (hp, max) => { if (hp < lastHp) hits++; lastHp = hp; };
         lastHp = player.Health.Hp;
 
@@ -239,7 +243,7 @@ public class StageHUD : MonoBehaviour
     {
         resultPanel.SetActive(true);
         resultPanel.transform.SetAsLastSibling();
-        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" + ClearRecord() : "<color=#FFFFFF>FAILED...</color>";
+        resultText.text = cleared ? "<color=#FFD23F>STAGE CLEAR!</color>" + ClearRecord() + AchievementLine() : "<color=#FFFFFF>FAILED...</color>";
         // 클리어했고 같은 학년에 다음 스테이지가 있으면 [다음 스테이지] (마지막 스테이지면 숨김 → 스테이지 선택으로)
         var next = cleared ? NextStage() : null;
         if (nextButton != null) nextButton.gameObject.SetActive(next != null);
@@ -262,6 +266,8 @@ public class StageHUD : MonoBehaviour
             resultText.enableWordWrapping = false; resultText.alignment = TMPro.TextAlignmentOptions.Center;
         }
     }
+
+    string AchievementLine() => newAchievements.Count == 0 ? "" : "\n<size=24><color=#7CF0B0>업적 획득: " + string.Join(", ", newAchievements) + "</color></size>";
 
     /// <summary>클리어 기록: 별 3개(남은 시간 30% 이상 · 무피격 · 패링 1회 이상) + 기록 한 줄</summary>
     string ClearRecord()

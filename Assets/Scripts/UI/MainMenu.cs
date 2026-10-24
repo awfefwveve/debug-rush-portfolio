@@ -17,6 +17,7 @@ public class MainMenu : MonoBehaviour
 
     RectTransform monster;
     bool showCredits;
+    static bool MergedStart => UiArt.Get("start_image_merged") != null;
 
     static readonly string[][] Credits =
     {
@@ -41,6 +42,8 @@ public class MainMenu : MonoBehaviour
             if (img != null) { img.color = new Color(0f, 0f, 0f, 0f); img.raycastTarget = true; }   // 어둡게는 SettingsWindow.Dim, 이 판은 뒤 버튼 클릭만 막음
         }
         BuildIllustration();
+        // 시작 노래: 메인 화면 들어오자마자 (씬 로드 이벤트를 놓치는 첫 실행에도 확실히)
+        SoundEffectManager.PlayBgm(Resources.Load<AudioClip>("Bgm/title"));
         BuildButtons();
         if (settingsPanel != null) settingsPanel.transform.SetAsLastSibling();
     }
@@ -54,7 +57,8 @@ public class MainMenu : MonoBehaviour
         var title = root.Find("Title")?.GetComponent<TMP_Text>();
         var subtitle = root.Find("Subtitle")?.GetComponent<TMP_Text>();
 
-        var art = UiArt.Get("start_image");
+        // 팔 합친 시작 일러 (팔이 그림에 들어 있어 어떤 PC에서도 같은 자리). 그래픽 팀 합본이 오면 Resources/UI/start_image_merged.png 만 바꾸면 됨
+        var art = UiArt.Get("start_image_merged"); if (art == null) art = UiArt.Get("start_image");
         if (art != null && bg != null && bg.TryGetComponent(out Image bgImg))
         {
             // 아트 팀 시작 일러스트 1920×1080: 그림 전체가 다 보이게 (비율 유지, 화면 비율이 다르면 남는 곳은 검정)
@@ -131,9 +135,9 @@ public class MainMenu : MonoBehaviour
         if (bgArt != null)
         {
             var arm = UiArt.Get("start_arm");
-            if (arm != null) Place(holder, "Arm", arm, new Vector2(1368f, -48f)).transform.SetSiblingIndex(0);
+            if (arm != null && !MergedStart) Place(holder, "Arm", arm, new Vector2(1368f, -48f)).transform.SetSiblingIndex(0);
             var finger = UiArt.Get("start_finger");
-            if (finger != null) Place(holder, "Finger", finger, new Vector2(1369f, 471f)).transform.SetAsLastSibling();
+            if (finger != null && !MergedStart) Place(holder, "Finger", finger, new Vector2(1369f, 471f)).transform.SetAsLastSibling();   // 합본을 쓰면 손가락은 숨김
             var line = UiArt.Get("start_line");
             if (line != null) Layer(holder, "Frame", line).transform.SetAsLastSibling();
         }

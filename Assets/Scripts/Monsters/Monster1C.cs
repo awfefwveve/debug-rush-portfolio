@@ -25,6 +25,7 @@ public class Monster1C : MonsterBase
     public Projectile fallingPrefab;           // 위에서 아래로
     public int dropCount = 5;
     public float warnTime = 0.6f, dropGap = 0.3f, dropHeight = 6f, impactScale = 0.9f;
+    [Tooltip("낙하물 피해 범위 (칸, 주의 표시 원과 같거나 작게)")] public float impactRadius = 0.6f;
 
     protected override int PatternMax => 3;
 
@@ -71,7 +72,8 @@ public class Monster1C : MonsterBase
             Vector2 pos = target.position;                       // 플레이어가 서 있는 곳
             var marker = warnMarkerPrefab != null ? Instantiate(warnMarkerPrefab, pos, Quaternion.identity) : null;
             yield return Wait(warnTime);
-            Fire(fallingPrefab, pos + Vector2.up * dropHeight, Vector2.down, false);
+            var shot = Fire(fallingPrefab, pos + Vector2.up * dropHeight, Vector2.down, false);
+            if (shot != null) shot.visualOnly = true;
             StartCoroutine(Impact(pos, fall, marker, fx));
             yield return Wait(dropGap);
         }
@@ -82,6 +84,9 @@ public class Monster1C : MonsterBase
     {
         yield return Wait(delay);
         if (marker != null) Destroy(marker);
+        // 떨어지는 순간, 주의 표시 원(반지름 약 0.7칸) 안에 있을 때만 피해
+        var p = target != null ? target.GetComponent<PlayerController>() : null;
+        if (p != null && Vector2.Distance(p.transform.position, pos) <= impactRadius && !p.Health.IsInvincible) p.Health.TakeDamage(1);
         if (fx != null && fx.dropFx != null && fx.dropFx.Length > 0) SpriteFrameAnimator.Spawn(fx.dropFx, pos, 18f, 35, impactScale);
     }
 }

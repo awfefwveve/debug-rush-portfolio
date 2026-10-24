@@ -637,7 +637,7 @@ public static class PlaceholderArtGenerator
         EditPrefab("Monster1C", go =>
         {
             Monster(go, 2f, true);
-            go.GetComponent<MonsterBase>().navFootRatio = 0.5f; go.GetComponent<MonsterBase>().walks = true;   // 보스: 몸 중심과 발밑 사이 기준, 벽·기계 못 지나감
+            go.GetComponent<MonsterBase>().navFootRatio = 0.5f; go.GetComponent<MonsterBase>().walks = false;  // 보스: 큰 몸이 벽·기계 사이에 끼어서 곧장 쫓아감 (1-5엔 안쪽 벽 없음, 기계보다 앞에 그려짐)
             go.transform.localScale = Vector3.one * 3.2f;    // 보스 (10/23: 그림 약 6.4칸 = 주인공의 약 3.2배)
             var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f;
             c.splitProjectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "SplitShot.prefab");

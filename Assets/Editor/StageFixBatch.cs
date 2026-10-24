@@ -30,6 +30,11 @@ public static class StageFixBatch
                     for (int x = -9; x <= 9; x++) for (int y = -7; y <= 5; y++) { var c = new Vector2Int(x, y); if (!s.layout.floor.Contains(c)) s.layout.floor.Add(c); }
                 Debug.Log($"[Fix] 1-5 십자 벽 {before - s.layout.walls.Count}칸 삭제");
             }
+            // 스토리 정리 (10/24): 1-4에 1-3 대사가 그대로 복사돼 있던 것 삭제(기획서: 1-2·1-4 대사 없음), 카드 한 줄 설명
+            if (s.stage == 4) { s.intro = new DialogueLine[0]; s.outro = new DialogueLine[0]; }
+            if (s.stage == 2 && string.IsNullOrEmpty(s.summary)) s.summary = "더 빨라진 벌들의 공격";
+            if (s.stage == 4 && s.summary == "과부하된 네트워크") s.summary = "폭탄까지 설치하는 로봇";
+            if (s.stage == 5 && s.summary == "보스") s.summary = "버그의 근원, 보스 등장";
             if (s.stage == 4 && s.monsters != null)
                 foreach (var m in s.monsters)
                     if (m?.prefab != null && m.prefab.GetComponent<Monster1B>() != null)
