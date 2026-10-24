@@ -42,18 +42,19 @@ public class IntroSplash : MonoBehaviour
         teamLogo = img.rectTransform; teamLogo.sizeDelta = new Vector2(1180f, 640f);
 
         schoolGroup = Group("School");
-        // 학교 화면: 어두운 바탕 가운데 따뜻한 주황 빛 번짐
+        // 학교 화면: 검은 갈색 바탕 가운데 주황 빛 번짐 (청강 로고 영상처럼)
+        Full(schoolGroup.transform, "SchoolBg", new Color(0.06f, 0.035f, 0.02f, 1f));
         var glow = new GameObject("Glow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
         glow.transform.SetParent(schoolGroup.transform, false);
-        glow.sprite = Radial(); glow.color = new Color(1f, 0.55f, 0.15f, 0.55f); glow.raycastTarget = false;
+        glow.sprite = Radial(); glow.color = new Color(0.85f, 0.45f, 0.12f, 0.45f); glow.raycastTarget = false;
         glow.rectTransform.sizeDelta = new Vector2(1300f, 1000f);
         var schoolArt = UiArt.Get("intro_school_logo");
         if (schoolArt != null)
         {
             var s = new GameObject("SchoolLogo", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             s.transform.SetParent(schoolGroup.transform, false);
-            s.sprite = schoolArt; s.preserveAspect = true; s.raycastTarget = false; s.rectTransform.sizeDelta = new Vector2(520f, 520f); s.rectTransform.anchoredPosition = new Vector2(0f, 60f);
-            StageHUD.Label(schoolGroup.transform, "청강문화산업대학교", new Vector2(0.5f, 0.5f), new Vector2(0f, -260f), new Vector2(1000f, 70f), 40f, TextAlignmentOptions.Center, Color.white, true).characterSpacing = 6f;
+            s.sprite = schoolArt; s.preserveAspect = true; s.raycastTarget = false; s.rectTransform.sizeDelta = new Vector2(460f, 320f); s.rectTransform.anchoredPosition = new Vector2(0f, 30f);
+            StageHUD.Label(schoolGroup.transform, "청강문화산업대학교", new Vector2(0.5f, 0.5f), new Vector2(0f, -190f), new Vector2(1000f, 60f), 30f, TextAlignmentOptions.Center, Color.white, true).characterSpacing = 6f;
         }
         else
         {
