@@ -46,6 +46,7 @@ public class MainMenu : MonoBehaviour
         SoundEffectManager.PlayBgm(Resources.Load<AudioClip>("Bgm/title"));
         BuildButtons();
         if (settingsPanel != null) settingsPanel.transform.SetAsLastSibling();
+        IntroSplash.Play();   // 게임 실행 때 한 번: 팀 로고 → 학교 → 타이틀 (메뉴를 다 만든 뒤에 띄워야 메뉴가 인트로 캔버스에 붙지 않음)
     }
 
     void BuildIllustration()
