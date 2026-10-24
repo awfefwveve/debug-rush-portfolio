@@ -15,7 +15,7 @@ MonoBehaviour:
   chapter: 1
   stage: 4
   displayName: 1-4
-  summary: "\uD3ED\uD0C4\uAE4C\uC9C0 \uC124\uCE58\uD558\uB294 \uB85C\uBD07"
+  summary: "\uBBF8\uC644\uC131 \uB124\uD2B8\uC6CC\uD06C"
   sceneName: Stage
   timeLimit: 100
   timeMultiplier:
@@ -47,8 +47,28 @@ MonoBehaviour:
       maxMines: 3
   playerInvincibleTime: 1.5
   newMonsterPatternMask: 1
-  intro: []
-  outro: []
+  intro:
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uC774\uB7F0, \uB2E4\uC2DC \uC0B4\uC544\uB0AC\uC796\uC544?"
+    portrait: {fileID: 0}
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uC800\uBC88 \uBC84\uADF8\uBCF4\uB2E4 \uB354 \uC5B4\uB824\uC6B4 \uBC84\uADF8\uC778\uAC00\uBCF8\uB370\u2026"
+    portrait: {fileID: 0}
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uC774\uB7F4\uC2DC\uAC04 \uC5C6\uC9C0, \uB9C8\uAC10\uB3C4 \uC5BC\uB9C8
+      \uB0A8\uC9C0 \uC54A\uC558\uB2E4\uACE0!"
+    portrait: {fileID: 0}
+  outro:
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uC544\uC774\uACE0\u2026 \uC800\uBC88\uBCF4\uB2E4 \uB354 \uD798\uB4E4\uC5C8\uB2E4\u2026"
+    portrait: {fileID: 0}
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uC774\uB7AC\uB294\uB370\uB3C4 \uC544\uC9C1 \uBA40\uC5C8\uB2E4\uB2C8 \uAC70\uC9D3\uB9D0!"
+    portrait: {fileID: 0}
+  - speaker: "\uC8FC\uC778\uACF5"
+    text: "\uADF8\uB798\uB3C4 \uD558\uB098\uC529 \uD574\uB098\uAC00\uBA74 \uBD84\uBA85
+      \uB05D\uC740 \uC788\uACA0\uC9C0!"
+    portrait: {fileID: 0}
   layout:
     use: 1
     width: 30

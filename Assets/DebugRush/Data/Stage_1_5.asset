@@ -15,7 +15,7 @@ MonoBehaviour:
   chapter: 1
   stage: 5
   displayName: 1-5
-  summary: "\uBC84\uADF8\uC758 \uADFC\uC6D0, \uBCF4\uC2A4 \uB4F1\uC7A5"
+  summary: 
   sceneName: Stage
   timeLimit: 110
   timeMultiplier:
