@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public static class StageFixBatch
 {
-    static readonly Dictionary<int, float> TimeLimit = new Dictionary<int, float> { { 1, 300f }, { 2, 330f }, { 3, 360f }, { 4, 420f }, { 5, 480f } };   // 10/25 팀: 보스 쪽으로 갈수록 5~8분
+    static readonly Dictionary<int, float> TimeLimit = new Dictionary<int, float> { { 1, 300f }, { 2, 300f }, { 3, 450f }, { 4, 450f }, { 5, 600f } };   // 10/25 팀: 5분·5분·7분30초·7분30초·10분
 
     public static void Run()
     {
