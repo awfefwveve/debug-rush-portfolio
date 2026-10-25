@@ -24,8 +24,8 @@ public class Monster1C : MonsterBase
     public GameObject warnMarkerPrefab;
     public Projectile fallingPrefab;           // 위에서 아래로
     public int dropCount = 5;
-    public float warnTime = 0.6f, dropGap = 0.3f, dropHeight = 6f, impactScale = 0.9f;
-    [Tooltip("낙하물 피해 범위 (칸, 주의 표시 원과 같거나 작게)")] public float impactRadius = 0.6f;
+    public float warnTime = 0.6f, dropGap = 0.3f, dropHeight = 6f, impactScale = 1.17f;
+    [Tooltip("낙하물 피해 범위 (칸, 주의 표시 원과 같거나 작게)")] public float impactRadius = 0.78f;
 
     protected override int PatternMax => 3;
 

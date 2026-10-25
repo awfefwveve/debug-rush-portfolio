@@ -140,7 +140,7 @@ public class MainMenu : MonoBehaviour
             var finger = UiArt.Get("start_finger");
             if (finger != null && !MergedStart) Place(holder, "Finger", finger, new Vector2(1369f, 471f)).transform.SetAsLastSibling();   // 합본을 쓰면 손가락은 숨김
             var line = UiArt.Get("start_line");
-            if (line != null) Layer(holder, "Frame", line).transform.SetAsLastSibling();
+            if (line != null && !MergedStart) Layer(holder, "Frame", line).transform.SetAsLastSibling();   // 새 시작 일러(10/25)는 테두리·팔까지 한 장
         }
     }
 

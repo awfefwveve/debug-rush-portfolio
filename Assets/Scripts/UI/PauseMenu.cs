@@ -34,9 +34,9 @@ public class PauseMenu : MonoBehaviour
         float cx = r.x + r.width * 0.49f, top = r.y + r.height * 0.18f, bottom = r.y + r.height * 0.97f;
         float bw = r.width * 0.42f, bh = bw * 0.22f, step = bh * 1.35f;
         float x = cx - bw * 0.5f, y = (top + bottom) * 0.5f - (bh + step * 2f) * 0.5f, gap = step;
-        if (UiArt.Button(new Rect(x, y, bw, bh), "계속하기", 28f * s)) SetOpen(false);
-        if (UiArt.Button(new Rect(x, y + gap, bw, bh), "설정", 28f * s)) settings = true;
-        if (UiArt.Button(new Rect(x, y + gap * 2f, bw, bh), "타이틀로 나가기", 28f * s)) { Time.timeScale = previousTimeScale; UnityEngine.SceneManagement.SceneManager.LoadScene("Title"); }
+        if (UiArt.Button(new Rect(x, y, bw, bh), "계속하기", 24f * s)) SetOpen(false);
+        if (UiArt.Button(new Rect(x, y + gap, bw, bh), "설정", 24f * s)) settings = true;
+        if (UiArt.Button(new Rect(x, y + gap * 2f, bw, bh), "타이틀로 나가기", 24f * s)) { Time.timeScale = previousTimeScale; UnityEngine.SceneManagement.SceneManager.LoadScene("Title"); }
     }
     void OnDestroy() { if (open) Time.timeScale = previousTimeScale; }
 }

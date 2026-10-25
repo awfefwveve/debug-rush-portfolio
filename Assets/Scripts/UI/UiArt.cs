@@ -87,7 +87,7 @@ public static class UiArt
         {
             GUI.DrawTexture(r, Tex("setting"), ScaleMode.StretchToFill);
             // 탭 글자 자리: 그림 기준 x 200~360, y 8~76 (1408×832, 탭 안 흰 막대 오른쪽)
-            Label(new Rect(r.x + r.width * 0.142f, r.y + r.height * 0.01f, r.width * 0.2f, r.height * 0.082f), title, 34f * s, Ink, TextAnchor.MiddleLeft, true);
+            Label(new Rect(r.x + r.width * 0.142f, r.y + r.height * 0.01f, r.width * 0.2f, r.height * 0.082f), title, 26f * s, Ink, TextAnchor.MiddleLeft, true);   // 34 → 26: 탭 칸 안에 들어가게 (10/25 팀)
         }
         else GUI.Box(r, title);
         return r;

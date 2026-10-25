@@ -640,6 +640,7 @@ public static class PlaceholderArtGenerator
             go.GetComponent<MonsterBase>().navFootRatio = 0.5f; go.GetComponent<MonsterBase>().walks = false;  // 보스: 큰 몸이 벽·기계 사이에 끼어서 곧장 쫓아감 (1-5엔 안쪽 벽 없음, 기계보다 앞에 그려짐)
             go.transform.localScale = Vector3.one * 3.2f;    // 보스 (10/23: 그림 약 6.4칸 = 주인공의 약 3.2배)
             var c = go.GetComponent<Monster1C>(); c.lineLength = 30f; c.lineThickness = 1f;
+            c.impactRadius = 0.78f; c.impactScale = 1.17f;   // 낙하물 약 1.3배 (10/25 팀): 그림·주의 원·피해 원 같이
             c.splitProjectilePrefab = AssetDatabase.LoadAssetAtPath<Projectile>(P + "SplitShot.prefab");
             c.linePrefab = AssetDatabase.LoadAssetAtPath<Hazard>(P + "ElectricLine.prefab");
             c.warnMarkerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(P + "WarnMarker.prefab");
@@ -661,7 +662,7 @@ public static class PlaceholderArtGenerator
         {
             Bullet(go, 14f, 0.5f);   // (아래에서 0.6배 → 판정 0.3칸)
             var fall = D("Boss/fall");
-            if (fall != null) { var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.normalSprite = p.parrySprite = fall; SetSprite(go, fall, 30); go.transform.localScale = Vector3.one * 0.6f; }
+            if (fall != null) { var p = go.GetComponent<Projectile>(); p.useSharedBullet = false; p.normalSprite = p.parrySprite = fall; SetSprite(go, fall, 30); go.transform.localScale = Vector3.one * 0.78f; }   // 0.6 → 0.78 (1.3배)
         });
         EditPrefab("Monster1A_Shot", go =>
         {
@@ -679,7 +680,7 @@ public static class PlaceholderArtGenerator
             if (saw != null) { var col = go.GetComponent<CircleCollider2D>(); if (col != null) col.radius = 0.42f; go.transform.localScale = Vector3.one * 1.5f; }   // 톱 1.5배 (10/23 B, 판정도 같이 1.5배)
         });
         EditPrefab("Mine", go => SetSprite(go, D("Monster2/bomb") != null ? D("Monster2/bomb") : S("mine"), -5));   // 몬스터2 2-B 설치 로봇 = 아트 팀 폭탄
-        EditPrefab("WarnMarker", go => { SetSprite(go, S("warn_circle_border"), -40); go.transform.localScale = Vector3.one * 0.35f; go.GetComponentInChildren<SpriteRenderer>().color = new Color(1f, 0.3f, 0.35f, 0.9f); });
+        EditPrefab("WarnMarker", go => { SetSprite(go, S("warn_circle_border"), -40); go.transform.localScale = Vector3.one * 0.455f; go.GetComponentInChildren<SpriteRenderer>().color = new Color(1f, 0.3f, 0.35f, 0.9f); });
         EditPrefab("ElectricLine", go => SetSprite(go, D("Boss/line_h") != null ? D("Boss/line_h") : S("wire"), -5));   // 보스 3-B 전선 = 아트 팀 전선 한 칸을 길이만큼 늘림
         EditPrefab("MagneticField", go =>
         {
