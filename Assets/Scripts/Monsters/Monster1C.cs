@@ -29,6 +29,9 @@ public class Monster1C : MonsterBase
 
     protected override int PatternMax => 3;
 
+    // 패턴이 길어서(낙하 5연속 약 6초) 공격 중 제자리면 거의 안 움직임 → 제작대 옆에 서 있는 것처럼 보였음 (10/25 팀). 공격·회복 중에도 쫓아감
+    protected override bool MoveWhileAttacking(int pattern) => true;
+
     // 빨간 공격 예고는 끔 (10/22). 3-C 주의 표시는 패턴 자체라 그대로
     protected override void Telegraph(int index) { }
 

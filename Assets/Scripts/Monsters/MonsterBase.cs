@@ -170,7 +170,7 @@ public abstract class MonsterBase : MonoBehaviour
         UpdateTelegraphs();
         SortAgainstMachines();
         // 예고·공격 중에는 제자리 (읽기 쉽게). 이동 = 플레이어 쪽으로 (대각선도 같은 속도)
-        bool canMove = CurrentPhase == Phase.Move || (CurrentPhase == Phase.Attack && MoveWhileAttacking(CurrentPattern));
+        bool canMove = CurrentPhase == Phase.Move || ((CurrentPhase == Phase.Attack || CurrentPhase == Phase.Recover) && MoveWhileAttacking(CurrentPattern));
         if (halted || IsStunned || !wander || !canMove || target == null) return;
         Vector2 to = (Vector2)target.position - (Vector2)transform.position;
         if (to.magnitude <= stopDistance) return;

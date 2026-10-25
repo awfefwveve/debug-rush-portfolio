@@ -17,7 +17,7 @@ MonoBehaviour:
   displayName: 1-2
   summary: "\uB05D\uB098\uC9C0 \uC54A\uC740 \uBC84\uADF8"
   sceneName: Stage
-  timeLimit: 100
+  timeLimit: 330
   timeMultiplier:
   - 1.3
   - 1
